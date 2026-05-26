@@ -12,7 +12,7 @@
 **One-line pitch:** Given a stock price, PriceLens reverse-engineers what assumptions the market must be making to arrive at it, and surfaces the evidence behind each one.
 **Timeline:** 2026-04-25 launch · online screening 2026-06-03 to 06-05 · Demo Day Singapore 2026-06-13
 **Team size:** 1 (solo)
-**Status:** PRD v0.4 + UI mockup + design system locked. MiroMind API access secured ($100 + 100 calls). `reverse_dcf.py` validated on COST/NVDA/TSLA (Monte Carlo intervals working; TSLA confirmed as DCF boundary case). G1-G6 + B1-B4 + A1 product decisions all locked. Prompt templates (`prompts/evidence_hunter.md` + `prompts/decoder_narrator.md`) drafted, awaiting user review. W1 API tests next once user wires up MiroMind key.
+**Status:** PRD v0.4 locked. W1 complete (Test A/B passed, $3.39 spent). W2 backbone complete: FastAPI server + data-driven frontend (3-ticker switcher, boundary mode, slider, bilingual disclaimer) + reverse_dcf v2 (beta cap, analyst consensus, historical context) + decoder narrator wired with real historical baselines. Git initialized, 5 commits on master. Integration tested end-to-end via TestClient. Next: critic/synthesizer agents (W2 finisher) → W3 polish + 5d short-term attribution.
 
 ---
 
@@ -36,6 +36,9 @@
 | `requirements.txt` | Python deps: yfinance, numpy, scipy |
 | `prompts/evidence_hunter.md` | Evidence Hunter prompt template (deepresearch mode; supports standard + boundary modes per B4) |
 | `prompts/decoder_narrator.md` | Long-term Decoder narrator prompt template (chat mode; numbers → human-readable assumptions) |
+| `api.py` | FastAPI server. Run: `uvicorn api:app --reload --port 8000`. Serves cached pipeline outputs from `outputs/` + the mockup at `/`. No LLM. |
+| `outputs/{TICKER}_{timestamp}.json` | Pipeline output per ticker per run. Frontend reads via `/api/decode/{ticker}`. |
+| `cache/decoder/`, `cache/evidence/` | Decoder + evidence cached results (G5 foundation). Cache key invalidates on input change; decoder bumped to v2 schema 2026-05-27. |
 | `pricelens_design_system.md` | Frontend design philosophy + visual language (THE source of truth for any UI work) |
 | `pricelens_mockup.html` | Production-grade interactive mockup, opens in browser. Implements the full design system. |
 | `hackathon_track.png` | Original MiroMind track brief image — sets the "推理透明" theme |
@@ -154,7 +157,9 @@ Data Tools:
 
 **2026-05-26** — MiroMind API access secured ($100 + 100 calls). Researched platform docs and confirmed: the API ships an OpenAI-compatible endpoint with two models (mini 30B + flagship 235B), both deepresearch agents. Key architectural decision: stay on a **single API** by toggling between deep research mode (`tool_choice=auto`, used only for Evidence Hunter) and chat mode (`tool_choice=none`, used for all narration / Critic / Synthesizer). PRD upgraded to v0.2 with: (1) new Layer 2 "Computation" between data and LLM; (2) F4 evidence search promoted to hero feature; (3) F3 short-term attribution scope-reduced to 5d + 2 factors only; (4) W1 verification expanded with Test A (deep research) + Test B (chat mode); (5) budget mitigations (mini for dev, cached pre-runs for demo).
 
-**2026-05-27** — Major decision-locking day. Scope-risk audit identified 6 high-impact gaps (G1-G6), all decided with user: G1 evidence brief JSON schema (PRD Appendix A); G2 Monte Carlo interval estimation; G3 evidence frozen + annotated on slider; G4 SSE streaming evidence; G5 OFFLINE_MODE + 3-tier degradation; G6 UI credit + Agent action log. Wind AIFin Market evaluated and deferred to post-MVP — MVP stays on yfinance. PRD upgraded to v0.3.
+**2026-05-27 (dev session)** — Pivoted to /dev mode (Tech Lead orchestrating worker agents). Git init. 3 worker agents spawned in parallel (non-overlapping files, no worktree available so manual git mgmt by Tech Lead): A=FastAPI backend (api.py, 70 lines, 4 endpoints, no Pydantic, CORS), B=frontend integration (pricelens_mockup.html: ticker switcher / boundary mode UI / slider / bilingual disclaimer / agent log skeleton / fixture fallback), C=reverse_dcf improvements (beta cap 1.5, analyst consensus pull, historical context computation + markdown formatter). All 3 completed in ~7-15 min each. Tech Lead wired C's historical context into pipeline.py decoder prompt, bumped decoder cache to v2. All 4 commits on master. Full integration test via TestClient: all endpoints pass, mockup renders with FIXTURE_DATA fallback, bilingual disclaimer visible. **W2 backbone done.** Cost gotcha noted: yfinance's revenueGrowth/earningsGrowth are YoY not 5Y forward — internal field names keep `_5y_consensus` suffix but display strings honestly say "近一年". Next: critic + synthesizer agents (W2 finisher); then W3 short-term attribution + slider real formula.
+
+**2026-05-27 (earlier today)** — Major decision-locking day. Scope-risk audit identified 6 high-impact gaps (G1-G6), all decided with user: G1 evidence brief JSON schema (PRD Appendix A); G2 Monte Carlo interval estimation; G3 evidence frozen + annotated on slider; G4 SSE streaming evidence; G5 OFFLINE_MODE + 3-tier degradation; G6 UI credit + Agent action log. Wind AIFin Market evaluated and deferred to post-MVP — MVP stays on yfinance. PRD upgraded to v0.3.
 
 `reverse_dcf.py` ran on COST / NVDA / TSLA — methodology validated decisively. COST gave clean intervals (growth 16-28%), NVDA gave intervals that honestly surface the bubble assumption tension (60%+ growth or 6% WACC required), TSLA returned NO SOLUTION across the board (DCF can't explain $429 price). This 3-stock variation became the new demo narrative arc.
 
