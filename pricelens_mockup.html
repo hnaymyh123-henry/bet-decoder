@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PriceLens · Equity Research · NVDA</title>
+<title>PriceLens · Equity Research</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100;200;300;400;500;600;700&family=Geist+Mono:wght@200;300;400;500;600&display=swap" rel="stylesheet">
@@ -21,7 +21,7 @@
     --ink-4: #8C8A82;
     --ink-5: #B8B4A8;
 
-    --accent: #8B2A1F;        /* oxblood — classic IB research */
+    --accent: #8B2A1F;
     --accent-soft: #F4E4E2;
     --positive: #1F5C3D;
     --negative: #8B2A1F;
@@ -46,19 +46,14 @@
   .mono { font-family: var(--mono); font-feature-settings: "tnum" 1, "zero" 1; }
   .num { font-family: var(--mono); font-feature-settings: "tnum" 1; }
 
-  /* ============================================================
-     PAGE FRAME — research-report column grid
-     ============================================================ */
   .page {
-    max-width: 1200px;
+    max-width: 1320px;
     margin: 0 auto;
-    padding: 0 64px;
+    padding: 0 56px;
     background: var(--paper);
   }
 
-  /* ============================================================
-     1.  MASTHEAD — classic research-report top bar
-     ============================================================ */
+  /* ============================ MASTHEAD ============================ */
   .masthead {
     background: var(--rule);
     color: var(--paper);
@@ -98,19 +93,96 @@
   }
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
-  /* ============================================================
-     2.  COVER BLOCK — title, subtitle, recommendation, byline
-     ============================================================ */
+  /* ============================ TICKER PICKER ============================ */
+  .picker {
+    padding: 24px 0 20px;
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 24px;
+    align-items: center;
+  }
+  .picker .lbl {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .picker-inputs {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .picker input[type="text"] {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    padding: 9px 14px;
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    color: var(--ink);
+    width: 130px;
+    text-transform: uppercase;
+    outline: none;
+  }
+  .picker input[type="text"]:focus { border-color: var(--ink); }
+  .picker .go {
+    background: var(--ink);
+    color: var(--paper);
+    border: 1px solid var(--ink);
+    padding: 9px 18px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .picker .presets { display: flex; gap: 8px; }
+  .picker .preset {
+    background: transparent;
+    border: 1px solid var(--line);
+    padding: 9px 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--ink-2);
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .picker .preset:hover { border-color: var(--ink); color: var(--ink); }
+  .picker .preset.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .picker .status {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.04em;
+    text-align: right;
+  }
+  .picker .status .mode-tag {
+    display: inline-block;
+    padding: 3px 9px;
+    border: 1px solid var(--line);
+    margin-left: 8px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+  }
+  .picker .status .mode-tag.standard { color: var(--positive); border-color: var(--positive); }
+  .picker .status .mode-tag.boundary { color: var(--negative); border-color: var(--negative); }
+
+  /* ============================ COVER ============================ */
   .cover {
-    padding: 56px 0 48px;
+    padding: 48px 0 40px;
     border-bottom: 2px solid var(--rule);
   }
   .cover-pre {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 32px;
-    padding-bottom: 18px;
+    margin-bottom: 28px;
+    padding-bottom: 16px;
     border-bottom: 1px solid var(--line);
   }
   .cover-pre .tag {
@@ -131,10 +203,8 @@
   .cover-grid {
     display: grid;
     grid-template-columns: 1fr 340px;
-    gap: 64px;
+    gap: 56px;
   }
-
-  /* Title block */
   .title-block .industry {
     font-family: var(--mono);
     font-size: 10.5px;
@@ -146,17 +216,17 @@
   }
   .title-block h1 {
     font-family: var(--sans);
-    font-size: 52px;
-    line-height: 1.05;
-    letter-spacing: -0.035em;
+    font-size: 44px;
+    line-height: 1.06;
+    letter-spacing: -0.03em;
     font-weight: 400;
     color: var(--ink);
-    margin-bottom: 22px;
+    margin-bottom: 20px;
   }
   .title-block h1 .sec-name {
     display: block;
     font-family: var(--mono);
-    font-size: 18px;
+    font-size: 16px;
     letter-spacing: 0.06em;
     color: var(--ink);
     font-weight: 500;
@@ -168,18 +238,17 @@
     margin-left: 8px;
   }
   .title-block .subtitle {
-    font-size: 15px;
-    line-height: 1.6;
+    font-size: 14px;
+    line-height: 1.65;
     color: var(--ink-2);
-    margin-bottom: 28px;
-    max-width: 580px;
+    margin-bottom: 24px;
+    max-width: 620px;
   }
   .title-block .subtitle strong { font-weight: 500; color: var(--ink); }
-
   .byline {
     display: flex;
     gap: 32px;
-    padding-top: 20px;
+    padding-top: 18px;
     border-top: 1px solid var(--line);
     font-family: var(--mono);
     font-size: 10.5px;
@@ -188,9 +257,9 @@
   }
   .byline > div { display: flex; flex-direction: column; gap: 4px; }
   .byline .k { font-size: 9.5px; letter-spacing: 0.18em; color: var(--ink-4); text-transform: uppercase; }
-  .byline .v { color: var(--ink); font-size: 11.5px; font-weight: 500; }
+  .byline .v { color: var(--ink); font-size: 11px; font-weight: 500; }
 
-  /* Recommendation box — classic IB rating tile */
+  /* Recommendation box */
   .recommendation {
     background: var(--paper-2);
     border: 1px solid var(--line);
@@ -222,7 +291,6 @@
     color: var(--ink-4);
     letter-spacing: 0.04em;
   }
-
   .reco-table { width: 100%; border-collapse: collapse; }
   .reco-table td {
     padding: 9px 0;
@@ -237,7 +305,21 @@
     font-size: 10.5px;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    width: 50%;
+    width: 55%;
+  }
+  .reco-table .k .info {
+    display: inline-block;
+    width: 13px; height: 13px;
+    border: 1px solid var(--ink-4);
+    border-radius: 50%;
+    text-align: center;
+    line-height: 11px;
+    font-size: 9px;
+    color: var(--ink-4);
+    margin-left: 5px;
+    cursor: help;
+    font-family: var(--sans);
+    letter-spacing: 0;
   }
   .reco-table .v {
     text-align: right;
@@ -248,7 +330,6 @@
   .reco-table .v.accent { color: var(--accent); }
   .reco-table .v.up { color: var(--positive); }
   .reco-table .v.down { color: var(--negative); }
-
   .reco-rating {
     display: flex; align-items: center; gap: 8px;
     margin-top: 16px; padding-top: 14px;
@@ -264,6 +345,9 @@
     font-weight: 500;
   }
   .reco-rating .badge.fair { background: var(--neutral); }
+  .reco-rating .badge.under { background: var(--positive); }
+  .reco-rating .badge.over { background: var(--negative); }
+  .reco-rating .badge.boundary { background: var(--negative); }
   .reco-rating .note {
     font-family: var(--mono);
     font-size: 10px;
@@ -271,83 +355,23 @@
     letter-spacing: 0.04em;
   }
 
-  /* ============================================================
-     3.  EXECUTIVE SUMMARY
-     ============================================================ */
-  .exec {
-    padding: 36px 0 28px;
-    border-bottom: 1px solid var(--rule);
-  }
-  .exec-frame {
-    background: var(--paper-2);
-    border: 1px solid var(--line);
-    padding: 28px 32px 24px;
-  }
-  .exec-head {
+  /* ============================ MAIN LAYOUT ============================ */
+  .main-grid {
     display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 20px;
-    align-items: baseline;
-    margin-bottom: 18px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid var(--line);
-  }
-  .exec-head .num {
-    font-family: var(--mono);
-    font-size: 10.5px;
-    color: var(--accent);
-    letter-spacing: 0.18em;
-    font-weight: 500;
-  }
-  .exec-head h2 {
-    font-family: var(--sans);
-    font-size: 16px;
-    font-weight: 500;
-    letter-spacing: -0.005em;
-    color: var(--ink);
-  }
-  .exec ul {
-    list-style: none;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px 36px;
-  }
-  .exec ul li {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 12px;
-    align-items: baseline;
-    font-size: 13px;
-    line-height: 1.55;
-    color: var(--ink-2);
-  }
-  .exec ul li .ix {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--accent);
-    letter-spacing: 0.08em;
-    font-weight: 500;
-    margin-top: 2px;
-    min-width: 24px;
-  }
-  .exec ul li strong { color: var(--ink); font-weight: 500; }
-  .exec ul li .ann {
-    font-family: var(--mono);
-    font-size: 10.5px;
-    color: var(--ink-3);
+    grid-template-columns: 1fr 300px;
+    gap: 40px;
+    align-items: start;
   }
 
-  /* ============================================================
-     4.  SECTION HEADER — shared style for all sections
-     ============================================================ */
-  .section { padding: 56px 0 48px; border-bottom: 1px solid var(--rule); }
+  /* Section header */
+  .section { padding: 48px 0 40px; border-bottom: 1px solid var(--rule); }
   .sec-h {
     display: grid;
-    grid-template-columns: 72px 1fr auto;
-    gap: 32px;
+    grid-template-columns: 60px 1fr auto;
+    gap: 24px;
     align-items: baseline;
-    margin-bottom: 36px;
-    padding-bottom: 14px;
+    margin-bottom: 28px;
+    padding-bottom: 12px;
     border-bottom: 1px solid var(--rule);
   }
   .sec-h .ix {
@@ -359,7 +383,7 @@
   }
   .sec-h h2 {
     font-family: var(--sans);
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 500;
     letter-spacing: -0.02em;
     color: var(--ink);
@@ -371,17 +395,15 @@
     letter-spacing: 0.04em;
     text-align: right;
   }
-
   .sec-lede {
     font-size: 13.5px;
     line-height: 1.7;
     color: var(--ink-2);
     max-width: 780px;
-    margin-bottom: 32px;
+    margin-bottom: 28px;
   }
   .sec-lede strong { color: var(--ink); font-weight: 500; }
 
-  /* Exhibit caption */
   .exhibit {
     display: flex;
     align-items: baseline;
@@ -421,9 +443,7 @@
     letter-spacing: 0.02em;
   }
 
-  /* ============================================================
-     5.  ASSUMPTION DECOMPOSITION TABLE
-     ============================================================ */
+  /* ============================ ASSUMPTION TABLE ============================ */
   .ass-table {
     width: 100%;
     border-collapse: collapse;
@@ -445,14 +465,14 @@
   .ass-table thead th.right { text-align: right; }
   .ass-table thead th.center { text-align: center; }
   .ass-table tbody td {
-    padding: 16px 14px;
+    padding: 14px 14px;
     border-bottom: 1px solid var(--line);
     vertical-align: middle;
   }
-  .ass-table tbody tr:hover td { background: var(--paper-2); }
-  .ass-table tbody tr.high-sens td { background: rgba(139,42,31,0.04); }
-  .ass-table tbody tr.high-sens:hover td { background: rgba(139,42,31,0.07); }
-
+  .ass-table tbody tr.row-main { cursor: pointer; transition: background 0.15s; }
+  .ass-table tbody tr.row-main:hover td { background: var(--paper-2); }
+  .ass-table tbody tr.row-main.active td { background: var(--highlight); }
+  .ass-table tbody tr.row-main.lb td { font-weight: 500; }
   .ass-table .ix {
     font-family: var(--mono);
     font-size: 10.5px;
@@ -461,77 +481,50 @@
     font-weight: 500;
     width: 36px;
   }
-  .ass-table .assumption .name {
-    font-family: var(--sans);
-    font-size: 13.5px;
-    color: var(--ink);
-    font-weight: 500;
-    margin-bottom: 3px;
-  }
-  .ass-table .assumption .desc {
+  .ass-table .metric {
     font-family: var(--mono);
-    font-size: 10.5px;
-    color: var(--ink-3);
+    font-size: 12px;
+    color: var(--ink);
     letter-spacing: 0.02em;
+    width: 200px;
   }
-  .ass-table .implied {
+  .ass-table .metric .lb-tag {
+    display: inline-block;
+    margin-left: 8px;
+    font-size: 8.5px;
+    letter-spacing: 0.16em;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 1px 5px;
+    vertical-align: 1px;
+  }
+  .ass-table .interval {
     font-family: var(--mono);
-    font-size: 18px;
+    font-size: 13px;
+    text-align: right;
+    font-feature-settings: "tnum" 1;
     color: var(--ink);
     font-weight: 500;
-    text-align: right;
-    font-feature-settings: "tnum" 1;
     letter-spacing: -0.01em;
-    width: 100px;
+    width: 180px;
+    white-space: nowrap;
   }
-  .ass-table .implied .unit {
-    font-size: 11px;
-    color: var(--ink-3);
-    margin-left: 2px;
-    font-weight: 400;
-  }
-  .ass-table .consensus, .ass-table .gap {
-    font-family: var(--mono);
+  .ass-table .interval .p50 { color: var(--accent); }
+  .ass-table .interval .sep { color: var(--ink-4); margin: 0 4px; font-weight: 400; }
+  .ass-table .human {
+    font-family: var(--sans);
     font-size: 12.5px;
-    text-align: right;
-    font-feature-settings: "tnum" 1;
-    width: 100px;
-  }
-  .ass-table .consensus { color: var(--ink-3); }
-  .ass-table .gap { color: var(--ink); font-weight: 500; }
-  .ass-table .gap.up { color: var(--positive); }
-  .ass-table .gap.down { color: var(--negative); }
-
-  .ass-table .sens-cell {
-    width: 140px;
-    padding: 16px 14px;
-  }
-  .sens-mini {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .sens-mini .bar {
-    flex: 1;
-    height: 4px;
-    background: var(--paper-3);
-    position: relative;
-  }
-  .sens-mini .bar::after {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    background: var(--accent);
-    width: var(--w);
-  }
-  .sens-mini .v {
-    font-family: var(--mono);
-    font-size: 10.5px;
     color: var(--ink-2);
-    min-width: 30px;
-    text-align: right;
+    line-height: 1.55;
   }
-
+  .ass-table .comparison {
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--ink-3);
+    line-height: 1.5;
+    width: 320px;
+  }
+  .ass-table .badge-cell { width: 90px; text-align: center; }
   .ev-badge {
     font-family: var(--mono);
     font-size: 9.5px;
@@ -541,293 +534,39 @@
     border: 1px solid;
     font-weight: 500;
     display: inline-block;
-    width: 78px;
     text-align: center;
   }
-  .ev-badge.strong { color: var(--positive); border-color: var(--positive); }
-  .ev-badge.medium { color: var(--neutral); border-color: var(--neutral); }
-  .ev-badge.weak { color: var(--negative); border-color: var(--negative); }
+  .ev-badge.lb { color: var(--accent); border-color: var(--accent); }
+  .ev-badge.sec { color: var(--ink-3); border-color: var(--ink-4); }
 
-  /* ============================================================
-     6.  REVERSE DCF — visual decomposition (research-report style)
-     ============================================================ */
-  .dcf-block {
-    margin-top: 40px;
-    padding: 32px 0;
-    border-top: 1px solid var(--line);
-  }
-  .dcf-flow {
-    display: grid;
-    grid-template-columns: 1fr 80px 1fr 80px 1fr;
-    gap: 0;
-    align-items: stretch;
-    margin-bottom: 16px;
-  }
-  .dcf-col {
-    padding: 0 16px;
-  }
-  .dcf-col .ch {
-    font-family: var(--mono);
-    font-size: 9.5px;
-    letter-spacing: 0.18em;
-    color: var(--ink-3);
-    text-transform: uppercase;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--line);
-    text-align: center;
-  }
-  .dcf-col .ch .ix { color: var(--accent); margin-right: 8px; }
-  .dcf-item {
-    padding: 10px 0;
-    border-bottom: 1px dashed var(--line);
-    font-size: 12.5px;
-    display: flex; justify-content: space-between;
-    align-items: baseline;
-  }
-  .dcf-item:last-child { border-bottom: none; }
-  .dcf-item .k { color: var(--ink-2); font-size: 11.5px; }
-  .dcf-item .v {
-    font-family: var(--mono);
-    color: var(--ink);
-    font-weight: 500;
-    font-feature-settings: "tnum" 1;
-  }
-  .dcf-item.high .v { color: var(--accent); }
-
-  .dcf-arrow {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: var(--ink-4);
-    position: relative;
-  }
-  .dcf-arrow::before {
-    content: '';
-    position: absolute;
-    top: 50%; left: 10%; right: 10%;
-    height: 1px;
-    background: var(--line-2);
-  }
-  .dcf-arrow .lbl {
-    background: var(--paper);
-    padding: 6px 10px;
-    border: 1px solid var(--line);
-    font-family: var(--mono);
-    font-size: 9.5px;
-    letter-spacing: 0.14em;
-    color: var(--accent);
-    z-index: 2;
-    text-transform: uppercase;
-    text-align: center;
-    line-height: 1.3;
-  }
-  .dcf-mid {
-    padding: 16px 14px;
-    background: var(--ink);
-    color: var(--paper);
-    text-align: center;
-    align-self: center;
-  }
-  .dcf-mid .num-big {
-    font-family: var(--mono);
-    font-size: 26px;
-    font-feature-settings: "tnum" 1;
-    letter-spacing: -0.03em;
-    font-weight: 500;
-    line-height: 1;
-  }
-  .dcf-mid .tag {
-    font-family: var(--mono);
-    font-size: 9px;
-    letter-spacing: 0.22em;
-    color: var(--ink-5);
-    margin-top: 8px;
-    text-transform: uppercase;
-  }
-
-  /* ============================================================
-     7.  SENSITIVITY LAB — interactive slider section
-     ============================================================ */
-  .lab {
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    gap: 56px;
-    align-items: start;
-  }
-  .lab-side {
-    position: sticky;
-    top: 24px;
-    border: 1px solid var(--line);
+  /* Slider row beneath each assumption */
+  .ass-slider-row { display: none; }
+  .ass-slider-row.open { display: table-row; }
+  .ass-slider-row td {
+    padding: 18px 14px 22px;
     background: var(--paper-2);
-    padding: 22px 24px;
+    border-bottom: 1px solid var(--line);
   }
-  .lab-side .lbl {
-    font-family: var(--mono);
-    font-size: 9.5px;
-    letter-spacing: 0.22em;
-    color: var(--ink-3);
-    text-transform: uppercase;
+  .ass-slider-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 40px;
+    align-items: center;
+  }
+  .slider-block { padding: 4px 0; }
+  .slider-block .slider-head {
+    display: flex; justify-content: space-between; align-items: baseline;
     margin-bottom: 12px;
   }
-  .lab-side .row-fv {
-    border-bottom: 1px solid var(--line);
-    padding-bottom: 20px;
-    margin-bottom: 18px;
-  }
-  .lab-side .from {
-    font-family: var(--mono);
-    font-size: 14px;
-    color: var(--ink-3);
-    text-decoration: line-through;
-    text-decoration-color: var(--ink-4);
-    margin-bottom: 6px;
-  }
-  .lab-side .to {
-    font-family: var(--mono);
-    font-size: 36px;
-    font-weight: 500;
-    color: var(--ink);
-    letter-spacing: -0.03em;
-    line-height: 1;
-    transition: color 0.3s;
-    font-feature-settings: "tnum" 1;
-  }
-  .lab-side .to.changed { color: var(--accent); }
-  .lab-side .delta-line {
-    font-family: var(--mono);
-    font-size: 10.5px;
-    color: var(--ink-3);
-    margin-top: 8px;
-    letter-spacing: 0.02em;
-  }
-  .lab-side .stat-row {
-    display: flex; justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px dashed var(--line);
-    font-family: var(--mono);
-    font-size: 10.5px;
-  }
-  .lab-side .stat-row:last-child { border-bottom: none; padding-bottom: 0; }
-  .lab-side .stat-row .k { color: var(--ink-3); letter-spacing: 0.04em; }
-  .lab-side .stat-row .v { color: var(--ink); font-weight: 500; }
-
-  .lab-side .reset {
-    width: 100%;
-    margin-top: 16px;
-    background: transparent;
-    border: 1px solid var(--ink);
-    color: var(--ink);
+  .slider-block .slider-head .lbl {
     font-family: var(--mono);
     font-size: 10px;
-    padding: 9px 12px;
     letter-spacing: 0.18em;
+    color: var(--ink-3);
     text-transform: uppercase;
-    cursor: pointer;
     font-weight: 500;
   }
-  .lab-side .reset:hover { background: var(--ink); color: var(--paper); }
-
-  /* Slider rows — table-like layout */
-  .lab-rows { border-top: 1px solid var(--rule); }
-  .lab-row {
-    display: grid;
-    grid-template-columns: 36px 1.4fr 1.4fr 0.6fr;
-    gap: 24px;
-    padding: 20px 0;
-    border-bottom: 1px solid var(--line);
-    align-items: center;
-  }
-  .lab-row .ix {
-    font-family: var(--mono);
-    font-size: 10.5px;
-    color: var(--accent);
-    letter-spacing: 0.04em;
-    font-weight: 500;
-  }
-  .lab-row .meta .name {
-    font-family: var(--sans);
-    font-size: 13.5px;
-    color: var(--ink);
-    font-weight: 500;
-    margin-bottom: 3px;
-  }
-  .lab-row .meta .name .em {
-    color: var(--ink-3);
-    font-weight: 400;
-  }
-  .lab-row .meta .desc {
-    font-family: var(--mono);
-    font-size: 10.5px;
-    color: var(--ink-3);
-    letter-spacing: 0.02em;
-  }
-  .lab-row .slider {
-    position: relative;
-    height: 28px;
-    display: flex;
-    align-items: center;
-  }
-  .lab-row .slider .track {
-    position: absolute;
-    left: 0; right: 0;
-    height: 1px;
-    background: var(--line-2);
-    top: 14px;
-  }
-  .lab-row .slider .track::before, .lab-row .slider .track::after {
-    content: ''; position: absolute; width: 1px; height: 6px;
-    background: var(--line-2); top: -3px;
-  }
-  .lab-row .slider .track::before { left: 0; }
-  .lab-row .slider .track::after { right: 0; }
-  .lab-row .slider .ticks {
-    position: absolute;
-    left: 0; right: 0; top: 14px;
-    pointer-events: none;
-  }
-  .lab-row .slider .ticks span {
-    position: absolute; top: 4px;
-    width: 1px; height: 3px;
-    background: var(--line);
-  }
-  .lab-row input[type="range"] {
-    -webkit-appearance: none;
-    position: absolute; left: 0; right: 0;
-    width: 100%; height: 28px;
-    background: transparent;
-    cursor: pointer;
-  }
-  .lab-row input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 14px; height: 14px;
-    border-radius: 0;
-    background: var(--accent);
-    cursor: grab;
-    border: 2px solid var(--paper);
-    box-shadow: 0 0 0 1px var(--accent);
-  }
-  .lab-row input[type="range"]::-webkit-slider-thumb:active { cursor: grabbing; }
-  .lab-row input[type="range"]::-moz-range-thumb {
-    width: 14px; height: 14px;
-    background: var(--accent);
-    cursor: grab;
-    border: 2px solid var(--paper);
-    box-shadow: 0 0 0 1px var(--accent);
-    border-radius: 0;
-  }
-  .lab-row .slider-range {
-    position: absolute;
-    left: 0; right: 0; top: 20px;
-    display: flex; justify-content: space-between;
-    font-family: var(--mono);
-    font-size: 9.5px;
-    color: var(--ink-4);
-    letter-spacing: 0.04em;
-  }
-  .lab-row .value {
-    text-align: right;
+  .slider-block .slider-head .cur {
     font-family: var(--mono);
     font-size: 18px;
     color: var(--ink);
@@ -835,313 +574,339 @@
     font-feature-settings: "tnum" 1;
     letter-spacing: -0.01em;
   }
-  .lab-row .value .unit { font-size: 11px; color: var(--ink-3); margin-left: 2px; font-weight: 400; }
-  .lab-row .value .vs {
-    display: block;
-    margin-top: 4px;
+  .slider-block .slider-head .cur.flash { color: var(--accent); }
+  .slider-wrap {
+    position: relative;
+    height: 28px;
+    display: flex;
+    align-items: center;
+  }
+  .slider-wrap .track {
+    position: absolute;
+    left: 0; right: 0;
+    height: 1px;
+    background: var(--line-2);
+    top: 14px;
+  }
+  .slider-wrap .track::before, .slider-wrap .track::after {
+    content: ''; position: absolute; width: 1px; height: 6px;
+    background: var(--line-2); top: -3px;
+  }
+  .slider-wrap .track::before { left: 0; }
+  .slider-wrap .track::after { right: 0; }
+  .slider-wrap input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    position: absolute; left: 0; right: 0;
+    width: 100%; height: 28px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .slider-wrap input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 0;
+    background: var(--accent);
+    cursor: grab;
+    border: 2px solid var(--paper);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .slider-wrap input[type="range"]::-webkit-slider-thumb:active { cursor: grabbing; }
+  .slider-wrap input[type="range"]::-moz-range-thumb {
+    width: 14px; height: 14px;
+    background: var(--accent);
+    cursor: grab;
+    border: 2px solid var(--paper);
+    box-shadow: 0 0 0 1px var(--accent);
+    border-radius: 0;
+  }
+  .slider-range {
+    position: absolute;
+    left: 0; right: 0; top: 22px;
+    display: flex; justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--ink-4);
+    letter-spacing: 0.04em;
+  }
+  .slider-summary {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    padding: 14px 16px;
+  }
+  .slider-summary .lbl {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .slider-summary .row {
+    display: flex; justify-content: space-between;
+    padding: 6px 0;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    border-bottom: 1px dashed var(--line);
+  }
+  .slider-summary .row:last-child { border-bottom: none; }
+  .slider-summary .row .k { color: var(--ink-3); letter-spacing: 0.04em; }
+  .slider-summary .row .v { color: var(--ink); font-weight: 500; font-feature-settings: "tnum" 1; }
+  .slider-summary .row .v.up { color: var(--positive); }
+  .slider-summary .row .v.down { color: var(--negative); }
+
+  /* Evidence drawer */
+  .ev-drawer-row { display: none; }
+  .ev-drawer-row.open { display: table-row; }
+  .ev-drawer-row td { padding: 0; background: var(--paper-2); border-bottom: 1px solid var(--rule); }
+  .ev-drawer {
+    padding: 20px 24px 24px;
+    border-top: 1px solid var(--line);
+    animation: ev-in 0.3s ease;
+  }
+  @keyframes ev-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .ev-drawer-banner {
+    font-family: var(--mono);
     font-size: 10px;
     color: var(--ink-3);
-    font-weight: 400;
-    letter-spacing: 0.02em;
-  }
-
-  /* ============================================================
-     8.  ATTRIBUTION WATERFALL (research-report data table style)
-     ============================================================ */
-  .attr-table { width: 100%; border-collapse: collapse; }
-  .attr-table thead th {
-    text-align: left;
-    padding: 12px 14px;
-    font-family: var(--mono);
-    font-size: 9.5px;
-    color: var(--ink-3);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    font-weight: 500;
-    background: var(--paper-2);
-    border-bottom: 2px solid var(--rule);
-    border-top: 1px solid var(--line);
-  }
-  .attr-table thead th.right { text-align: right; }
-  .attr-table tbody td {
-    padding: 14px 14px;
-    border-bottom: 1px solid var(--line);
-    vertical-align: middle;
-    font-size: 12.5px;
-  }
-  .attr-table tbody tr.summary td {
-    background: var(--paper-2);
-    font-weight: 500;
-    border-bottom: 2px solid var(--rule);
-    border-top: 1px solid var(--rule);
-  }
-  .attr-table tbody tr.summary .label { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; }
-  .attr-table tbody tr.summary .val {
-    font-family: var(--mono);
-    font-size: 18px;
-    color: var(--negative);
-    font-weight: 500;
-    text-align: right;
-    font-feature-settings: "tnum" 1;
-  }
-  .attr-table tbody tr.driver { cursor: pointer; transition: background 0.15s; }
-  .attr-table tbody tr.driver:hover td { background: var(--paper-2); }
-  .attr-table tbody tr.driver.active td { background: var(--highlight); }
-
-  .attr-table .ix {
-    font-family: var(--mono);
-    font-size: 10.5px;
-    color: var(--accent);
     letter-spacing: 0.04em;
-    font-weight: 500;
-    width: 36px;
+    padding: 8px 12px;
+    background: var(--paper);
+    border-left: 2px solid var(--accent);
+    margin-bottom: 16px;
   }
-  .attr-table .driver-name {
-    font-family: var(--sans);
-    font-size: 13.5px;
-    color: var(--ink);
-    font-weight: 500;
-    margin-bottom: 3px;
-  }
-  .attr-table .driver-desc {
+  .ev-drawer-banner strong { color: var(--ink); font-weight: 500; }
+  .ev-drawer h4 {
     font-family: var(--mono);
-    font-size: 10.5px;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+  .ev-skeleton {
+    padding: 32px 24px;
+    background: var(--paper);
+    border: 1px dashed var(--line);
+    font-family: var(--mono);
+    font-size: 11px;
     color: var(--ink-3);
     letter-spacing: 0.02em;
+    line-height: 1.7;
   }
-  .attr-table .bar-cell { width: 240px; padding: 14px; }
-  .attr-bar {
-    position: relative;
-    height: 18px;
+  .ev-skeleton strong { color: var(--ink); font-weight: 500; }
+  .ev-skeleton code {
     background: var(--paper-3);
-    margin-right: 8px;
-  }
-  .attr-bar .axis {
-    position: absolute;
-    left: 100%; top: -4px; bottom: -4px;
-    width: 1px;
-    background: var(--ink);
-  }
-  .attr-bar .fill {
-    position: absolute;
-    right: 0; top: 0; bottom: 0;
-    background: var(--negative);
-    transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .attr-bar .fill.noise {
-    background-image: repeating-linear-gradient(45deg, var(--ink-4) 0, var(--ink-4) 2px, var(--paper-3) 2px, var(--paper-3) 4px);
-    background-color: var(--paper-3);
-  }
-  .attr-table .contrib {
-    text-align: right;
-    font-family: var(--mono);
-    font-size: 18px;
-    color: var(--negative);
-    font-weight: 500;
-    font-feature-settings: "tnum" 1;
-    width: 90px;
-  }
-  .attr-table .contrib.noise { color: var(--ink-3); }
-  .attr-table .cum {
-    text-align: right;
-    font-family: var(--mono);
-    font-size: 12.5px;
-    color: var(--ink-2);
-    width: 90px;
+    padding: 2px 6px;
+    color: var(--accent);
+    font-size: 10.5px;
   }
 
-  .ev-panel {
-    margin-top: 24px;
-    padding: 24px 28px;
+  /* ============================ BOUNDARY MODE ============================ */
+  .boundary-banner {
+    background: var(--accent);
+    color: var(--paper);
+    padding: 16px 22px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 18px;
+    align-items: center;
+  }
+  .boundary-banner .icon {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .boundary-banner .txt strong { font-weight: 600; letter-spacing: 0.04em; }
+  .boundary-banner .txt .sub {
+    display: block;
+    font-size: 10.5px;
+    color: rgba(255,255,255,0.78);
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+  }
+
+  .math-facts {
     background: var(--paper-2);
     border: 1px solid var(--line);
-    display: none;
+    padding: 22px 24px;
+    margin-bottom: 32px;
   }
-  .ev-panel.open { display: block; animation: ev-in 0.3s ease; }
-  @keyframes ev-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-  .ev-panel-head {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 20px;
-    align-items: baseline;
-    margin-bottom: 18px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid var(--line);
-  }
-  .ev-panel-head .lbl {
+  .math-facts .lbl {
     font-family: var(--mono);
-    font-size: 9.5px;
+    font-size: 10px;
     letter-spacing: 0.22em;
     color: var(--accent);
     text-transform: uppercase;
     font-weight: 500;
+    margin-bottom: 12px;
   }
-  .ev-panel-head .name {
-    font-family: var(--sans);
-    font-size: 16px;
-    color: var(--ink);
-    font-weight: 500;
-  }
-  .ev-panel-head .contrib {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--negative);
+  .math-facts p {
+    font-size: 13px;
+    line-height: 1.75;
+    color: var(--ink-2);
   }
 
-  .ev-list {
+  .framework-list { display: grid; gap: 16px; }
+  .framework-card {
+    border: 1px solid var(--line);
+    padding: 20px 24px;
+    background: var(--paper);
+    position: relative;
+  }
+  .framework-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--accent);
+  }
+  .framework-card .fc-head {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-  }
-  .ev-card {
-    border-left: 2px solid var(--accent);
-    padding: 0 18px;
-  }
-  .ev-card .head {
-    display: flex; justify-content: space-between;
-    margin-bottom: 8px;
+    grid-template-columns: 36px 1fr;
+    gap: 16px;
     align-items: baseline;
-  }
-  .ev-card .src {
-    font-family: var(--mono);
-    font-size: 9.5px;
-    color: var(--accent);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    font-weight: 500;
-  }
-  .ev-card .when {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--ink-4);
-  }
-  .ev-card .body {
-    font-size: 12.5px;
-    line-height: 1.6;
-    color: var(--ink-2);
-  }
-  .ev-card .quote {
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid var(--line);
-    font-size: 12.5px;
-    color: var(--ink);
-    font-style: normal;
-    line-height: 1.55;
-  }
-  .ev-card .quote::before { content: '"'; color: var(--accent); font-weight: 600; margin-right: 1px; }
-  .ev-card .quote::after { content: '"'; color: var(--accent); font-weight: 600; margin-left: 1px; }
-
-  /* ============================================================
-     9.  FALSIFIABILITY MATRIX
-     ============================================================ */
-  .flip-table { width: 100%; border-collapse: collapse; }
-  .flip-table thead th {
-    text-align: left;
-    padding: 12px 14px;
-    font-family: var(--mono);
-    font-size: 9.5px;
-    color: var(--ink-3);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    font-weight: 500;
-    background: var(--paper-2);
-    border-bottom: 2px solid var(--rule);
-    border-top: 1px solid var(--line);
-  }
-  .flip-table thead th.right { text-align: right; }
-  .flip-table tbody td {
-    padding: 18px 14px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
     border-bottom: 1px solid var(--line);
-    font-size: 12.5px;
-    vertical-align: top;
   }
-  .flip-table .ix {
+  .framework-card .ix {
     font-family: var(--mono);
     font-size: 10.5px;
     color: var(--accent);
+    letter-spacing: 0.04em;
     font-weight: 500;
-    width: 50px;
   }
-  .flip-table .what {
+  .framework-card .name {
     font-family: var(--sans);
-    font-size: 13.5px;
+    font-size: 14px;
     color: var(--ink);
     font-weight: 500;
-    width: 200px;
+    letter-spacing: -0.005em;
   }
-  .flip-table .move {
-    font-family: var(--mono);
+  .framework-card .rationale {
     font-size: 12.5px;
-    color: var(--ink);
-    font-weight: 500;
-    width: 180px;
-  }
-  .flip-table .move .from { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--ink-4); }
-  .flip-table .move .arr { color: var(--accent); margin: 0 6px; }
-  .flip-table .move .to { color: var(--accent); }
-  .flip-table .impl {
-    font-size: 12.5px;
-    line-height: 1.55;
+    line-height: 1.65;
     color: var(--ink-2);
+    margin-bottom: 14px;
   }
-  .flip-table .signal {
+  .framework-card .hint {
     font-family: var(--mono);
     font-size: 10.5px;
     color: var(--ink-3);
-    text-align: right;
-    width: 140px;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.02em;
+    padding-top: 10px;
+    border-top: 1px dashed var(--line);
+    line-height: 1.55;
   }
-  .flip-table .signal .strong { color: var(--positive); font-weight: 500; }
-  .flip-table .signal .weak { color: var(--negative); font-weight: 500; }
-
-  .flip-summary {
-    margin-top: 24px;
-    padding: 22px 28px;
+  .framework-card .hint .h-lbl {
+    color: var(--accent);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-right: 8px;
+  }
+  .recommended-alt {
+    margin-top: 28px;
+    padding: 22px 26px;
     background: var(--ink);
     color: var(--paper);
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 32px;
-    align-items: center;
   }
-  .flip-summary .txt {
-    font-size: 14px;
-    line-height: 1.55;
-  }
-  .flip-summary .txt strong { color: #FFD89B; font-weight: 500; }
-  .flip-summary .prob {
-    text-align: right;
-  }
-  .flip-summary .prob .v {
+  .recommended-alt .lbl {
     font-family: var(--mono);
-    font-size: 32px;
-    font-weight: 500;
+    font-size: 10px;
+    letter-spacing: 0.22em;
     color: #FFD89B;
-    letter-spacing: -0.02em;
-    font-feature-settings: "tnum" 1;
-    line-height: 1;
-  }
-  .flip-summary .prob .lbl {
-    font-family: var(--mono);
-    font-size: 9.5px;
-    letter-spacing: 0.18em;
-    color: var(--ink-5);
-    margin-top: 6px;
     text-transform: uppercase;
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+  .recommended-alt p {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--paper);
   }
 
-  /* ============================================================
-     10.  DISCLAIMER FOOTER
-     ============================================================ */
-  footer.foot { padding: 56px 0 80px; }
+  /* ============================ AGENT LOG SIDEBAR ============================ */
+  .agent-log {
+    position: sticky;
+    top: 20px;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    padding: 22px 22px 24px;
+  }
+  .agent-log .al-head {
+    padding-bottom: 14px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .agent-log .al-head .lbl {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .agent-log .al-head .title {
+    font-family: var(--sans);
+    font-size: 15px;
+    color: var(--ink);
+    font-weight: 500;
+    letter-spacing: -0.005em;
+  }
+  .agent-log .powered {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 4px 8px;
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-bottom: 14px;
+  }
+  .agent-log .placeholder {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    line-height: 1.7;
+    letter-spacing: 0.02em;
+    padding: 16px;
+    background: var(--paper);
+    border: 1px dashed var(--line);
+  }
+  .agent-log .placeholder strong { color: var(--ink-2); font-weight: 500; }
+  .agent-log .stream {
+    margin-top: 16px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-3);
+    line-height: 1.8;
+    letter-spacing: 0.02em;
+  }
+  .agent-log .stream .ln { padding: 4px 0; border-bottom: 1px dashed var(--line); }
+  .agent-log .stream .ln .ts { color: var(--ink-4); margin-right: 8px; }
+  .agent-log .stream .ln .ac { color: var(--accent); }
+
+  /* ============================ FOOTER ============================ */
+  footer.foot { padding: 48px 0 80px; }
   .foot-grid {
     display: grid;
     grid-template-columns: 1.4fr 1fr 1fr 1fr;
-    gap: 48px;
-    margin-bottom: 36px;
-    padding-bottom: 32px;
+    gap: 40px;
+    margin-bottom: 30px;
+    padding-bottom: 28px;
     border-bottom: 1px solid var(--line);
   }
   .foot-grid h5 {
@@ -1167,15 +932,41 @@
   .foot-grid ul li { padding: 3px 0; letter-spacing: 0.02em; }
   .foot-grid ul li .arr { color: var(--ink-4); margin-right: 6px; }
 
-  .disclaimer {
+  .disclaimer-block {
+    padding: 16px 18px;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 18px;
+    align-items: start;
+  }
+  .disclaimer-text {
     font-family: var(--mono);
-    font-size: 9.5px;
-    color: var(--ink-3);
+    font-size: 10px;
+    color: var(--ink-2);
     line-height: 1.7;
     letter-spacing: 0.02em;
-    margin-bottom: 24px;
   }
-  .disclaimer strong { color: var(--ink-2); font-weight: 500; }
+  .disclaimer-text strong { color: var(--ink); font-weight: 500; }
+  .lang-toggle {
+    display: flex;
+    border: 1px solid var(--line);
+    background: var(--paper);
+  }
+  .lang-toggle button {
+    background: transparent;
+    border: none;
+    padding: 6px 12px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--ink-3);
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .lang-toggle button.active { background: var(--ink); color: var(--paper); }
 
   .foot-bot {
     display: flex; justify-content: space-between;
@@ -1188,7 +979,76 @@
   }
   .foot-bot .brand { color: var(--ink); font-weight: 600; letter-spacing: 0.18em; }
 
-  .val.flash { color: var(--accent); }
+  /* ============================ CORNER WATERMARK ============================ */
+  .corner-mark {
+    position: fixed;
+    bottom: 16px;
+    right: 20px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--ink-3);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    background: var(--paper);
+    padding: 6px 12px;
+    border: 1px solid var(--line);
+    z-index: 100;
+    font-weight: 500;
+  }
+  .corner-mark .dot {
+    display: inline-block;
+    width: 5px; height: 5px;
+    background: var(--accent);
+    margin-right: 7px;
+    transform: translateY(-1px);
+  }
+
+  /* ============================ TOOLTIP ============================ */
+  .tip-wrap { position: relative; display: inline-block; }
+  .tip-trigger {
+    display: inline-block;
+    width: 13px; height: 13px;
+    border: 1px solid var(--ink-4);
+    border-radius: 50%;
+    text-align: center;
+    line-height: 11px;
+    font-size: 9px;
+    color: var(--ink-4);
+    margin-left: 5px;
+    cursor: help;
+    font-family: var(--sans);
+    vertical-align: 1px;
+  }
+  .tip-trigger:hover { color: var(--ink); border-color: var(--ink); }
+  .tip-body {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: var(--paper);
+    padding: 10px 12px;
+    font-family: var(--mono);
+    font-size: 10px;
+    line-height: 1.55;
+    letter-spacing: 0.02em;
+    width: 240px;
+    z-index: 50;
+    display: none;
+    text-transform: none;
+    text-align: left;
+  }
+  .tip-wrap:hover .tip-body { display: block; }
+
+  /* Empty / loading state */
+  .empty-state {
+    padding: 60px 24px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-3);
+    letter-spacing: 0.04em;
+  }
 </style>
 </head>
 <body>
@@ -1204,32 +1064,48 @@
       <span>Methodology</span>
     </div>
     <div class="right">
-      <span>20 · 05 · 2026 · 14:38 SGT</span>
+      <span id="masthead-ts">27 · 05 · 2026</span>
       <span class="live">NYSE OPEN</span>
     </div>
   </div>
 </div>
 
-<!-- ============================ COVER ============================ -->
 <div class="page">
+
+  <!-- ============================ TICKER PICKER ============================ -->
+  <div class="picker">
+    <div class="lbl">Ticker</div>
+    <div class="picker-inputs">
+      <input type="text" id="ticker-input" maxlength="6" placeholder="NVDA">
+      <button class="go" id="go-btn">Decode</button>
+      <div class="presets">
+        <button class="preset" data-t="COST">COST</button>
+        <button class="preset active" data-t="NVDA">NVDA</button>
+        <button class="preset" data-t="TSLA">TSLA</button>
+      </div>
+    </div>
+    <div class="status" id="picker-status">
+      <span id="status-text">Ready</span>
+      <span class="mode-tag" id="mode-tag">—</span>
+    </div>
+  </div>
+
+  <!-- ============================ COVER ============================ -->
   <section class="cover">
     <div class="cover-pre">
-      <div class="tag"><span class="accent">EQUITY RESEARCH</span> · REVERSE-DCF DECOMPOSITION · NORTH AMERICA · SEMICONDUCTORS</div>
-      <div class="ref">REF · PL-26-0142 · pg 1 of 4</div>
+      <div class="tag"><span class="accent">EQUITY RESEARCH</span> · REVERSE-DCF DECOMPOSITION · NORTH AMERICA</div>
+      <div class="ref" id="cover-ref">REF · PL-26-0001</div>
     </div>
 
     <div class="cover-grid">
       <div class="title-block">
-        <div class="industry">Semiconductors · AI Compute</div>
+        <div class="industry" id="cover-industry">Reverse DCF Decode</div>
         <h1>
-          <span class="sec-name">NVDA <span class="co">NVIDIA Corp · NASDAQ</span></span>
-          The six bets baked into $130.42.
+          <span class="sec-name"><span id="cover-ticker">—</span> <span class="co" id="cover-company">—</span></span>
+          <span id="cover-headline">Decoding the assumptions behind the current quote.</span>
         </h1>
-        <p class="subtitle">
-          NVDA's current quote requires the market to believe six specific things — three of which are
-          <strong>materially above consensus.</strong> This report decomposes those implicit beliefs,
-          ranks them by sensitivity, and surfaces the evidence supporting each. The reasoning behind the price
-          is made auditable, not generated.
+        <p class="subtitle" id="cover-subtitle">
+          Select a ticker to decode what the market must believe to arrive at its current price.
         </p>
         <div class="byline">
           <div>
@@ -1237,16 +1113,16 @@
             <span class="v">PriceLens Agent · MiroThinker-1.7</span>
           </div>
           <div>
-            <span class="k">Date</span>
-            <span class="v">20 May 2026</span>
+            <span class="k">Generated</span>
+            <span class="v" id="cover-gen-date">—</span>
           </div>
           <div>
-            <span class="k">Coverage initiated</span>
-            <span class="v">14 May 2026</span>
+            <span class="k">Mode</span>
+            <span class="v" id="cover-mode">—</span>
           </div>
           <div>
             <span class="k">Run id</span>
-            <span class="v num">0142-7c4a</span>
+            <span class="v num" id="cover-runid">—</span>
           </div>
         </div>
       </div>
@@ -1254,543 +1130,51 @@
       <aside class="recommendation">
         <div class="reco-head">
           <span class="lbl">Snapshot</span>
-          <span class="rev">last updated · 11s ago</span>
+          <span class="rev" id="reco-rev">—</span>
         </div>
         <table class="reco-table">
-          <tr><td class="k">Last close</td><td class="v">$130.42</td></tr>
-          <tr><td class="k">Session change</td><td class="v down">−1.39%</td></tr>
-          <tr><td class="k">Market cap</td><td class="v">$3.21T</td></tr>
-          <tr><td class="k">Implied fair value</td><td class="v accent" id="reco-fv">$130.42</td></tr>
-          <tr><td class="k">Implied gap vs market</td><td class="v" id="reco-gap">0.0%</td></tr>
-          <tr><td class="k">Avg evidence strength</td><td class="v">2.4 / 3.0</td></tr>
+          <tr><td class="k">Current price</td><td class="v" id="reco-price">—</td></tr>
+          <tr>
+            <td class="k">Baseline DCF price
+              <span class="tip-wrap"><span class="tip-trigger">i</span><span class="tip-body" id="tip-baseline">Mathematical solution under the DCF framework. DCF has limited applicability for growth / early-stage companies.</span></span>
+            </td>
+            <td class="v" id="reco-baseline">—</td>
+          </tr>
+          <tr><td class="k">Implied gap vs DCF</td><td class="v" id="reco-gap">—</td></tr>
+          <tr><td class="k">Adjusted fair value</td><td class="v accent" id="reco-adjusted">—</td></tr>
+          <tr><td class="k">Assumptions implied</td><td class="v" id="reco-count">—</td></tr>
         </table>
         <div class="reco-rating">
-          <span class="badge fair" id="reco-badge">FAIRLY PRICED</span>
-          <span class="note">consensus aligned</span>
+          <span class="badge fair" id="reco-badge">STANDARD MODE</span>
+          <span class="note" id="reco-note">awaiting data</span>
         </div>
       </aside>
     </div>
   </section>
 
-  <!-- ============================ EXEC SUMMARY ============================ -->
-  <section class="exec">
-    <div class="exec-frame">
-      <div class="exec-head">
-        <span class="num">0.0 / EXECUTIVE SUMMARY</span>
-        <h2>Six assumptions implied by $130.42 — three are above consensus, three are corroborated.</h2>
+  <!-- ============================ MAIN BODY ============================ -->
+  <div class="main-grid">
+    <div class="main-col" id="main-col">
+      <!-- Dynamic content inserted here -->
+    </div>
+
+    <!-- ============================ AGENT LOG ============================ -->
+    <aside class="agent-log" id="agent-log">
+      <div class="al-head">
+        <div class="lbl">G6 · Activity</div>
+        <div class="title">Agent Activity Log</div>
       </div>
-      <ul>
-        <li>
-          <span class="ix">01</span>
-          <div>
-            The price implies a <strong>5Y revenue CAGR of 32.4%</strong> — <span class="ann">4.3pp above sell-side consensus of 28.1%.</span>
-            This is the single most price-sensitive belief and carries the weakest evidence base.
-          </div>
-        </li>
-        <li>
-          <span class="ix">02</span>
-          <div>
-            The price implies <strong>AI capex sustainability of 3.2 years</strong> — <span class="ann">1.2 years beyond the 2.0 year hyperscaler guidance horizon.</span>
-            Falsifiable at Aug-26 capex readings.
-          </div>
-        </li>
-        <li>
-          <span class="ix">03</span>
-          <div>
-            Terminal operating margin of <strong>75.0% is +2.3pp above 2024A</strong>, requiring sustained pricing power
-            <span class="ann">through the AMD MI400 ramp in late 2026.</span>
-          </div>
-        </li>
-        <li>
-          <span class="ix">04</span>
-          <div>
-            Discount rate (9.2%) sits <strong>40bp below CAPM base</strong> — <span class="ann">the market is paying a 40bp risk premium discount vs. our model.</span>
-          </div>
-        </li>
-        <li>
-          <span class="ix">05</span>
-          <div>
-            Competitive moat duration of <strong>4.5 years is corroborated</strong> by 11 independent sources
-            <span class="ann">(CUDA ecosystem lock-in, switching costs).</span>
-          </div>
-        </li>
-        <li>
-          <span class="ix">06</span>
-          <div>
-            Of six assumptions, <strong>only one has near-term falsifiable signal</strong> — <span class="ann">implied flip-to-BUY probability over next 12m: 23%.</span>
-          </div>
-        </li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- ============================ SECTION 1: REVERSE DCF ============================ -->
-  <section class="section">
-    <div class="sec-h">
-      <span class="ix">1.0</span>
-      <h2>From price to implied beliefs — the reverse-DCF mechanic.</h2>
-      <span class="meta">METHODOLOGY · Sec. M.1<br>Damodaran framework</span>
-    </div>
-
-    <p class="sec-lede">
-      A standard DCF takes assumptions about growth, margins, capital cost, and terminal value, and produces a fair value.
-      <strong>PriceLens runs this in reverse.</strong> We hold the trailing-4Q actuals as fixed inputs, take the current market quote as the target output,
-      and solve for each implied assumption while holding the others at sell-side consensus values. The output is six numbers the market must be believing
-      to arrive at $130.42.
-    </p>
-
-    <div class="exhibit">
-      <span class="lbl">Exhibit 1.1</span>
-      <span class="title">Reverse-DCF flow · 4Q trailing inputs → $130.42 quote → implied assumptions</span>
-      <span class="src">PriceLens · SEC EDGAR · CAPM</span>
-    </div>
-
-    <div class="dcf-flow">
-      <div class="dcf-col">
-        <div class="ch"><span class="ix">A</span>INPUTS · 4Q TRAILING</div>
-        <div class="dcf-item"><span class="k">Revenue</span><span class="v">$148.5B</span></div>
-        <div class="dcf-item"><span class="k">Operating margin</span><span class="v">72.7%</span></div>
-        <div class="dcf-item"><span class="k">Net debt</span><span class="v">−$18.3B</span></div>
-        <div class="dcf-item"><span class="k">Shares outstanding</span><span class="v">24.6B</span></div>
-        <div class="dcf-item"><span class="k">Trailing FCF</span><span class="v">$96.4B</span></div>
+      <span class="powered">Powered by MiroMind Deep Research</span>
+      <div class="placeholder">
+        <strong>Live evidence run pending.</strong><br><br>
+        When you trigger a live evidence run, you'll see the agent's search queries, source reads, and synthesis steps stream here in real time. Cached briefs render instantly without invoking the agent.
       </div>
-      <div class="dcf-arrow">
-        <div class="lbl">SOLVE<br>↓</div>
-      </div>
-      <div class="dcf-mid">
-        <div class="num-big">$130.42</div>
-        <div class="tag">Quote · 20 May 2026</div>
-      </div>
-      <div class="dcf-arrow">
-        <div class="lbl">DECOMPOSE<br>↓</div>
-      </div>
-      <div class="dcf-col">
-        <div class="ch"><span class="ix">B</span>IMPLIED · ASSUMPTIONS</div>
-        <div class="dcf-item high"><span class="k">5Y revenue CAGR</span><span class="v">32.4%</span></div>
-        <div class="dcf-item"><span class="k">Terminal margin</span><span class="v">75.0%</span></div>
-        <div class="dcf-item high"><span class="k">AI capex sustained</span><span class="v">3.2 yrs</span></div>
-        <div class="dcf-item"><span class="k">Competitive moat</span><span class="v">4.5 yrs</span></div>
-        <div class="dcf-item"><span class="k">Discount rate</span><span class="v">9.2%</span></div>
-      </div>
-    </div>
-
-    <div class="exhibit-foot">
-      Note: Items shaded in (B) sit materially above consensus. The reverse-DCF is solved one variable at a time using Brent's method, holding remaining variables at sell-side consensus. Sensitivity tables shown in Sec. 2.0.
-    </div>
-  </section>
-
-  <!-- ============================ SECTION 2: ASSUMPTION TABLE ============================ -->
-  <section class="section">
-    <div class="sec-h">
-      <span class="ix">2.0</span>
-      <h2>Implied assumption table — ranked by price sensitivity.</h2>
-      <span class="meta">EXHIBIT 2.1<br>full decomposition</span>
-    </div>
-
-    <p class="sec-lede">
-      The table below shows each assumption the market is implicitly making, the consensus baseline (where available),
-      the gap, the per-unit price sensitivity, and PriceLens's evidence strength rating. Highlighted rows have above-average sensitivity.
-    </p>
-
-    <div class="exhibit">
-      <span class="lbl">Exhibit 2.1</span>
-      <span class="title">Implied assumption decomposition with sensitivity & evidence ratings</span>
-      <span class="src">PriceLens · 4Q trailing inputs</span>
-    </div>
-
-    <table class="ass-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Assumption</th>
-          <th class="right">Implied</th>
-          <th class="right">Consensus</th>
-          <th class="right">Gap</th>
-          <th>Sensitivity</th>
-          <th class="center">Evidence</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr class="high-sens">
-          <td class="ix">01</td>
-          <td class="assumption">
-            <div class="name">5Y revenue CAGR</div>
-            <div class="desc">forward growth over explicit forecast period</div>
-          </td>
-          <td class="implied">32.4<span class="unit">%</span></td>
-          <td class="consensus">28.1%</td>
-          <td class="gap down">+4.3pp</td>
-          <td class="sens-cell"><div class="sens-mini"><div class="bar" style="--w: 92%"></div><div class="v">±$28</div></div></td>
-          <td style="text-align:center;"><span class="ev-badge weak">Weak</span></td>
-        </tr>
-        <tr class="high-sens">
-          <td class="ix">02</td>
-          <td class="assumption">
-            <div class="name">Terminal operating margin</div>
-            <div class="desc">steady-state EBIT margin post forecast</div>
-          </td>
-          <td class="implied">75.0<span class="unit">%</span></td>
-          <td class="consensus">72.7% '24A</td>
-          <td class="gap up">+2.3pp</td>
-          <td class="sens-cell"><div class="sens-mini"><div class="bar" style="--w: 78%"></div><div class="v">±$18</div></div></td>
-          <td style="text-align:center;"><span class="ev-badge medium">Medium</span></td>
-        </tr>
-        <tr>
-          <td class="ix">03</td>
-          <td class="assumption">
-            <div class="name">AI capex sustained</div>
-            <div class="desc">years of hyperscaler capex strength assumed</div>
-          </td>
-          <td class="implied">3.2<span class="unit">yrs</span></td>
-          <td class="consensus">2.0 yr guide</td>
-          <td class="gap down">+1.2 yrs</td>
-          <td class="sens-cell"><div class="sens-mini"><div class="bar" style="--w: 64%"></div><div class="v">±$9</div></div></td>
-          <td style="text-align:center;"><span class="ev-badge medium">Medium</span></td>
-        </tr>
-        <tr>
-          <td class="ix">04</td>
-          <td class="assumption">
-            <div class="name">Competitive moat duration</div>
-            <div class="desc">years before pricing power erodes</div>
-          </td>
-          <td class="implied">4.5<span class="unit">yrs</span></td>
-          <td class="consensus">CUDA + ecosystem</td>
-          <td class="gap up">corroborated</td>
-          <td class="sens-cell"><div class="sens-mini"><div class="bar" style="--w: 41%"></div><div class="v">±$5</div></div></td>
-          <td style="text-align:center;"><span class="ev-badge strong">Strong</span></td>
-        </tr>
-        <tr>
-          <td class="ix">05</td>
-          <td class="assumption">
-            <div class="name">Weighted cost of capital</div>
-            <div class="desc">discount rate vs. CAPM base</div>
-          </td>
-          <td class="implied">9.2<span class="unit">%</span></td>
-          <td class="consensus">9.6% CAPM</td>
-          <td class="gap up">−0.4pp</td>
-          <td class="sens-cell"><div class="sens-mini"><div class="bar" style="--w: 36%"></div><div class="v">∓$14</div></div></td>
-          <td style="text-align:center;"><span class="ev-badge strong">Strong</span></td>
-        </tr>
-        <tr>
-          <td class="ix">06</td>
-          <td class="assumption">
-            <div class="name">Top-5 customer retention</div>
-            <div class="desc">required share retention through fcst</div>
-          </td>
-          <td class="implied">78<span class="unit">%</span></td>
-          <td class="consensus">81% trailing</td>
-          <td class="gap up">−3pp</td>
-          <td class="sens-cell"><div class="sens-mini"><div class="bar" style="--w: 22%"></div><div class="v">±$0.5</div></div></td>
-          <td style="text-align:center;"><span class="ev-badge medium">Medium</span></td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="exhibit-foot">
-      Sensitivity expressed as $-impact on implied price per 1pp / 1yr change in the assumption, holding all others constant. Evidence strength derived from MiroThinker scan across 14 sources, weighted by source authority and recency. Higher sensitivity & weaker evidence ⇒ greater downside risk to thesis.
-    </div>
-  </section>
-
-  <!-- ============================ SECTION 3: SENSITIVITY LAB ============================ -->
-  <section class="section">
-    <div class="sec-h">
-      <span class="ix">3.0</span>
-      <h2>Sensitivity lab — change a belief, recompute the fair value.</h2>
-      <span class="meta">INTERACTIVE<br>your views vs. consensus</span>
-    </div>
-
-    <p class="sec-lede">
-      The lab below lets you replace any consensus assumption with your own view. The implied fair value recomputes
-      through the same DCF — only this time, with <strong>your</strong> beliefs in place. Use this section to identify
-      where you materially disagree with the market.
-    </p>
-
-    <div class="lab">
-      <aside class="lab-side">
-        <div class="row-fv">
-          <div class="lbl">Implied fair value</div>
-          <div class="from">$130.42 · market</div>
-          <div class="to" id="fv-to">$130.42</div>
-          <div class="delta-line" id="fv-delta">no changes — matches market</div>
-        </div>
-        <div>
-          <div class="stat-row"><span class="k">Conviction</span><span class="v" id="stat-conv">market</span></div>
-          <div class="stat-row"><span class="k">Gap to market</span><span class="v" id="stat-gap">0.0%</span></div>
-          <div class="stat-row"><span class="k">Assumptions changed</span><span class="v" id="stat-changed">0 / 6</span></div>
-          <div class="stat-row"><span class="k">Implied direction</span><span class="v" id="stat-dir">flat</span></div>
-        </div>
-        <button class="reset" id="reset-btn">Reset to consensus</button>
-      </aside>
-
-      <div class="lab-rows" id="lab-rows">
-        <div class="lab-row" data-ass="cagr" data-base="32.4" data-min="15" data-max="50" data-impact="2.2" data-unit="%">
-          <div class="ix">01</div>
-          <div class="meta"><div class="name">5Y revenue CAGR <span class="em">· per annum</span></div><div class="desc">market implied 32.4% · sell-side consensus 28.1%</div></div>
-          <div class="slider">
-            <div class="track"></div>
-            <input type="range" min="15" max="50" value="32.4" step="0.1">
-            <div class="slider-range"><span>15%</span><span>50%</span></div>
-          </div>
-          <div class="value">
-            <span class="v" data-v="cagr">32.4</span><span class="unit">%</span>
-            <span class="vs">±$28 / pp</span>
-          </div>
-        </div>
-
-        <div class="lab-row" data-ass="margin" data-base="75.0" data-min="55" data-max="85" data-impact="1.8" data-unit="%">
-          <div class="ix">02</div>
-          <div class="meta"><div class="name">Terminal operating margin <span class="em">· steady state</span></div><div class="desc">market implied 75.0% · 2024 actual 72.7%</div></div>
-          <div class="slider">
-            <div class="track"></div>
-            <input type="range" min="55" max="85" value="75.0" step="0.1">
-            <div class="slider-range"><span>55%</span><span>85%</span></div>
-          </div>
-          <div class="value">
-            <span class="v" data-v="margin">75.0</span><span class="unit">%</span>
-            <span class="vs">±$18 / pp</span>
-          </div>
-        </div>
-
-        <div class="lab-row" data-ass="capex" data-base="3.2" data-min="1" data-max="6" data-impact="9.2" data-unit="yrs">
-          <div class="ix">03</div>
-          <div class="meta"><div class="name">AI capex sustained <span class="em">· years</span></div><div class="desc">market implied 3.2 yrs · hyperscaler guidance 2.0 yrs</div></div>
-          <div class="slider">
-            <div class="track"></div>
-            <input type="range" min="1" max="6" value="3.2" step="0.1">
-            <div class="slider-range"><span>1 yr</span><span>6 yrs</span></div>
-          </div>
-          <div class="value">
-            <span class="v" data-v="capex">3.2</span><span class="unit">yrs</span>
-            <span class="vs">±$9 / yr</span>
-          </div>
-        </div>
-
-        <div class="lab-row" data-ass="moat" data-base="4.5" data-min="1" data-max="10" data-impact="5.4" data-unit="yrs">
-          <div class="ix">04</div>
-          <div class="meta"><div class="name">Competitive moat <span class="em">· years before erosion</span></div><div class="desc">market implied 4.5 yrs · CUDA + ecosystem corroborated</div></div>
-          <div class="slider">
-            <div class="track"></div>
-            <input type="range" min="1" max="10" value="4.5" step="0.1">
-            <div class="slider-range"><span>1 yr</span><span>10 yrs</span></div>
-          </div>
-          <div class="value">
-            <span class="v" data-v="moat">4.5</span><span class="unit">yrs</span>
-            <span class="vs">±$5 / yr</span>
-          </div>
-        </div>
-
-        <div class="lab-row" data-ass="wacc" data-base="9.2" data-min="6" data-max="14" data-impact="-14.3" data-unit="%">
-          <div class="ix">05</div>
-          <div class="meta"><div class="name">Discount rate <span class="em">· weighted cost of capital</span></div><div class="desc">market implied 9.2% · CAPM base 9.6%</div></div>
-          <div class="slider">
-            <div class="track"></div>
-            <input type="range" min="6" max="14" value="9.2" step="0.1">
-            <div class="slider-range"><span>6%</span><span>14%</span></div>
-          </div>
-          <div class="value">
-            <span class="v" data-v="wacc">9.2</span><span class="unit">%</span>
-            <span class="vs">∓$14 / pp</span>
-          </div>
-        </div>
-
-        <div class="lab-row" data-ass="customer" data-base="78" data-min="40" data-max="100" data-impact="0.5" data-unit="%">
-          <div class="ix">06</div>
-          <div class="meta"><div class="name">Top-5 customer retention <span class="em">· share over fcst horizon</span></div><div class="desc">market implied 78% · trailing actual 81%</div></div>
-          <div class="slider">
-            <div class="track"></div>
-            <input type="range" min="40" max="100" value="78" step="1">
-            <div class="slider-range"><span>40%</span><span>100%</span></div>
-          </div>
-          <div class="value">
-            <span class="v" data-v="customer">78</span><span class="unit">%</span>
-            <span class="vs">±$0.5 / pp</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============================ SECTION 4: SHORT-TERM ATTRIBUTION ============================ -->
-  <section class="section">
-    <div class="sec-h">
-      <span class="ix">4.0</span>
-      <h2>Short-term attribution — what pulled TSLA −5.0% over 5 days.</h2>
-      <span class="meta">EXHIBIT 4.1<br>5-day close-to-close</span>
-    </div>
-
-    <p class="sec-lede">
-      Short-term price moves are not driven by changing long-term assumptions; they are driven by flows, positioning, and incremental data.
-      The table below decomposes TSLA's 5-day decline into <strong>five attribution buckets</strong>, each backed by independent evidence
-      collected from FINRA, CBOE, SEC, and sell-side notes. The residual is explicitly labeled as noise rather than back-filled with narrative.
-    </p>
-
-    <div class="exhibit">
-      <span class="lbl">Exhibit 4.1</span>
-      <span class="title">TSLA · 5-day attribution decomposition · 14 May → 19 May 2026</span>
-      <span class="src">FINRA · CBOE · SEC EDGAR · sell-side</span>
-    </div>
-
-    <table class="attr-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Driver</th>
-          <th class="right">Contribution</th>
-          <th>Sub-bar</th>
-          <th class="right">Cumulative</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr class="summary">
-          <td colspan="2" class="label">Start price · 14 May, close</td>
-          <td class="val" style="color:var(--ink);">$137.50</td>
-          <td></td>
-          <td class="cum">—</td>
-        </tr>
-        <tr class="driver active" data-i="0">
-          <td class="ix">01</td>
-          <td>
-            <div class="driver-name">Fundamental update</div>
-            <div class="driver-desc">earnings revision · China sales</div>
-          </td>
-          <td class="contrib">−2.0%</td>
-          <td class="bar-cell"><div class="attr-bar"><div class="axis"></div><div class="fill" style="width: 40%;"></div></div></td>
-          <td class="cum">$134.75</td>
-        </tr>
-        <tr class="driver" data-i="1">
-          <td class="ix">02</td>
-          <td>
-            <div class="driver-name">Sector &amp; macro</div>
-            <div class="driver-desc">10Y yield +15bp · sector rotation</div>
-          </td>
-          <td class="contrib">−1.0%</td>
-          <td class="bar-cell"><div class="attr-bar"><div class="axis"></div><div class="fill" style="width: 20%;"></div></div></td>
-          <td class="cum">$133.40</td>
-        </tr>
-        <tr class="driver" data-i="2">
-          <td class="ix">03</td>
-          <td>
-            <div class="driver-name">Flow &amp; positioning</div>
-            <div class="driver-desc">short interest +18% · puts heavy · 13F selling</div>
-          </td>
-          <td class="contrib">−1.3%</td>
-          <td class="bar-cell"><div class="attr-bar"><div class="axis"></div><div class="fill" style="width: 26%;"></div></div></td>
-          <td class="cum">$131.66</td>
-        </tr>
-        <tr class="driver" data-i="3">
-          <td class="ix">04</td>
-          <td>
-            <div class="driver-name">Technical</div>
-            <div class="driver-desc">200-day MA breach · CTA mechanical sell</div>
-          </td>
-          <td class="contrib">−0.5%</td>
-          <td class="bar-cell"><div class="attr-bar"><div class="axis"></div><div class="fill" style="width: 10%;"></div></div></td>
-          <td class="cum">$130.92</td>
-        </tr>
-        <tr class="driver" data-i="4">
-          <td class="ix">05</td>
-          <td>
-            <div class="driver-name">Unexplained residual</div>
-            <div class="driver-desc">honestly labeled as noise</div>
-          </td>
-          <td class="contrib noise">−0.2%</td>
-          <td class="bar-cell"><div class="attr-bar"><div class="axis"></div><div class="fill noise" style="width: 4%;"></div></div></td>
-          <td class="cum">$130.62</td>
-        </tr>
-        <tr class="summary">
-          <td colspan="2" class="label">End price · 19 May, close</td>
-          <td class="val">$130.62 · −5.0%</td>
-          <td></td>
-          <td class="cum">−$6.88</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="exhibit-foot">
-      Each driver is attributed quantitatively using a Barra-lite factor model. Sub-driver evidence (FINRA short interest, CBOE put/call ratios, sell-side TP revisions, sector flow data) is shown below — click any row to expand. Residual variance is explicitly labeled rather than back-filled with narrative.
-    </div>
-
-    <div class="ev-panel open" id="ev-panel">
-      <div class="ev-panel-head">
-        <span class="lbl">Evidence detail</span>
-        <span class="name" id="ev-name">Fundamental update</span>
-        <span class="contrib" id="ev-contrib">−2.0% over 5 days</span>
-      </div>
-      <div class="ev-list" id="ev-list"></div>
-    </div>
-  </section>
-
-  <!-- ============================ SECTION 5: FALSIFIABILITY ============================ -->
-  <section class="section">
-    <div class="sec-h">
-      <span class="ix">5.0</span>
-      <h2>What would have to change for the consensus HOLD to flip.</h2>
-      <span class="meta">EXHIBIT 5.1<br>falsifiability matrix</span>
-    </div>
-
-    <p class="sec-lede">
-      A defensible thesis must specify the conditions under which it would be falsified. The matrix below identifies
-      the <strong>minimum assumption changes</strong> that would flip the market's implicit HOLD to BUY, along with
-      the falsifiable signals that would corroborate each change.
-    </p>
-
-    <div class="exhibit">
-      <span class="lbl">Exhibit 5.1</span>
-      <span class="title">Minimum changes required to flip HOLD → BUY · with falsifiable signals</span>
-      <span class="src">PriceLens · sensitivity analysis</span>
-    </div>
-
-    <table class="flip-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Assumption</th>
-          <th>Required move</th>
-          <th>What it would imply</th>
-          <th class="right">Falsifiable signal</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td class="ix">F.01</td>
-          <td class="what">5Y revenue CAGR</td>
-          <td class="move"><span class="from">32.4%</span><span class="arr">→</span><span class="to">36.8%</span> &nbsp;<span style="color:var(--ink-3);">(+4.4pp)</span></td>
-          <td class="impl">Hyperscalers would need to extend AI-capex CAGR by +5pp beyond 2026 guidance, implying a multi-year extension of the current investment cycle.</td>
-          <td class="signal">Q3-26 capex guides<br><span class="weak">low probability</span></td>
-        </tr>
-        <tr>
-          <td class="ix">F.02</td>
-          <td class="what">Terminal operating margin</td>
-          <td class="move"><span class="from">75.0%</span><span class="arr">→</span><span class="to">78.5%</span> &nbsp;<span style="color:var(--ink-3);">(+3.5pp)</span></td>
-          <td class="impl">NVDA must maintain pricing power through the AMD MI400 ramp in late 2026, with no observable share loss in hyperscaler purchase mix.</td>
-          <td class="signal">MI400 ramp data Q4-26<br><span class="weak">low probability</span></td>
-        </tr>
-        <tr>
-          <td class="ix">F.03</td>
-          <td class="what">AI capex sustained</td>
-          <td class="move"><span class="from">3.2 yrs</span><span class="arr">→</span><span class="to">4.4 yrs</span> &nbsp;<span style="color:var(--ink-3);">(+1.2 yrs)</span></td>
-          <td class="impl">An AGI-style 2027 capex super-cycle must materialize, extending the spending curve by one full year vs. current guidance horizon.</td>
-          <td class="signal">Aug-26 capex calls<br><span class="strong">testable near-term</span></td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="flip-summary">
-      <div class="txt">
-        Of the three minimum changes required, <strong>only F.03 has a near-term falsifiable signal</strong> — August 2026 hyperscaler
-        capex guidance calls. F.01 and F.02 require multi-quarter pattern shifts that cannot be tested before late 2026. Until
-        either signal materializes, the market's HOLD is the rational consensus position.
-      </div>
-      <div class="prob">
-        <div class="v">23%</div>
-        <div class="lbl">12-m flip probability</div>
-      </div>
-    </div>
-  </section>
-
+      <div class="stream" id="agent-stream"></div>
+    </aside>
+  </div>
 </div>
 
-<!-- ============================ FOOTER & DISCLAIMER ============================ -->
+<!-- ============================ FOOTER ============================ -->
 <footer class="foot">
   <div class="page">
     <div class="foot-grid">
@@ -1802,9 +1186,9 @@
         <h5>Methodology</h5>
         <ul>
           <li><span class="arr">└</span>Reverse-DCF · 4Q trailing</li>
-          <li><span class="arr">└</span>Barra-lite factor attribution</li>
+          <li><span class="arr">└</span>Monte Carlo intervals (p25/p50/p75)</li>
           <li><span class="arr">└</span>MiroThinker · evidence scoring</li>
-          <li><span class="arr">└</span>Damodaran WACC framework</li>
+          <li><span class="arr">└</span>Boundary detection · multi-framework</li>
         </ul>
       </div>
       <div>
@@ -1813,189 +1197,538 @@
           <li><span class="arr">→</span>SEC EDGAR · 10-Q, 10-K</li>
           <li><span class="arr">→</span>Yahoo Finance · consensus</li>
           <li><span class="arr">→</span>FINRA · short interest</li>
-          <li><span class="arr">→</span>CBOE · options chain</li>
           <li><span class="arr">→</span>FRED · macro factors</li>
         </ul>
       </div>
       <div>
         <h5>Build info</h5>
         <ul>
-          <li><span class="arr">→</span>Ref PL-26-0142</li>
-          <li><span class="arr">→</span>Run id 0142-7c4a</li>
-          <li><span class="arr">→</span>Build 20-05-2026.14:38 SGT</li>
-          <li><span class="arr">→</span>Pricelens v0.1</li>
+          <li><span class="arr">→</span>UCWS Singapore Hackathon</li>
+          <li><span class="arr">→</span>Agent Track · MiroMind</li>
+          <li><span class="arr">→</span>PriceLens v0.4</li>
+          <li><span class="arr">→</span>Solo project</li>
         </ul>
       </div>
     </div>
 
-    <p class="disclaimer">
-      <strong>Disclaimer.</strong> This report is generated by an autonomous research agent and is not investment advice. PriceLens makes the assumptions implicit in market prices visible; it does not endorse them. Forward-looking statements reflect implied beliefs derived from current market quotes and may differ materially from the views of any individual analyst or institution. All evidence citations are time-stamped and traceable; data is collected from publicly available sources at the time of report generation. Past performance and implied assumptions are not indicators of future outcomes. PriceLens has no position in any security referenced. © 2026 PriceLens · UCWS Singapore Hackathon · Agent Track.
-    </p>
+    <div class="disclaimer-block">
+      <p class="disclaimer-text" id="disclaimer-text">
+        <strong>Disclaimer.</strong> PriceLens 是研究性工具，展示市场价格背后的隐含假设。所有数值不构成投资建议，使用者需自行判断。
+      </p>
+      <div class="lang-toggle">
+        <button id="lang-zh" class="active">中</button>
+        <button id="lang-en">EN</button>
+      </div>
+    </div>
 
     <div class="foot-bot">
       <div><span class="brand">PriceLens</span> &nbsp;·&nbsp; UCWS Singapore Hackathon 2026</div>
-      <div>Page 4 of 4 · End of report</div>
+      <div>End of report</div>
     </div>
   </div>
 </footer>
 
+<div class="corner-mark"><span class="dot"></span>Powered by MiroMind Deep Research</div>
+
 <script>
 /* ============================================================
-   SENSITIVITY LAB
+   DEV FALLBACK — REMOVE BEFORE PROD
+   Embedded fixtures used when /api/decode/{TICKER} is unreachable
+   (e.g. opening this file via file:// without the FastAPI backend)
    ============================================================ */
-const basePrice = 130.42;
-const assumptions = {};
-document.querySelectorAll('.lab-row').forEach(row => {
-  const k = row.dataset.ass;
-  assumptions[k] = {
-    base: parseFloat(row.dataset.base),
-    current: parseFloat(row.dataset.base),
-    impact: parseFloat(row.dataset.impact)
-  };
-});
+const FIXTURE_DATA = {
+  NVDA: {"ticker":"NVDA","company_name":"NVIDIA Corporation","generated_at":"2026-05-26T17:10:24.646653+00:00","mode":"standard","reverse_dcf":{"ticker":"NVDA","current_price":213.79,"baseline_dcf_price":45.36208190733744,"consensus_assumptions":{"revenue_cagr_5y":0.15,"terminal_growth":0.025,"terminal_fcf_margin":0.44770258129648327,"wacc":0.16842000000000001},"implied_intervals":{"revenue_cagr_5y":{"p25":0.5634633919918882,"p50":0.6303808486661049,"p75":0.7060999367575507,"samples":470,"success_rate":0.94},"terminal_fcf_margin":null,"wacc":{"p25":0.05206394229830399,"p50":0.06167926315437003,"p75":0.073331847398246,"samples":480,"success_rate":0.96}}},"decoder_output":{"ticker":"NVDA","mode":"standard","current_price":213.79,"baseline_dcf_price":45.36,"implied_assumptions":[{"id":"NVDA_revenue_cagr_5y","metric":"revenue_cagr_5y","interval":{"p25":0.563,"p50":0.63,"p75":0.706},"human_text":"市场必须假设 NVDA 的 revenue_cagr_5y 在 56.3%-70.6% 区间,中位数 63.0%。基准方案中使用的共识假设为未来 5 年收入 CAGR 约 15.0%。","comparison":"与共识 DCF 中的 revenue_cagr_5y=15.0% 相比,反向 DCF 所隐含的区间大约是共识增速的 3.7-4.7 倍,中位数约为 4.2 倍。","load_bearing":true},{"id":"NVDA_wacc","metric":"wacc","interval":{"p25":0.052,"p50":0.062,"p75":0.073},"human_text":"市场必须假设 NVDA 的 wacc 在 5.2%-7.3% 区间,中位数 6.2%。基准方案中使用的加权平均资本成本为 16.8%。","comparison":"与共识 DCF 中的 wacc=16.8% 相比,反向 DCF 所隐含的 wacc 约为其 1/3-1/2,中位数约为 0.37 倍,对应明显更低的贴现率环境。","load_bearing":true},{"id":"NVDA_terminal_growth","metric":"terminal_growth","interval":{"p25":0.025,"p50":0.025,"p75":0.03},"human_text":"市场必须假设 NVDA 的 terminal_growth 在 2.5%-3.0% 区间,中位数约 2.5%。基准方案中终值增速假设同样为 2.5%。","comparison":"反向 DCF 隐含的 terminal_growth 与基准 DCF 中的 2.5% 大体一致,略高端情形延伸至 3.0%,整体与发达经济体名义 GDP 增速假设区间相近。","load_bearing":true},{"id":"NVDA_terminal_fcf_margin","metric":"terminal_fcf_margin","interval":{"p25":0.448,"p50":0.48,"p75":0.52},"human_text":"市场必须假设 NVDA 的 terminal_fcf_margin 在 44.8%-52.0% 区间,中位数约 48.0%。基准方案中终值自由现金流率约为 44.8%。","comparison":"与基准 DCF 中的 terminal_fcf_margin≈44.8% 相比,反向 DCF 隐含的区间整体略向上平移,中位数接近 48.0%,明显高于大多数半导体公司历史自由现金流率中位数约 20%-25%。","load_bearing":false},{"id":"NVDA_high_growth_duration","metric":"high_growth_duration","interval":{"p25":8.0,"p50":10.0,"p75":12.0},"human_text":"市场必须假设 NVDA 的 high_growth_duration 在 8-12 年区间,中位数约 10 年,即在较长时期内维持高增速和高利润率组合。基准方案中通常采用的高增速阶段为约 5 年。","comparison":"与传统半导体或大盘 DCF 模型常用的 5 年高增速期相比,反向 DCF 隐含 NVDA 需要额外多出约 3-7 年的高增速延长期,整体高增长持续时间约为传统设定的 1.6-2.4 倍。","load_bearing":false},{"id":"NVDA_value_realization_horizon","metric":"value_realization_horizon","interval":{"p25":12.0,"p50":15.0,"p75":20.0},"human_text":"市场必须假设 NVDA 的 value_realization_horizon 在 12-20 年区间,中位数约 15 年,即需要较长时间的现金流积累来支撑当前股价。基准方案中常见估值视角约为 10 年。","comparison":"与许多卖方模型采用的 10 年估值视角相比,反向 DCF 隐含需要将高质量现金流可见期拉长至约 12-20 年,中位数约为 15 年,在时间维度上对长期成长有更高延展要求。","load_bearing":false}],"boundary_explanation":null,"overall_summary":"相较基准 DCF 给出的约 $45.36 估值,当前约 $213.79 的股价隐含 NVDA 在未来 5 年收入需维持约 56%-71% 的高复合增速,同时在更低贴现率和略高终值现金流率假设下,并延长高增长持续时间与估值视角,共同支撑当前定价水平。","generated_at":"2026-05-26T17:09:41.913378+00:00"},"evidence_briefs":[]},
 
-const fvTo = document.getElementById('fv-to');
-const fvDelta = document.getElementById('fv-delta');
-const statConv = document.getElementById('stat-conv');
-const statGap = document.getElementById('stat-gap');
-const statChanged = document.getElementById('stat-changed');
-const statDir = document.getElementById('stat-dir');
-const recoFv = document.getElementById('reco-fv');
-const recoGap = document.getElementById('reco-gap');
-const recoBadge = document.getElementById('reco-badge');
+  COST: {"ticker":"COST","company_name":"Costco Wholesale Corporation","generated_at":"2026-05-26T17:09:18.554448+00:00","mode":"standard","reverse_dcf":{"ticker":"COST","current_price":998.845,"baseline_dcf_price":774.6067514105698,"consensus_assumptions":{"revenue_cagr_5y":0.15,"terminal_growth":0.025,"terminal_fcf_margin":0.05,"wacc":0.09494},"implied_intervals":{}},"decoder_output":{"ticker":"COST","mode":"standard","current_price":998.845,"baseline_dcf_price":774.61,"implied_assumptions":[{"id":"COST_revenue_cagr_5y","metric":"revenue_cagr_5y","interval":{"p25":0.1624,"p50":0.218,"p75":0.276},"human_text":"市场必须假设 COST 的 revenue_cagr_5y 在 16.2%-27.6% 区间,中位数 21.8%。对比基准:Costco 过去 5 年实际收入 CAGR 约为 11.3%,行业层面全球大型零售/仓储渠道龙头 5 年收入 CAGR 大致在中个位数到低双位数。","comparison":"过去 5 年 COST 实际收入 CAGR ≈ 11.3%,显著低于反向 DCF 所隐含的 21.8% 中位数;仓储会员店/大卖场行业整体 2021-2026E 收入 CAGR 一般在 1%-3% 左右,COST 需长期维持远高于行业的增速。","load_bearing":true},{"id":"COST_terminal_fcf_margin","metric":"terminal_fcf_margin","interval":{"p25":0.0467,"p50":0.0582,"p75":0.0729},"human_text":"市场必须假设 COST 的 terminal_fcf_margin 在 4.7%-7.3% 区间,中位数 5.8%。对比基准:历史上 Costco 的经营现金流/营收率约在 4%-5% 附近。","comparison":"反向 DCF 隐含的终值 FCF margin 中位数 5.8% 略高于过去 5 年现金流效率中枢,但仍在同业头部零售商合理区间内。","load_bearing":true},{"id":"COST_wacc","metric":"wacc","interval":{"p25":0.0684,"p50":0.0834,"p75":0.1032},"human_text":"市场必须假设 COST 的 wacc 在 6.8%-10.3% 区间,中位数 8.3%。对比基准:主流估值网站对 Costco 的 WACC 当前估算约为 8.5%-8.7%。","comparison":"反向 DCF 为贴合当前股价,需要 WACC 落在 6.8%-10.3% 且中位 8.3%,基本与市场主流 WACC 假设区间一致,略低于本次 baseline 模型中 9.494% 的共识输入。","load_bearing":true},{"id":"COST_terminal_growth","metric":"terminal_growth","interval":{"p25":0.02,"p50":0.025,"p75":0.03},"human_text":"市场等效地是在使用 COST 的 terminal_growth 在约 2.0%-3.0% 区间,中位数约 2.5%。对比基准:该水平大致与美国长期名义 GDP 增速假设(2%-3%)相当。","comparison":"反向 DCF 所对应的终值增长假设基本与宏观或行业常规设定对齐,并未明显高于。","load_bearing":false},{"id":"COST_value_horizon","metric":"explicit_forecast_horizon_years","interval":{"p25":10.0,"p50":10.0,"p75":10.0},"human_text":"市场必须隐含假设 COST 至少还有约 10 年以上的高质量显性预测期,在这段期间内能维持接近反向 DCF 所给出的高增速与较高现金流效率。","comparison":"卖方对 Costco 的详细预测通常覆盖 5-10 年,本次反向 DCF 为匹配当前股价,等价于要求模型显性期在 10 年左右才能将高增速、高效率兑现为价值。","load_bearing":false},{"id":"COST_relative_industry_growth","metric":"growth_premium_vs_industry","interval":{"p25":0.12,"p50":0.15,"p75":0.18},"human_text":"市场必须假设 COST 的收入增速将长期高出仓储/大卖场行业中枢约 12%-18pct,中位数约 15pct。","comparison":"反向 DCF 中隐含的 15pct 左右增速溢价,相当于假设 COST 在未来一个完整周期中继续维持对行业的明显超额增长。","load_bearing":false}],"boundary_explanation":null,"overall_summary":"综合反向 DCF 结果,当前约 $999 的股价对应的隐含假设是:Costco 未来 5 年收入需维持远高于历史与行业的 20% 左右年复合增速,终值 FCF 利润率略高于近年中枢并与主流 WACC 假设(约 8%-9%)匹配。","generated_at":"2026-05-26T17:07:02.621605+00:00"},"evidence_briefs":[]},
 
-function recompute() {
-  let delta = 0;
-  let changed = 0;
-  for (const k in assumptions) {
-    const a = assumptions[k];
-    const d = a.current - a.base;
-    delta += d * a.impact;
-    if (Math.abs(d) > 0.001) changed++;
-  }
-  const fv = basePrice + delta;
-  fvTo.textContent = '$' + fv.toFixed(2);
-  recoFv.textContent = '$' + fv.toFixed(2);
-  const pct = ((fv / basePrice) - 1) * 100;
-  recoGap.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
-  recoGap.className = 'v' + (Math.abs(pct) < 0.1 ? '' : (pct > 0 ? ' up' : ' down'));
-  statChanged.textContent = changed + ' / 6';
-
-  if (Math.abs(fv - basePrice) > 0.1) {
-    fvTo.classList.add('changed');
-    fvDelta.textContent = `${changed} changed · ${pct >= 0 ? '+' : ''}${pct.toFixed(1)}% vs market`;
-    fvDelta.style.color = pct >= 0 ? 'var(--positive)' : 'var(--negative)';
-    statConv.textContent = pct > 0 ? 'BULLISH' : 'BEARISH';
-    statConv.style.color = pct > 0 ? 'var(--positive)' : 'var(--negative)';
-    statGap.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
-    statGap.style.color = pct >= 0 ? 'var(--positive)' : 'var(--negative)';
-    statDir.textContent = pct >= 0 ? '↑ above market' : '↓ below market';
-    statDir.style.color = pct >= 0 ? 'var(--positive)' : 'var(--negative)';
-
-    if (pct > 5) { recoBadge.textContent = 'UNDERVALUED'; recoBadge.style.background = 'var(--positive)'; }
-    else if (pct < -5) { recoBadge.textContent = 'OVERVALUED'; recoBadge.style.background = 'var(--negative)'; }
-    else { recoBadge.textContent = 'FAIRLY PRICED'; recoBadge.style.background = 'var(--neutral)'; }
-  } else {
-    fvTo.classList.remove('changed');
-    fvDelta.textContent = 'no changes — matches market';
-    fvDelta.style.color = '';
-    statConv.textContent = 'market';
-    statConv.style.color = '';
-    statGap.textContent = '0.0%';
-    statGap.style.color = '';
-    statDir.textContent = 'flat';
-    statDir.style.color = '';
-    recoBadge.textContent = 'FAIRLY PRICED';
-    recoBadge.style.background = 'var(--neutral)';
-  }
-}
-
-document.querySelectorAll('.lab-row').forEach(row => {
-  const input = row.querySelector('input[type="range"]');
-  const valEl = row.querySelector('[data-v]');
-  const k = row.dataset.ass;
-  input.addEventListener('input', () => {
-    const v = parseFloat(input.value);
-    assumptions[k].current = v;
-    valEl.textContent = k === 'customer' ? v.toFixed(0) : v.toFixed(1);
-    valEl.classList.add('flash');
-    setTimeout(() => valEl.classList.remove('flash'), 220);
-    recompute();
-  });
-});
-
-document.getElementById('reset-btn').addEventListener('click', () => {
-  document.querySelectorAll('.lab-row').forEach(row => {
-    const input = row.querySelector('input[type="range"]');
-    const valEl = row.querySelector('[data-v]');
-    const k = row.dataset.ass;
-    input.value = assumptions[k].base;
-    assumptions[k].current = assumptions[k].base;
-    valEl.textContent = k === 'customer' ? assumptions[k].base.toFixed(0) : assumptions[k].base.toFixed(1);
-  });
-  recompute();
-});
+  TSLA: {"ticker":"TSLA","company_name":"Tesla, Inc.","generated_at":"2026-05-26T17:13:54.809303+00:00","mode":"boundary","reverse_dcf":{"ticker":"TSLA","current_price":432.41,"baseline_dcf_price":23.613461959174817,"consensus_assumptions":{"revenue_cagr_5y":0.15,"terminal_growth":0.025,"terminal_fcf_margin":0.06559313275754795,"wacc":0.143615},"implied_intervals":{}},"decoder_output":{"ticker":"TSLA","mode":"boundary","current_price":432.41,"baseline_dcf_price":23.61,"implied_assumptions":[],"boundary_explanation":{"mathematical_facts":"在共识假设下(5 年收入 CAGR=15%、终值 FCF margin≈6.6%、WACC≈14.4%)，常规模型给出的基准 DCF 价格只有约 $23.6，远低于当前 $432.4。Reverse DCF 尝试通过 Monte Carlo 去反推“能撑住 $432.4 的参数组合”，结果是: (1) 收入 5 年 CAGR 维度完全无法收敛，任何合理区间内放大增速都不足以把估值拉到当前股价；(2) 终值 FCF margin 的反推唯一可行点落在约 58% 左右，而且只在极少数样本中出现(success_rate≈0.2%)，远高于 TSLA 历史 FCF margin ~3%-9% 区间，也显著高于大部分整车或半导体硬件公司的终值水平，数学上近似要求 TSLA 成为“类软件公司+极低再投资”的结构；(3) WACC 维度要想接近现价，需要把 TSLA 的 WACC 压到约 4.1% 中位数(区间约 4.1%-4.36%，success_rate≈15%)，这相当于把 TSLA 当成接近优质公用事业或超低风险国企的风险定价。综合来看，要用单一、平滑的企业级 DCF 解出 $432.4，需要同时假设“长期 FCF margin≈58% 且风险贴现率≈4% 且收入仍维持高增速”，三者组合在历史对标和财务结构上都不具可比参考，所以 Monte Carlo 解会整体退化为边界态，传统 DCF 在这里失去解释力。","framework_hypotheses":[{"framework_name":"Robotaxi / FSD Real Options(类期权定价框架)","rationale":"现价相对基准 DCF 溢价巨大，且反向 DCF 只有在极端高盈利和极低 WACC 假设下才勉强靠近，说明市场可能并不是在给现有整车业务贴现，而是在给 Robotaxi 车队和 FSD 订阅视角下的“成功/失败二元跳跃结果”付钱。这个框架下，现价可以看成: 当前汽车+能源业务的基础价值(接近甚至略高于基准 DCF) + 若干个关于 Robotaxi/FSD 大规模商业化的长期期权，其期望值来自极少数“FSD 完全放开、车队高利用率、单车年净利润很高”的远端场景。","evidence_query_hint":"TSLA robotaxi 商业化时间表 + FSD 订阅/一次性买断渗透率预测 + 单车 robotaxi 年净利润测算 + 主要市场监管放行节奏"},{"framework_name":"AI 超算平台 / Dojo 平台化框架","rationale":"反向 DCF 指向的 58% 终值 FCF margin 更接近高毛利软件/SaaS 或云服务平台，而不是传统汽车制造。市场可能在把 TSLA 的 AI 训练基础设施(如 Dojo)、内部算力和软件堆栈，看成潜在的对外商业化云平台或“训练即服务”(Training-as-a-Service)。在这个思路下，现价包含了未来 AI 基础设施和模型服务作为独立、高利润业务线的潜在价值，而这些现金流几乎不会出现在传统车企 DCF 的显性预测期里。","evidence_query_hint":"Tesla Dojo / AI 超算 对外商业化计划 + 管理层关于AI平台或训练服务收入占比目标 + 类比 AI 云厂商长期 FCF margin 区间"},{"framework_name":"Energy / 储能平台 Sum-of-Parts(分部加总框架)","rationale":"单一 DCF 会把汽车、储能、光伏等业务混在一起，用统一的增长率、利润率和 WACC 处理，容易在某一两个高增长高利润业务刚起量时出现“整体估值远超现金流”的错位。市场可能在用分部加总(Sum-of-Parts)来看 TSLA，把 Energy Generation & Storage 业务(如 Megapack 等储能项目)视为接近基础设施或公用事业类资产，给予不同于整车业务的更低 WACC 和更高稳态 FCF margin。","evidence_query_hint":"Tesla Energy 储能业务收入与毛利拆分 + Megapack 与电力公用事业签署的长期合同情况 + 卖方对 Energy 分部的独立估值/目标倍数"},{"framework_name":"High-growth Comparable Multiples(高成长可比公司市销率/市盈率框架)","rationale":"由于收入增速阶段性放缓、盈利受价格战与高 capex 拖累，基于当前盈利或自由现金流的 DCF 很难映射到 $432.4 附近的价格，但如果采用高增速科技股常用的 PS(市销率)、PEG(市盈率相对增长)、EV/EBITDA 等倍数，对标的是新能源车、AI 硬件和高端半导体公司而非整车传统 peers，则可以通过“更高的合理倍数”来解释一部分估值溢价。","evidence_query_hint":"TSLA 与高成长科技/半导体/新能源车公司的市销率、市盈率、EV/EBITDA 对比 + 卖方报告对 TSLA 使用的主要估值倍数和可比公司篮子"},{"framework_name":"Mission-driven / 长期愿景溢价 + 叙事折现框架","rationale":"TSLA 的公司叙事覆盖“全球能源转型、自动驾驶、AI、机器人”等多个长期主题，部分投资者可能并不严格通过十几年现金流去定价，而是通过“终局市占率 × 行业天花板 × 相信管理层愿景的程度”来拍一个折扣率很低的长期市值锚点，再反推当前合理价格。这种叙事折现框架下，短期现金流与盈利波动被认为只是通往终局的过渡期。","evidence_query_hint":"TSLA 长期市值/目标价叙事中提到的“终局市占率/盈利池规模”的假设 + 投资者/机构对 Musk 团队执行力的定性评价 + 针对 TSLA 的长期主题型基金持仓结构"}],"recommended_alternative":"在 TSLA 这类强叙事+多业务赛道公司上，建议将传统单一企业级 DCF 降级为“基础情景参考”，核心估值框架改用: (1) Sum-of-Parts(汽车/储能/软件&服务分部单独估值); (2) Robotaxi/FSD 等关键项目的 Real Options 定价; (3) 结合高成长科技/半导体/新能源车的 Market Comparables 倍数体系，三者交叉校验，而不是试图用一套平滑现金流的 DCF 把全部溢价解释干净。"},"overall_summary":"对于 TSLA，单一、平滑现金流的传统 DCF 在 $432.4 附近已经进入数学失效区间，要解出现价需要同时假设极高终值盈利能力和极低风险贴现率，与历史和同业对标均不匹配。","generated_at":"2026-05-26T17:12:42.445536+00:00"},"evidence_briefs":[]}
+};
 
 /* ============================================================
-   ATTRIBUTION EVIDENCE
+   STATE
    ============================================================ */
-const evData = [
-  {
-    name: 'Fundamental update', contrib: '−2.0%', items: [
-      { src: '3 SELL-SIDE NOTES', when: '15–17 May 2026', body: 'Wedbush, Goldman, UBS each cut TP after Q1 delivery miss. Median revision shaves 7% off FY26 deliveries.', quote: 'FY26 deliveries trimmed to 1.78M from 1.92M, reflecting weaker China and Europe.' },
-      { src: 'CPCA MONTHLY DATA', when: '17 May 2026', body: 'China retail volumes for April: 42,170 units. MoM −12%, YoY −18%. First sub-50k month since Jul-2024.', quote: null }
-    ]
-  },
-  {
-    name: 'Sector & macro', contrib: '−1.0%', items: [
-      { src: 'TREASURY DATA', when: '14–19 May 2026', body: '10Y yield moved from 4.32% → 4.47%. Growth-multiple compression follows historical β ≈ 0.6.', quote: null },
-      { src: 'FACTSET SECTOR FLOWS', when: '16 May 2026', body: 'Net outflow from Consumer Discretionary ETFs: $2.1B WTD. Net inflow Industrials: $1.4B.', quote: null }
-    ]
-  },
-  {
-    name: 'Flow & positioning', contrib: '−1.3%', items: [
-      { src: 'FINRA SHORT INTEREST', when: 'mid-May 2026', body: 'Short interest rose to 78.4M shares — highest since Oct 2023. +18% vs. prior reading.', quote: null },
-      { src: 'CBOE OPTIONS CHAIN', when: '19 May 2026', body: 'Put/call ratio jumped from 0.83 to 1.31. 25-delta skew steepened by 4 vols.', quote: null },
-      { src: 'SEC 13F FILINGS', when: 'Q1 reporting', body: 'Citadel Advisors trimmed position 28% in Q1; one mega-fund exited entirely.', quote: null }
-    ]
-  },
-  {
-    name: 'Technical', contrib: '−0.5%', items: [
-      { src: 'PRICE ACTION', when: '16 May 2026', body: 'TSLA closed below 200-day SMA ($138.20) for first time since Nov-2024. Typical CTA mechanical sell.', quote: null }
-    ]
-  },
-  {
-    name: 'Unexplained residual', contrib: '−0.2%', items: [
-      { src: 'RESIDUAL', when: '—', body: 'Cannot be confidently attributed to any of the above factors. We do not invent narratives for residual variance.', quote: null }
-    ]
-  }
-];
+const state = {
+  data: null,
+  ticker: 'NVDA',
+  openAssumption: null,    // assumption id currently open
+  sliderValues: {},        // assumption id -> current slider value (raw, e.g. 0.63)
+  lang: 'zh'
+};
 
-function showEv(i) {
-  const d = evData[i];
-  document.getElementById('ev-name').textContent = d.name;
-  document.getElementById('ev-contrib').textContent = `${d.contrib} over 5 days`;
-  document.getElementById('ev-list').innerHTML = d.items.map(it => `
-    <div class="ev-card">
-      <div class="head">
-        <span class="src">${it.src}</span>
-        <span class="when">${it.when}</span>
-      </div>
-      <div class="body">${it.body}</div>
-      ${it.quote ? `<div class="quote">${it.quote}</div>` : ''}
-    </div>
-  `).join('');
-  document.getElementById('ev-panel').classList.add('open');
-  document.querySelectorAll('.attr-table tr.driver').forEach(r => r.classList.remove('active'));
-  document.querySelector(`.attr-table tr.driver[data-i="${i}"]`).classList.add('active');
+/* ============================================================
+   FETCH WITH FIXTURE FALLBACK
+   ============================================================ */
+async function loadTicker(ticker) {
+  ticker = ticker.toUpperCase().trim();
+  const statusText = document.getElementById('status-text');
+  statusText.textContent = 'Loading ' + ticker + '...';
+  document.querySelectorAll('.picker .preset').forEach(b => b.classList.toggle('active', b.dataset.t === ticker));
+
+  let data = null;
+  try {
+    const r = await fetch('/api/decode/' + ticker);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    data = await r.json();
+    statusText.textContent = 'Loaded via API';
+  } catch (e) {
+    // fallback to embedded fixture
+    if (FIXTURE_DATA[ticker]) {
+      data = FIXTURE_DATA[ticker];
+      statusText.textContent = 'Loaded (dev fixture)';
+    } else {
+      statusText.textContent = 'No fixture for ' + ticker;
+      return;
+    }
+  }
+
+  state.data = data;
+  state.ticker = ticker;
+  state.openAssumption = null;
+  state.sliderValues = {};
+  render();
 }
 
-document.querySelectorAll('.attr-table tr.driver').forEach(row => {
-  row.addEventListener('click', () => showEv(parseInt(row.dataset.i)));
-});
+/* ============================================================
+   FORMATTERS
+   ============================================================ */
+const fmtUSD = v => '$' + Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-// Default show driver 0
-showEv(0);
+function isPctMetric(metric) {
+  // metrics expressed as decimals that should be rendered as %
+  const pctMetrics = ['revenue_cagr_5y', 'terminal_growth', 'terminal_fcf_margin', 'wacc', 'growth_premium_vs_industry'];
+  return pctMetrics.includes(metric);
+}
+function isYearsMetric(metric) {
+  return ['high_growth_duration', 'value_realization_horizon', 'explicit_forecast_horizon_years'].includes(metric);
+}
+
+function fmtInterval(metric, p25, p50, p75) {
+  if (isPctMetric(metric)) {
+    return `${(p25*100).toFixed(1)}% · <span class="p50">${(p50*100).toFixed(1)}%</span> · ${(p75*100).toFixed(1)}%`;
+  }
+  if (isYearsMetric(metric)) {
+    return `${p25.toFixed(0)}y · <span class="p50">${p50.toFixed(0)}y</span> · ${p75.toFixed(0)}y`;
+  }
+  return `${p25.toFixed(2)} · <span class="p50">${p50.toFixed(2)}</span> · ${p75.toFixed(2)}`;
+}
+
+function fmtSliderValue(metric, v) {
+  if (isPctMetric(metric)) return (v*100).toFixed(2) + '%';
+  if (isYearsMetric(metric)) return v.toFixed(1) + ' yrs';
+  return v.toFixed(3);
+}
+
+function metricDisplayName(metric) {
+  const names = {
+    revenue_cagr_5y: '5Y revenue CAGR',
+    terminal_growth: 'Terminal growth',
+    terminal_fcf_margin: 'Terminal FCF margin',
+    wacc: 'WACC · discount rate',
+    high_growth_duration: 'High-growth duration',
+    value_realization_horizon: 'Value realization horizon',
+    explicit_forecast_horizon_years: 'Explicit forecast horizon',
+    growth_premium_vs_industry: 'Growth premium vs industry'
+  };
+  return names[metric] || metric;
+}
+
+/* ============================================================
+   ADJUSTED PRICE STUB
+   Simple linear model: deviation from p50 of any load-bearing
+   assumption swings fair value proportionally.
+   ============================================================ */
+function computeAdjustedPrice() {
+  if (!state.data || state.data.mode !== 'standard') return null;
+  const baseline = state.data.decoder_output.baseline_dcf_price;
+  const current = state.data.decoder_output.current_price;
+
+  let multiplier = 1.0;
+  state.data.decoder_output.implied_assumptions.forEach(a => {
+    const cur = state.sliderValues[a.id];
+    if (cur == null) return;
+    const p50 = a.interval.p50;
+    if (p50 === 0) return;
+    const dev = (cur - p50) / Math.abs(p50);
+    // load-bearing has 2x impact; non-LB has 0.5x
+    const weight = a.load_bearing ? 0.5 : 0.15;
+    multiplier *= (1 + dev * weight);
+  });
+  // anchor on current price (the implied price), apply multiplier
+  return current * multiplier;
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render() {
+  if (!state.data) return;
+  const d = state.data;
+  const dec = d.decoder_output;
+
+  // cover
+  document.getElementById('cover-ticker').textContent = d.ticker;
+  document.getElementById('cover-company').textContent = d.company_name;
+  document.getElementById('cover-headline').textContent = dec.mode === 'boundary'
+    ? 'DCF framework cannot explain the current quote.'
+    : `The assumptions implied by ${fmtUSD(dec.current_price)}.`;
+  document.getElementById('cover-subtitle').innerHTML = dec.mode === 'boundary'
+    ? `<strong>${d.ticker}</strong> hits the boundary of single-DCF explainability. Below: the mathematical facts, candidate alternative frameworks the market may be using, and a recommended valuation approach.`
+    : `<strong>${d.ticker}</strong>'s current quote of <strong>${fmtUSD(dec.current_price)}</strong> requires the market to believe a specific set of things. This report decomposes those implicit beliefs into interval estimates and surfaces the comparison against historical and consensus baselines.`;
+  document.getElementById('cover-industry').textContent = dec.mode === 'boundary' ? 'Boundary mode · Multi-framework analysis' : 'Standard mode · Reverse-DCF decomposition';
+  document.getElementById('cover-gen-date').textContent = (d.generated_at || '').slice(0, 10);
+  document.getElementById('cover-mode').textContent = dec.mode.toUpperCase();
+  document.getElementById('cover-runid').textContent = d.ticker.toLowerCase() + '-' + (d.generated_at || '').slice(11, 19).replace(/:/g, '');
+  document.getElementById('cover-ref').textContent = 'REF · PL-26-' + d.ticker;
+
+  // snapshot box
+  document.getElementById('reco-rev').textContent = 'gen ' + (d.generated_at || '').slice(0, 10);
+  document.getElementById('reco-price').textContent = fmtUSD(dec.current_price);
+  document.getElementById('reco-baseline').textContent = fmtUSD(dec.baseline_dcf_price);
+  const gap = ((dec.current_price - dec.baseline_dcf_price) / dec.baseline_dcf_price) * 100;
+  const gapEl = document.getElementById('reco-gap');
+  gapEl.textContent = (gap >= 0 ? '+' : '') + gap.toFixed(1) + '%';
+  gapEl.className = 'v ' + (gap >= 0 ? 'up' : 'down');
+  document.getElementById('reco-count').textContent = dec.mode === 'boundary'
+    ? 'n/a · boundary'
+    : (dec.implied_assumptions.length + ' assumptions');
+
+  const badge = document.getElementById('reco-badge');
+  const note = document.getElementById('reco-note');
+  if (dec.mode === 'boundary') {
+    badge.textContent = 'DCF BOUNDARY';
+    badge.className = 'badge boundary';
+    note.textContent = 'beyond single-DCF explainability';
+  } else {
+    if (Math.abs(gap) < 5) {
+      badge.textContent = 'FAIRLY PRICED'; badge.className = 'badge fair';
+      note.textContent = 'within 5% of baseline DCF';
+    } else if (gap > 0) {
+      badge.textContent = 'PREMIUM TO DCF'; badge.className = 'badge over';
+      note.textContent = 'market above baseline DCF';
+    } else {
+      badge.textContent = 'DISCOUNT TO DCF'; badge.className = 'badge under';
+      note.textContent = 'market below baseline DCF';
+    }
+  }
+
+  // mode tag in picker
+  const modeTag = document.getElementById('mode-tag');
+  modeTag.textContent = dec.mode === 'boundary' ? 'BOUNDARY' : 'STANDARD';
+  modeTag.className = 'mode-tag ' + dec.mode;
+
+  // body
+  const main = document.getElementById('main-col');
+  if (dec.mode === 'boundary') {
+    main.innerHTML = renderBoundary(dec);
+    document.getElementById('reco-adjusted').textContent = 'n/a';
+  } else {
+    main.innerHTML = renderStandard(dec);
+    bindAssumptionRows();
+    updateAdjustedPrice();
+  }
+}
+
+/* ============================================================
+   STANDARD MODE BODY
+   ============================================================ */
+function renderStandard(dec) {
+  const rows = dec.implied_assumptions.map((a, i) => {
+    const ix = String(i + 1).padStart(2, '0');
+    const lbBadge = a.load_bearing ? '<span class="lb-tag">LOAD-BEARING</span>' : '';
+    const lbClass = a.load_bearing ? 'lb' : '';
+    const sliderRange = computeSliderRange(a.interval);
+
+    // init slider value
+    if (state.sliderValues[a.id] == null) state.sliderValues[a.id] = a.interval.p50;
+    const curV = state.sliderValues[a.id];
+
+    return `
+      <tr class="row-main ${lbClass} ${state.openAssumption === a.id ? 'active' : ''}" data-id="${a.id}">
+        <td class="ix">${ix}</td>
+        <td class="metric">${metricDisplayName(a.metric)}${lbBadge}</td>
+        <td class="interval">${fmtInterval(a.metric, a.interval.p25, a.interval.p50, a.interval.p75)}</td>
+        <td class="human">${a.human_text}</td>
+        <td class="comparison">${a.comparison}</td>
+        <td class="badge-cell"><span class="ev-badge ${a.load_bearing ? 'lb' : 'sec'}">${a.load_bearing ? 'Primary' : 'Secondary'}</span></td>
+      </tr>
+      <tr class="ass-slider-row ${state.openAssumption === a.id ? 'open' : ''}" data-slider-for="${a.id}">
+        <td colspan="6">
+          <div class="ass-slider-grid">
+            <div class="slider-block">
+              <div class="slider-head">
+                <span class="lbl">Sensitivity slider · approx p10–p90</span>
+                <span class="cur" data-cur="${a.id}">${fmtSliderValue(a.metric, curV)}</span>
+              </div>
+              <div class="slider-wrap">
+                <div class="track"></div>
+                <input type="range" min="${sliderRange.min}" max="${sliderRange.max}" step="${sliderRange.step}" value="${curV}" data-slider="${a.id}" data-metric="${a.metric}">
+                <div class="slider-range">
+                  <span>${fmtSliderValue(a.metric, sliderRange.min)}</span>
+                  <span>${fmtSliderValue(a.metric, sliderRange.max)}</span>
+                </div>
+              </div>
+            </div>
+            <div class="slider-summary">
+              <div class="lbl">G3-C · Evidence binding</div>
+              <div class="row"><span class="k">P50 (market)</span><span class="v">${fmtSliderValue(a.metric, a.interval.p50)}</span></div>
+              <div class="row"><span class="k">Your value</span><span class="v" data-summary-cur="${a.id}">${fmtSliderValue(a.metric, curV)}</span></div>
+              <div class="row"><span class="k">Deviation</span><span class="v" data-summary-dev="${a.id}">0.0%</span></div>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr class="ev-drawer-row ${state.openAssumption === a.id ? 'open' : ''}" data-drawer-for="${a.id}">
+        <td colspan="6">
+          <div class="ev-drawer">
+            <div class="ev-drawer-banner">G3-C · Evidence brief 基于市场原始假设 (<strong>p50 = ${fmtSliderValue(a.metric, a.interval.p50)}</strong>) 抓取，滑块调整不会触发重跑。</div>
+            <h4>Evidence brief · ${a.id}</h4>
+            ${renderEvidenceBrief(a.id)}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  return `
+    <section class="section">
+      <div class="sec-h">
+        <span class="ix">1.0</span>
+        <h2>Implied assumption table — what the market must believe.</h2>
+        <span class="meta">EXHIBIT 1.1<br>${dec.implied_assumptions.length} assumptions</span>
+      </div>
+
+      <p class="sec-lede">
+        Each row below is one variable the standard DCF would otherwise take as input. PriceLens holds the current quote as the target output and solves for the assumption interval (p25 · p50 · p75) under Monte Carlo perturbation of the remaining inputs.
+        <strong>Click any row</strong> to open the sensitivity slider and the evidence brief for that assumption.
+      </p>
+
+      <div class="exhibit">
+        <span class="lbl">Exhibit 1.1</span>
+        <span class="title">${dec.ticker} · implied assumptions ranked by importance</span>
+        <span class="src">PriceLens · Monte Carlo reverse-DCF</span>
+      </div>
+
+      <table class="ass-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Metric</th>
+            <th class="right">p25 · p50 · p75</th>
+            <th>Human reading</th>
+            <th>Comparison vs baseline</th>
+            <th class="center">Tier
+              <span class="tip-wrap"><span class="tip-trigger">i</span><span class="tip-body">Load-bearing assumptions drive >50% of the price gap. Evidence ranking based on source quality / recency / relevance — scores do not endorse the underlying claim's truthfulness.</span></span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+
+      <div class="exhibit-foot">
+        Note: Intervals come from Monte Carlo perturbation of the consensus assumptions (~500 samples per variable; success-rate noted in raw data). Load-bearing rows are those whose change most directly moves the implied price. The adjusted fair value in the snapshot box reflects a simplified linear sensitivity model.
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="sec-h">
+        <span class="ix">2.0</span>
+        <h2>Overall reading.</h2>
+        <span class="meta">SUMMARY</span>
+      </div>
+      <p class="sec-lede">${dec.overall_summary || ''}</p>
+    </section>
+  `;
+}
+
+function computeSliderRange(interval) {
+  // approx p10-p90 by extending each side by 30%
+  const span = interval.p75 - interval.p25;
+  const min = Math.max(interval.p25 - span * 0.3, 0);
+  const max = interval.p75 + span * 0.3;
+  // pick a step granular enough
+  const step = (max - min) > 1 ? 0.1 : 0.001;
+  return { min: +min.toFixed(6), max: +max.toFixed(6), step };
+}
+
+function renderEvidenceBrief(assumptionId) {
+  const briefs = (state.data && state.data.evidence_briefs) || [];
+  const match = briefs.find(b => b.assumption_id === assumptionId);
+  if (!match) {
+    return `
+      <div class="ev-skeleton">
+        <strong>Evidence brief pending.</strong><br><br>
+        No cached brief was found for <code>${assumptionId}</code>. To populate this drawer, run:
+        <br><br>
+        <code>python pipeline.py ${state.ticker} --max-evidence N</code>
+        <br><br>
+        When live, the agent's search queries and source reads will stream into the <strong>Agent Activity Log</strong> on the right while the brief renders here.
+      </div>
+    `;
+  }
+  return `<div class="ev-skeleton">Evidence brief loaded · ${match.evidence_count?.support || 0} support · ${match.evidence_count?.refute || 0} refute · ${match.overall_balance}.</div>`;
+}
+
+function bindAssumptionRows() {
+  document.querySelectorAll('.ass-table tr.row-main').forEach(row => {
+    row.addEventListener('click', e => {
+      // ignore clicks on tooltip trigger
+      if (e.target.closest('.tip-trigger') || e.target.closest('.tip-body')) return;
+      const id = row.dataset.id;
+      state.openAssumption = state.openAssumption === id ? null : id;
+      render();
+    });
+  });
+  document.querySelectorAll('input[data-slider]').forEach(input => {
+    input.addEventListener('click', e => e.stopPropagation());
+    input.addEventListener('input', e => {
+      e.stopPropagation();
+      const id = input.dataset.slider;
+      const metric = input.dataset.metric;
+      const v = parseFloat(input.value);
+      state.sliderValues[id] = v;
+      const curEl = document.querySelector(`[data-cur="${id}"]`);
+      if (curEl) {
+        curEl.textContent = fmtSliderValue(metric, v);
+        curEl.classList.add('flash');
+        setTimeout(() => curEl.classList.remove('flash'), 220);
+      }
+      const sumCur = document.querySelector(`[data-summary-cur="${id}"]`);
+      if (sumCur) sumCur.textContent = fmtSliderValue(metric, v);
+      const sumDev = document.querySelector(`[data-summary-dev="${id}"]`);
+      if (sumDev) {
+        const a = state.data.decoder_output.implied_assumptions.find(x => x.id === id);
+        if (a && a.interval.p50) {
+          const dev = ((v - a.interval.p50) / Math.abs(a.interval.p50)) * 100;
+          sumDev.textContent = (dev >= 0 ? '+' : '') + dev.toFixed(1) + '% vs p50';
+          sumDev.className = 'v ' + (Math.abs(dev) < 0.5 ? '' : (dev > 0 ? 'up' : 'down'));
+        }
+      }
+      updateAdjustedPrice();
+    });
+  });
+  // prevent slider/drawer rows from collapsing when clicked
+  document.querySelectorAll('.ass-slider-row, .ev-drawer-row').forEach(row => {
+    row.addEventListener('click', e => e.stopPropagation());
+  });
+}
+
+function updateAdjustedPrice() {
+  const el = document.getElementById('reco-adjusted');
+  const adj = computeAdjustedPrice();
+  if (adj == null) { el.textContent = 'n/a'; return; }
+  el.textContent = fmtUSD(adj);
+}
+
+/* ============================================================
+   BOUNDARY MODE BODY
+   ============================================================ */
+function renderBoundary(dec) {
+  const b = dec.boundary_explanation || {};
+  const hyps = (b.framework_hypotheses || []).map((h, i) => `
+    <div class="framework-card">
+      <div class="fc-head">
+        <span class="ix">F.${String(i+1).padStart(2,'0')}</span>
+        <span class="name">${h.framework_name}</span>
+      </div>
+      <div class="rationale">${h.rationale}</div>
+      <div class="hint"><span class="h-lbl">Evidence query hint</span>${h.evidence_query_hint}</div>
+    </div>
+  `).join('');
+
+  return `
+    <section class="section">
+      <div class="sec-h">
+        <span class="ix">B.0</span>
+        <h2>DCF boundary mode — single-framework explanation has failed.</h2>
+        <span class="meta">B4 · BOUNDARY<br>Multi-framework</span>
+      </div>
+
+      <div class="boundary-banner">
+        <span class="icon">⚠</span>
+        <div class="txt">
+          <strong>The current price cannot be explained by a standard single-DCF framework.</strong>
+          <span class="sub">PriceLens has switched into boundary mode. Below: the mathematical facts, candidate alternative frameworks, and a recommended valuation approach.</span>
+        </div>
+      </div>
+
+      <div class="math-facts">
+        <div class="lbl">B.1 · Mathematical facts</div>
+        <p>${b.mathematical_facts || ''}</p>
+      </div>
+
+      <div class="exhibit">
+        <span class="lbl">Exhibit B.1</span>
+        <span class="title">Framework hypotheses — alternative pricing frameworks the market may be using</span>
+        <span class="src">Evidence Hunter · boundary mode</span>
+      </div>
+
+      <div class="framework-list">
+        ${hyps}
+      </div>
+
+      <div class="recommended-alt">
+        <div class="lbl">B.2 · Recommended alternative</div>
+        <p>${b.recommended_alternative || ''}</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="sec-h">
+        <span class="ix">B.3</span>
+        <h2>Overall reading.</h2>
+        <span class="meta">SUMMARY</span>
+      </div>
+      <p class="sec-lede">${dec.overall_summary || ''}</p>
+    </section>
+  `;
+}
+
+/* ============================================================
+   LANGUAGE TOGGLE
+   ============================================================ */
+const disclaimers = {
+  zh: '<strong>Disclaimer.</strong> PriceLens 是研究性工具，展示市场价格背后的隐含假设。所有数值不构成投资建议，使用者需自行判断。',
+  en: '<strong>Disclaimer.</strong> PriceLens is a research tool that decodes implied assumptions behind market prices. Outputs are not investment advice. Use at your own discretion.'
+};
+const tips = {
+  baseline: {
+    zh: '基于 DCF 框架的数学解。DCF 框架对成长股 / 早期公司适用性有限。',
+    en: 'Mathematical solution under the DCF framework. DCF has limited applicability for growth / early-stage companies.'
+  }
+};
+
+function setLang(lang) {
+  state.lang = lang;
+  document.getElementById('disclaimer-text').innerHTML = disclaimers[lang];
+  document.getElementById('tip-baseline').textContent = tips.baseline[lang];
+  document.getElementById('lang-zh').classList.toggle('active', lang === 'zh');
+  document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+}
+
+/* ============================================================
+   BIND PICKER & LANG TOGGLE
+   ============================================================ */
+document.querySelectorAll('.picker .preset').forEach(b => {
+  b.addEventListener('click', () => loadTicker(b.dataset.t));
+});
+document.getElementById('go-btn').addEventListener('click', () => {
+  const v = document.getElementById('ticker-input').value.trim();
+  if (v) loadTicker(v);
+});
+document.getElementById('ticker-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const v = e.target.value.trim();
+    if (v) loadTicker(v);
+  }
+});
+document.getElementById('lang-zh').addEventListener('click', () => setLang('zh'));
+document.getElementById('lang-en').addEventListener('click', () => setLang('en'));
+
+/* boot */
+setLang('zh');
+loadTicker('NVDA');
 </script>
 
 </body>
