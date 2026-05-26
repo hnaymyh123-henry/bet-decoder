@@ -39,9 +39,12 @@ from prompt_loader import load_prompt
 from reverse_dcf import (
     Assumptions,
     CompanyData,
+    compute_historical_context,
     compute_wacc,
     dcf_equity_value_per_share,
+    format_historical_context_md,
     monte_carlo_implied,
+    pull_analyst_consensus,
     pull_company_data,
 )
 
@@ -125,8 +128,10 @@ def get_company_name(ticker: str) -> str:
 
 # ----- Decoder narrator -----
 
-def run_decoder(rdcf: dict, mode: str, company_name: str, use_cache: bool, offline: bool):
-    cache_key = f"{rdcf['ticker']}_{_hash(rdcf['ticker'], rdcf['current_price'], rdcf['baseline_dcf_price'], mode)}"
+def run_decoder(data: CompanyData, rdcf: dict, mode: str, company_name: str,
+                use_cache: bool, offline: bool):
+    # Historical context bumps cache version so old caches without it get invalidated.
+    cache_key = f"{rdcf['ticker']}_v2_{_hash(rdcf['ticker'], rdcf['current_price'], rdcf['baseline_dcf_price'], mode)}"
     if use_cache:
         cached = cache_get("decoder", cache_key)
         if cached:
@@ -142,6 +147,12 @@ def run_decoder(rdcf: dict, mode: str, company_name: str, use_cache: bool, offli
                         if v is None or v.get("success_rate", 0) <= 0.3]
         boundary_reason = f"硬边界:Monte Carlo 反向解全部失败或退化(未收敛变量: {', '.join(nonconverged)})"
 
+    historical = compute_historical_context(data)
+    consensus = pull_analyst_consensus(rdcf["ticker"])
+    historical_md = format_historical_context_md(historical, consensus)
+    if not historical_md.strip():
+        historical_md = "(no historical context available from yfinance)"
+
     prompt = load_prompt(
         "prompts/decoder_narrator.md",
         LANG="zh",
@@ -151,7 +162,7 @@ def run_decoder(rdcf: dict, mode: str, company_name: str, use_cache: bool, offli
         CURRENT_PRICE=f"{rdcf['current_price']}",
         BASELINE_PRICE=f"{rdcf['baseline_dcf_price']:.2f}",
         REVERSE_DCF_OUTPUT_JSON=json.dumps(rdcf, ensure_ascii=False, indent=2),
-        HISTORICAL_CONTEXT="(W2.5 待充实:历史增速、行业中位数、共识等)",
+        HISTORICAL_CONTEXT=historical_md,
         BOUNDARY_REASON=boundary_reason,
         ISO_TIMESTAMP=datetime.now(timezone.utc).isoformat(),
     )
@@ -263,7 +274,7 @@ def main():
 
     # 3. Decoder narrator
     print(f"\n[3/4] Decoder narrator (chat mode, MODE={mode})...")
-    decoder, decoder_cached = run_decoder(rdcf, mode, company_name, use_cache, args.offline)
+    decoder, decoder_cached = run_decoder(data, rdcf, mode, company_name, use_cache, args.offline)
 
     if mode == "standard":
         assumptions = decoder.get("implied_assumptions", [])
