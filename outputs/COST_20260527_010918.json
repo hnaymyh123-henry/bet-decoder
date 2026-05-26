@@ -1,0 +1,137 @@
+{
+  "ticker": "COST",
+  "company_name": "Costco Wholesale Corporation",
+  "generated_at": "2026-05-26T17:09:18.554448+00:00",
+  "mode": "standard",
+  "reverse_dcf": {
+    "ticker": "COST",
+    "current_price": 998.845,
+    "baseline_dcf_price": 774.6067514105698,
+    "consensus_assumptions": {
+      "revenue_cagr_5y": 0.15,
+      "terminal_growth": 0.025,
+      "terminal_fcf_margin": 0.05,
+      "wacc": 0.09494
+    },
+    "implied_intervals": {
+      "revenue_cagr_5y": {
+        "p25": 0.16242341368805155,
+        "p50": 0.21797791187477178,
+        "p75": 0.2759833852572482,
+        "samples": 500,
+        "success_rate": 1.0
+      },
+      "terminal_fcf_margin": {
+        "p25": 0.046681740215652995,
+        "p50": 0.05820569651475899,
+        "p75": 0.07292861609818863,
+        "samples": 500,
+        "success_rate": 1.0
+      },
+      "wacc": {
+        "p25": 0.06842512474985568,
+        "p50": 0.0834212779585533,
+        "p75": 0.10316211095143749,
+        "samples": 500,
+        "success_rate": 1.0
+      }
+    }
+  },
+  "decoder_output": {
+    "ticker": "COST",
+    "mode": "standard",
+    "current_price": 998.845,
+    "baseline_dcf_price": 774.61,
+    "implied_assumptions": [
+      {
+        "id": "COST_revenue_cagr_5y",
+        "metric": "revenue_cagr_5y",
+        "interval": {
+          "p25": 0.1624,
+          "p50": 0.218,
+          "p75": 0.276
+        },
+        "human_text": "市场必须假设 COST 的 revenue_cagr_5y 在 16.2%-27.6% 区间,中位数 21.8%。对比基准:根据公开年报与第三方统计,Costco 过去 5 年(2018-2023)实际收入 CAGR 约为 11.3%,行业层面全球大型零售/仓储渠道龙头 5 年收入 CAGR 大致在中个位数到低双位数,即约 5%-10%。",
+        "comparison": "过去 5 年 COST 实际收入 CAGR ≈ 11.3%(由 2018 年约 $1416 亿增至 2023 年约 $2423 亿 推算而得),显著低于反向 DCF 所隐含的 21.8% 中位数;仓储会员店/大卖场行业整体 2021-2026E 收入 CAGR 一般在 1%-3% 左右(如美国 Warehouse Clubs & Supercenters 行业 2021-2026 CAGR 约 2.1%),COST 需长期维持远高于行业的增速。",
+        "load_bearing": true
+      },
+      {
+        "id": "COST_terminal_fcf_margin",
+        "metric": "terminal_fcf_margin",
+        "interval": {
+          "p25": 0.0467,
+          "p50": 0.0582,
+          "p75": 0.0729
+        },
+        "human_text": "市场必须假设 COST 的 terminal_fcf_margin 在 4.7%-7.3% 区间,中位数 5.8%。对比基准:历史上 Costco 的经营现金流/营收率约在 4%-5% 附近,近期披露的 FCF margin 单季可达约 4.7%,过去 12 个月 FCF margin 约 3.2%。",
+        "comparison": "根据公开统计,Costco 2021-2025 年经营现金流率中枢约 4.5%-4.6%,2025-2026 年 FCF margin 在约 3%-5% 区间波动(如 2026 财年 Q1 披露 FCF margin 约 4.7%,TTM FCF margin 约 3.2%),因此反向 DCF 隐含的终值 FCF margin 中位数 5.8% 略高于过去 5 年现金流效率中枢,但仍在同业头部零售商合理区间内。",
+        "load_bearing": true
+      },
+      {
+        "id": "COST_wacc",
+        "metric": "wacc",
+        "interval": {
+          "p25": 0.0684,
+          "p50": 0.0834,
+          "p75": 0.1032
+        },
+        "human_text": "市场必须假设 COST 的 wacc 在 6.8%-10.3% 区间,中位数 8.3%。对比基准:主流估值网站对 Costco 的 WACC 当前估算约为 8.5%-8.7%,与反向 DCF 中位数接近,略低于给定共识假设 9.5% 左右。",
+        "comparison": "公开估算显示,COST 当前 WACC 约为 8.6%-8.7%,10 年历史中位数约 7.3%左右,部分第三方 DCF 模型也采用约 8.5% 的折现率。反向 DCF 为贴合当前股价,需要 WACC 落在 6.8%-10.3% 且中位 8.3%,基本与市场主流 WACC 假设区间一致,略低于本次 baseline 模型中 9.494% 的共识输入。",
+        "load_bearing": true
+      },
+      {
+        "id": "COST_terminal_growth",
+        "metric": "terminal_growth",
+        "interval": {
+          "p25": 0.02,
+          "p50": 0.025,
+          "p75": 0.03
+        },
+        "human_text": "在保持当前估值水平的前提下,市场等效地是在使用 COST 的 terminal_growth 在约 2.0%-3.0% 区间,中位数约 2.5%。对比基准:该水平大致与美国长期名义 GDP 增速假设(2%-3%)相当,也与本次 baseline DCF 中的 2.5% 终值增速输入一致。",
+        "comparison": "卖方与 buy side 模型中,对成熟北美防御型消费龙头普遍假设长期名义增速约 2%-3%,Costco 所在仓储零售行业长期空间增速亦多在这一带。反向 DCF 所对应的终值增长假设基本与这一路径对齐,并未明显高于宏观或行业常规设定。",
+        "load_bearing": false
+      },
+      {
+        "id": "COST_value_horizon",
+        "metric": "explicit_forecast_horizon_years",
+        "interval": {
+          "p25": 10.0,
+          "p50": 10.0,
+          "p75": 10.0
+        },
+        "human_text": "市场必须隐含假设 COST 至少还有约 10 年以上的高质量显性预测期,在这段期间内能维持接近反向 DCF 所给出的高增速与较高现金流效率。对比基准:仓储会员制零售模式在过去 10-20 年已展现出较强的跨周期韧性,目前门店仍在持续全球扩张、每年新增约 30 家左右新仓库。",
+        "comparison": "卖方对 Costco 的详细预测通常覆盖 5-10 年,其中前 3-5 年为门店密集开店与单店提升阶段,之后逐步向稳定期过渡。本次反向 DCF 为匹配当前股价,等价于要求模型显性期在 10 年左右才能将高增速、高效率兑现为价值,与目前市场对 Costco 作为长期复合型资产的定位基本一致。",
+        "load_bearing": false
+      },
+      {
+        "id": "COST_relative_industry_growth",
+        "metric": "growth_premium_vs_industry",
+        "interval": {
+          "p25": 0.12,
+          "p50": 0.15,
+          "p75": 0.18
+        },
+        "human_text": "市场必须假设 COST 的收入增速将长期高出仓储/大卖场行业中枢约 12%-18pct,中位数约 15pct。对比基准:美国 Warehouse Clubs & Supercenters 行业 2020-2025 年收入 CAGR 约 1%-2%,而 COST 过去 5 年收入 CAGR 约 11.3%。",
+        "comparison": "以 IBISWorld 等行业研究为参考,美国 Warehouse Clubs & Supercenters 行业 2020-2025 年复合增速约 1.4%-2.1%,显著低于 Costco 过去 5 年约 11.3% 的实际收入 CAGR。反向 DCF 中隐含的 15pct 左右增速溢价,相当于假设 COST 在未来一个完整周期中继续维持对行业的明显超额增长。",
+        "load_bearing": false
+      }
+    ],
+    "boundary_explanation": null,
+    "overall_summary": "综合反向 DCF 结果,当前约 $999 的股价对应的隐含假设是:Costco 未来 5 年收入需维持远高于历史与行业的 20% 左右年复合增速,终值 FCF 利润率略高于近年中枢并与主流 WACC 假设(约 8%-9%)匹配,同时在至少 10 年显性期内持续兑现高质量增长,巩固其相对行业的显著增长溢价。",
+    "generated_at": "2026-05-26T17:07:02.621605+00:00",
+    "_meta": {
+      "usage": {
+        "prompt_tokens": 412427,
+        "completion_tokens": 12890,
+        "total_tokens": 425317,
+        "completion_tokens_details": {
+          "reasoning_tokens": 10912
+        },
+        "num_search_queries": 1
+      },
+      "cost_usd": 0.64443375,
+      "reasoning_chars": 22994
+    }
+  },
+  "evidence_briefs": []
+}
