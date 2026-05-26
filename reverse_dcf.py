@@ -66,8 +66,171 @@ def pull_company_data(ticker: str) -> CompanyData:
     )
 
 
-def compute_wacc(beta: float, risk_free: float = 0.045, equity_premium: float = 0.055) -> float:
-    return risk_free + beta * equity_premium
+def compute_wacc(
+    beta: float,
+    risk_free: float = 0.045,
+    equity_premium: float = 0.055,
+    beta_cap: float = 1.5,
+) -> float:
+    effective_beta = min(max(beta, 0.5), beta_cap)
+    return risk_free + effective_beta * equity_premium
+
+
+def pull_analyst_consensus(ticker: str) -> dict:
+    """Best-effort analyst consensus from yfinance. All keys optional, None if missing."""
+    result = {
+        "revenue_growth_5y_consensus": None,
+        "eps_growth_5y_consensus": None,
+        "target_mean_price": None,
+        "recommendation_mean": None,
+    }
+    try:
+        info = yf.Ticker(ticker).info
+    except Exception:
+        return result
+
+    def _get_float(key):
+        try:
+            val = info.get(key)
+            if val is None:
+                return None
+            f = float(val)
+            if np.isnan(f):
+                return None
+            return f
+        except (TypeError, ValueError):
+            return None
+
+    result["revenue_growth_5y_consensus"] = _get_float("revenueGrowth")
+    result["eps_growth_5y_consensus"] = _get_float("earningsGrowth")
+    result["target_mean_price"] = _get_float("targetMeanPrice")
+    result["recommendation_mean"] = _get_float("recommendationMean")
+    return result
+
+
+def compute_historical_context(data: "CompanyData", years: int = 5) -> dict:
+    """Backward-looking context for narrator comparison baselines."""
+    result = {
+        "revenue_cagr_5y_actual": None,
+        "fcf_margin_5y_avg": None,
+        "fcf_margin_ttm": 0.0,
+        "years_of_data": 0,
+    }
+
+    # TTM FCF margin from already-pulled data
+    if data.revenue_ttm and data.revenue_ttm > 0:
+        result["fcf_margin_ttm"] = data.fcf_ttm / data.revenue_ttm
+
+    try:
+        t = yf.Ticker(data.ticker)
+        financials = t.financials
+        cashflow = t.cashflow
+    except Exception:
+        return result
+
+    # Extract revenue series
+    revenue_series = None
+    for name in ("Total Revenue", "TotalRevenue"):
+        if name in financials.index:
+            revenue_series = financials.loc[name]
+            break
+
+    # Extract OCF + CapEx series
+    ocf_series = None
+    capex_series = None
+    for name in ("Operating Cash Flow", "Total Cash From Operating Activities"):
+        if name in cashflow.index:
+            ocf_series = cashflow.loc[name]
+            break
+    for name in ("Capital Expenditure", "Capital Expenditures"):
+        if name in cashflow.index:
+            capex_series = cashflow.loc[name]
+            break
+
+    # Revenue CAGR
+    if revenue_series is not None:
+        vals = []
+        for v in revenue_series.tolist()[:years]:
+            try:
+                f = float(v)
+                if not np.isnan(f) and f > 0:
+                    vals.append(f)
+            except (TypeError, ValueError):
+                continue
+        result["years_of_data"] = len(vals)
+        if len(vals) >= 2:
+            # yfinance returns most-recent first; oldest is last
+            latest = vals[0]
+            oldest = vals[-1]
+            n_periods = len(vals) - 1
+            if oldest > 0 and latest > 0 and n_periods > 0:
+                try:
+                    cagr = (latest / oldest) ** (1.0 / n_periods) - 1.0
+                    if not np.isnan(cagr):
+                        result["revenue_cagr_5y_actual"] = float(cagr)
+                except (ValueError, ZeroDivisionError):
+                    pass
+
+    # FCF margin average
+    if revenue_series is not None and ocf_series is not None and capex_series is not None:
+        margins = []
+        n = min(len(revenue_series), len(ocf_series), len(capex_series), years)
+        for i in range(n):
+            try:
+                rev = float(revenue_series.iloc[i])
+                ocf = float(ocf_series.iloc[i])
+                capex = float(capex_series.iloc[i])
+                if np.isnan(rev) or np.isnan(ocf) or np.isnan(capex):
+                    continue
+                if rev <= 0:
+                    continue
+                fcf = ocf + capex  # capex signed negative
+                margins.append(fcf / rev)
+            except (TypeError, ValueError):
+                continue
+        if margins:
+            result["fcf_margin_5y_avg"] = float(sum(margins) / len(margins))
+
+    return result
+
+
+def format_historical_context_md(context: dict, consensus: dict | None = None) -> str:
+    """Format as markdown bullets for the {{HISTORICAL_CONTEXT}} prompt placeholder."""
+    lines = []
+
+    cagr = context.get("revenue_cagr_5y_actual")
+    years = context.get("years_of_data") or 0
+    if cagr is not None and years >= 2:
+        # year range: assume most recent fiscal year ≈ current year - 1
+        from datetime import datetime as _dt
+        end_year = _dt.now().year - 1
+        start_year = end_year - (years - 1)
+        lines.append(f"- 过去 {years} 年({start_year}-{end_year})营收 CAGR ≈ {cagr * 100:.0f}%")
+
+    fcf_avg = context.get("fcf_margin_5y_avg")
+    fcf_ttm = context.get("fcf_margin_ttm")
+    if fcf_avg is not None and fcf_ttm is not None:
+        lines.append(
+            f"- 过去 {years or 5} 年 FCF margin 均值 ≈ {fcf_avg * 100:.0f}%,当前 TTM = {fcf_ttm * 100:.1f}%"
+        )
+    elif fcf_ttm is not None:
+        lines.append(f"- 当前 TTM FCF margin = {fcf_ttm * 100:.1f}%")
+
+    if consensus:
+        target = consensus.get("target_mean_price")
+        if target is not None:
+            lines.append(f"- 卖方目标价中位数 = ${target:.0f}")
+        rec = consensus.get("recommendation_mean")
+        if rec is not None:
+            lines.append(f"- 卖方推荐均值 = {rec:.1f}(1=Strong Buy / 5=Strong Sell)")
+        rev_g = consensus.get("revenue_growth_5y_consensus")
+        if rev_g is not None:
+            lines.append(f"- 卖方一致营收增速预期 ≈ {rev_g * 100:.1f}%")
+        eps_g = consensus.get("eps_growth_5y_consensus")
+        if eps_g is not None:
+            lines.append(f"- 卖方一致 EPS 增速预期 ≈ {eps_g * 100:.1f}%")
+
+    return "\n".join(lines) if lines else "- (历史数据与卖方共识暂无)"
 
 
 def dcf_equity_value_per_share(a: Assumptions, data: CompanyData) -> float:
