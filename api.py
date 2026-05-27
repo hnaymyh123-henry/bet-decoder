@@ -62,6 +62,31 @@ def get_decode(ticker: str):
     return JSONResponse(content=data)
 
 
+@app.get("/api/decode/{ticker}/5d")
+def get_short_term(ticker: str):
+    ticker_upper = ticker.upper()
+    if not OUTPUTS_DIR.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"No short-term attribution computed for {ticker_upper}. Run python pipeline.py {ticker_upper} --short-term first.",
+        )
+    matches = sorted(OUTPUTS_DIR.glob(f"{ticker_upper}_*.json"))
+    if not matches:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No short-term attribution computed for {ticker_upper}. Run python pipeline.py {ticker_upper} --short-term first.",
+        )
+    latest = matches[-1]
+    data = json.loads(latest.read_text(encoding="utf-8"))
+    short_term = data.get("short_term")
+    if short_term is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No short-term attribution computed for {ticker_upper}. Run python pipeline.py {ticker_upper} --short-term first.",
+        )
+    return JSONResponse(content=short_term)
+
+
 @app.get("/")
 def root():
     if not MOCKUP_PATH.exists():

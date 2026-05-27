@@ -40,6 +40,7 @@ from client import (
 )
 from critic import validate_evidence_brief
 from prompt_loader import load_prompt
+from short_term import compute_short_term_attribution
 from reverse_dcf import (
     Assumptions,
     CompanyData,
@@ -303,6 +304,10 @@ def main():
     parser.add_argument("--no-cache", action="store_true")
     parser.add_argument("--offline", action="store_true")
     parser.add_argument("--flagship", action="store_true")
+    parser.add_argument("--short-term", action="store_true",
+                        help="Also compute short-term (N-day) factor attribution")
+    parser.add_argument("--short-term-window", type=int, default=5,
+                        help="Window in trading days for short-term attribution (default: 5)")
     args = parser.parse_args()
 
     use_cache = not args.no_cache
@@ -399,6 +404,18 @@ def main():
         if "headline" in synthesis:
             print(f"  headline: {synthesis['headline']}")
 
+    # 7. Short-term attribution (optional, free — no LLM)
+    short_term = None
+    if args.short_term:
+        print(f"\n[7/7] Short-term attribution (window={args.short_term_window}d)...")
+        short_term = compute_short_term_attribution(args.ticker, args.short_term_window)
+        ret = short_term["return_pct"]
+        print(f"  {args.short_term_window}d return: {ret:+.2%}")
+        for f in short_term["factors"]:
+            print(f"    {f['label']}: {f['contribution_pct']:+.2%}")
+    else:
+        print(f"\n[7/7] SKIPPED short-term attribution (use --short-term to enable)")
+
     # Aggregate
     OUTPUTS_DIR.mkdir(exist_ok=True)
     output = {
@@ -411,6 +428,7 @@ def main():
         "evidence_briefs": evidence_briefs,
         "critic_reports": critic_reports,
         "synthesis": synthesis,
+        "short_term": short_term,
     }
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_path = OUTPUTS_DIR / f"{args.ticker}_{timestamp}.json"
