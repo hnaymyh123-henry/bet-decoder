@@ -62,29 +62,44 @@ def get_decode(ticker: str):
     return JSONResponse(content=data)
 
 
-@app.get("/api/decode/{ticker}/5d")
-def get_short_term(ticker: str):
-    ticker_upper = ticker.upper()
+def _find_latest_short_term(ticker_upper: str):
+    """Scan newest-first to find a cached output that has a non-null short_term.
+
+    Fixes QA-A W1: a fresh pipeline run without --short-term would otherwise
+    shadow earlier runs that had it. The window is variable, so we don't filter
+    by window here — caller can read short_term['window_days'].
+    """
     if not OUTPUTS_DIR.exists():
+        return None
+    matches = sorted(OUTPUTS_DIR.glob(f"{ticker_upper}_*.json"), reverse=True)
+    for p in matches:
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if data.get("short_term") is not None:
+            return data["short_term"]
+    return None
+
+
+@app.get("/api/decode/{ticker}/short-term")
+def get_short_term(ticker: str):
+    """Latest non-null short-term attribution for {ticker}. Window-agnostic."""
+    ticker_upper = ticker.upper()
+    st = _find_latest_short_term(ticker_upper)
+    if st is None:
         raise HTTPException(
             status_code=404,
             detail=f"No short-term attribution computed for {ticker_upper}. Run python pipeline.py {ticker_upper} --short-term first.",
         )
-    matches = sorted(OUTPUTS_DIR.glob(f"{ticker_upper}_*.json"))
-    if not matches:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No short-term attribution computed for {ticker_upper}. Run python pipeline.py {ticker_upper} --short-term first.",
-        )
-    latest = matches[-1]
-    data = json.loads(latest.read_text(encoding="utf-8"))
-    short_term = data.get("short_term")
-    if short_term is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No short-term attribution computed for {ticker_upper}. Run python pipeline.py {ticker_upper} --short-term first.",
-        )
-    return JSONResponse(content=short_term)
+    return JSONResponse(content=st)
+
+
+# Legacy alias — the path "/5d" was the original endpoint. Keep for any client
+# that was wired to it; new code should use /short-term.
+@app.get("/api/decode/{ticker}/5d")
+def get_short_term_legacy_5d(ticker: str):
+    return get_short_term(ticker)
 
 
 @app.get("/")

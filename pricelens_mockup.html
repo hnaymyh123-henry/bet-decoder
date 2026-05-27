@@ -1177,29 +1177,30 @@
   }
   .foot-bot .brand { color: var(--ink); font-weight: 600; letter-spacing: 0.18em; }
 
-  /* ============================ CORNER WATERMARK ============================ */
-  .corner-mark {
+  /* ============================ TOAST (ticker fetch errors) ============================ */
+  .toast {
     position: fixed;
-    bottom: 16px;
-    right: 20px;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-16px);
+    z-index: 200;
     font-family: var(--mono);
-    font-size: 9.5px;
-    color: var(--ink-3);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    background: var(--paper);
-    padding: 6px 12px;
-    border: 1px solid var(--line);
-    z-index: 100;
-    font-weight: 500;
-  }
-  .corner-mark .dot {
-    display: inline-block;
-    width: 5px; height: 5px;
+    font-size: 11px;
+    color: var(--paper);
     background: var(--accent);
-    margin-right: 7px;
-    transform: translateY(-1px);
+    padding: 10px 18px;
+    border: 1px solid var(--accent);
+    letter-spacing: 0.06em;
+    max-width: 480px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
   }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .toast strong { color: var(--paper); font-weight: 500; margin-right: 6px; }
 
   /* ============================ TOOLTIP ============================ */
   .tip-wrap { position: relative; display: inline-block; }
@@ -1492,7 +1493,7 @@
   </div>
 </footer>
 
-<div class="corner-mark"><span class="dot"></span>Powered by MiroMind Deep Research</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 /* ============================================================
@@ -1526,6 +1527,16 @@ const state = {
 /* ============================================================
    FETCH WITH FIXTURE FALLBACK
    ============================================================ */
+let _toastTimer = null;
+function showToast(html, durationMs = 4500) {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.innerHTML = html;
+  el.classList.add('show');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), durationMs);
+}
+
 async function loadTicker(ticker) {
   // Reset per-ticker UI state so sliders from a previous ticker don't leak
   state.sliderValues = {};
@@ -1548,7 +1559,8 @@ async function loadTicker(ticker) {
       data = FIXTURE_DATA[ticker];
       statusText.textContent = 'Loaded (dev fixture)';
     } else {
-      statusText.textContent = 'No fixture for ' + ticker;
+      statusText.textContent = 'No data for ' + ticker;
+      showToast(`<strong>${ticker}</strong> not cached. Run <em style="font-style:normal;text-decoration:underline">python pipeline.py ${ticker} --no-evidence --no-synthesis</em> first.`);
       return;
     }
   }

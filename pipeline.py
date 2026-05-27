@@ -308,10 +308,23 @@ def main():
                         help="Also compute short-term (N-day) factor attribution")
     parser.add_argument("--short-term-window", type=int, default=5,
                         help="Window in trading days for short-term attribution (default: 5)")
+    parser.add_argument("--confirm-cost", action="store_true",
+                        help="Required when --no-cache could trigger fresh LLM calls; "
+                             "explicit acknowledgement that real $$ will be spent.")
     args = parser.parse_args()
 
     use_cache = not args.no_cache
     evidence_model = MODEL_FLAGSHIP if args.flagship else MODEL_MINI
+
+    # Cost guard (QA-A W3): --no-cache busts the decoder cache, which is in step 3
+    # and runs regardless of --no-evidence. Require explicit --confirm-cost unless
+    # we're in offline mode (no LLM possible).
+    if args.no_cache and not args.offline and not args.confirm_cost:
+        parser.error(
+            "--no-cache will trigger fresh LLM calls (decoder always runs in step 3, "
+            "~$0.17 per ticker; evidence ~$3 each if not also --no-evidence). "
+            "Re-run with --confirm-cost to acknowledge, or add --offline for cache-only."
+        )
 
     print(f"=== PriceLens Pipeline: {args.ticker} ===")
     print(f"cache={'on' if use_cache else 'off'} offline={args.offline} "
