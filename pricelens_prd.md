@@ -2,7 +2,7 @@
 
 > 反向解码股票价格背后的市场隐含推理
 >
-> 版本：v0.4 · 2026-05-27 · solo project
+> 版本：v0.5 · 2026-05-27 · solo project
 
 ---
 
@@ -16,7 +16,7 @@
 | 核心叙事 | "推理透明" — 透明的是市场的集体推理，不是 AI 自己的推理 |
 | 时间 | 2026-04-25 启动 · 2026-06-03 筛选 · 2026-06-13 Demo Day |
 | 团队 | 1 人 |
-| 状态 | PRD v0.4 · W0 进行中（G1-G6 + B1-B4 决议全部锁定 + `reverse_dcf.py` 已验证 + prompt 模板待 review）|
+| 状态 | PRD v0.5 · **W1 + W2 已 closed**;W3 进行中(5d 短期归因 + 前端打磨)|
 
 ---
 
@@ -401,10 +401,10 @@ TSLA 段落是整个 demo 的 "honesty moment"：
 
 | 周次 | 日期 | 目标 | 验收 |
 |---|---|---|---|
-| W1 | 2026-05-20 → 05-26 | API 接通 + 数据源 + 双模式验证 | (a) Test A：deepresearch 模式跑 1 次 evidence hunt 成功并实测成本；(b) Test B：chat 模式 (`tool_choice=none`) 生成结构化人话假设，质量可接受；(c) yfinance 拉到 NVDA 财报 |
-| W2 | 05-27 → 06-02 | 长期解码端到端贯通 | 输入 NVDA → Python 反向 DCF → Chat 生成 5 条人话假设 → 串联 Evidence Hunter → 输出 5 份 evidence brief（CLI OK） |
-| W3 | 06-03 → 06-09 | 前端接真数据 + evidence 抽屉（含 SSE 流式 G4-D） + 5d 归因（辅助） | (a) 前端展示假设表（区间估计）+ 点开假设见 evidence brief；(b) **G4-D：evidence 通过 SSE 渐进式出现**（一条一条出，不阻塞 spinner）；(c) G3-C：滑块改假设后 evidence 冻结 + 标注"基于市场原始假设抓取"；(d) 5d 2 因子归因作为辅助视图 |
-| W4 | 06-10 → 06-12 | 预跑 + OFFLINE_MODE + 打磨 + Demo | (a) 3 只股票（NVDA / TSLA / COST）evidence 预跑并缓存锁版；(b) **G5-B：实现 OFFLINE_MODE 开关**，断网也能跑完 5 分钟；(c) **G6-C：Agent 行动日志面板**，demo 时故意 SSE live 跑 1 条 evidence 作为高光；(d) G6-B：UI 角标 "Powered by MiroMind Deep Research"；(e) 录视频 + ppt |
+| W1 | 2026-05-20 → 05-26 | API 接通 + 数据源 + 双模式验证 | **✅ Closed 2026-05-27** — Test A deepresearch 1 call $3.21 / Test B chat 1 call $0.18，reverse_dcf.py 在 COST/NVDA/TSLA 三种典型场景全部通过（clean / tension / boundary） |
+| W2 | 05-27 → 06-02 | 长期解码端到端贯通 + 后端 + 前端骨架 | **✅ Closed 2026-05-27**（提前完成）— pipeline.py 6 步全通（reverse_dcf → boundary detect → decoder narrator → evidence hunter → critic → synthesizer）；api.py FastAPI 4 endpoints；前端 mockup 接真数据 + 3 ticker 切换 + boundary mode + 滑块真 DCF（JS 端）；全栈集成 TestClient + Claude in Chrome 双向验证通过 |
+| W3 | 06-03 → 06-09 | 5d 短期归因 + UI 打磨 + SSE 流式（W4 一并做） | (a) **5d 2 因子归因 waterfall**（基本面修正 + 持仓变动 + 不可解释残差）；(b) G3-C evidence drawer 冻结时间戳标注；(c) bugfix（滑块初始 baseline、cover-grid 窄屏 stack）；(d) SSE 流式 evidence（G4-D）推到 W4 跟预跑一起做 |
+| W4 | 06-10 → 06-12 | 预跑 + OFFLINE_MODE + SSE + 打磨 + Demo | (a) 3 只股票（NVDA / TSLA / COST）evidence 预跑并缓存锁版（~$60 一次性）；(b) **G5-B：实现 OFFLINE_MODE 开关**，断网也能跑完 5 分钟；(c) **G4-D SSE 流式 + G6-C Agent 行动日志面板**，demo 时故意 SSE live 跑 1 条 evidence 作为高光；(d) G6-B：UI 角标 "Powered by MiroMind Deep Research"；(e) 录视频 + ppt |
 
 **关键警戒线**：
 - 05-26（W1 末）：若 Test B（chat 模式）质量不可用 → 启动退路 1（Python 模板硬编码"数字→人话"，LLM 只做最后润色）
@@ -649,3 +649,4 @@ body_md 字段允许 markdown；其他字段必须是 plain string / number / en
 | v0.2 | 2026-05-26 | MiroMind API 到位后重构。锁定"单一 API + 两种模式"架构；新增 Layer 2 Computation 层；F4 升级 hero / F3 scope 降级；W1 验收增加 Test B；预算模型 + 风险表更新；Q1/Q2/Q3 closed。 |
 | v0.3 | 2026-05-27 | G1-G6 决议全部落地：G1 evidence schema（见 Appendix A）；G2 Monte Carlo 区间估计（§6.2 Step 3.5 + `reverse_dcf.py`）；G3 evidence 冻结 + 标注；G4 SSE 流式 evidence；G5 OFFLINE_MODE + 三级降级；G6 UI 角标 + Agent 行动日志。Demo 脚本重写（live agent log 高光时刻）。风险表新增 2 行（reverse DCF 经济离谱解 / demo 现场故障）。Wind AIFin 数据源决定：post-MVP 升级，MVP 用 yfinance（Q7 deferred）。 |
 | v0.4 | 2026-05-27 | reverse_dcf.py 在 COST / NVDA / TSLA 实测后，B1-B4 + A1 决议全部落地：B1 F7 falsifiability matrix 删除（与 F6 重叠 + demo 时间让给 5d 归因）；B2 双语 disclaimer（footer 常驻 + 2 处 tooltip，§4.5）；B3 F6 滑块范围 = Monte Carlo p10-p90；B4 DCF 边界态完整 spec（§6.4，含 TSLA 案例 + Evidence Hunter boundary mode）；A1 prompt 双语设计 `{{LANG}}` 占位符（§8）。Demo 脚本完全重写为 COST→NVDA→TSLA 三段叙事。Prompt 模板 evidence_hunter.md + decoder_narrator.md 待 review。 |
+| v0.5 | 2026-05-27 | **W1 + W2 closed**(同日提前完成)。Stack:`pipeline.py` 6 步端到端 + `api.py` FastAPI + `critic.py` Python 机械校验 + `prompts/synthesizer.md` chat 模式 + 前端 mockup 接真数据(ticker 切换 + boundary mode + 滑块真 DCF in JS)。Git init 后共 12+ commits on master,3 个 worker agents 并行 + 4 个 bugfix commits(slider initial、cover-grid 窄屏 stack、table responsive、sec-h 对齐)。剩余 W3 重点:5d 短期归因 waterfall + G3-C 冻结标注;SSE 流式 + OFFLINE_MODE 推到 W4 跟预跑一起做。Synthesizer 代码到位但未 live 测过(留 W4 demo dry-run 时一并)。 |
