@@ -148,7 +148,9 @@ def get_price_history(ticker: str, period: str = "5y"):
 
     Backed by a file cache (1 day TTL) so frontend reloads don't hammer yfinance.
     Returns: {"ticker": ..., "period": ..., "interval": "1mo",
-              "points": [{"date": "YYYY-MM-DD", "close": float}, ...]}
+              "points": [{"date": "YYYY-MM-DD", "close": float, "volume": float}, ...]}
+    Old cached payloads without "volume" remain readable; the frontend tolerates the
+    missing key and skips the volume sub-chart.
     """
     ticker_upper = ticker.upper()
     allowed_periods = {"1y", "2y", "5y", "10y", "max"}
@@ -159,7 +161,9 @@ def get_price_history(ticker: str, period: str = "5y"):
         )
 
     PRICE_HISTORY_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    cache_file = PRICE_HISTORY_CACHE_DIR / f"{ticker_upper}_{period}.json"
+    # v2 suffix: schema now includes "volume". Old v1 files (close-only) are
+    # ignored so the frontend reliably gets the volume sub-chart on first load.
+    cache_file = PRICE_HISTORY_CACHE_DIR / f"{ticker_upper}_{period}_v2.json"
 
     if cache_file.exists():
         age = time.time() - cache_file.stat().st_mtime
@@ -195,7 +199,18 @@ def get_price_history(ticker: str, period: str = "5y"):
             continue
         if close_f != close_f:  # NaN check
             continue
-        points.append({"date": ts.strftime("%Y-%m-%d"), "close": round(close_f, 4)})
+        vol = row.get("Volume")
+        try:
+            vol_f = float(vol) if vol is not None else 0.0
+        except (TypeError, ValueError):
+            vol_f = 0.0
+        if vol_f != vol_f:  # NaN
+            vol_f = 0.0
+        points.append({
+            "date": ts.strftime("%Y-%m-%d"),
+            "close": round(close_f, 4),
+            "volume": round(vol_f, 0),
+        })
 
     if not points:
         raise HTTPException(

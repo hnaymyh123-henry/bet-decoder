@@ -539,6 +539,53 @@
     transition: y 0.12s ease;
   }
   .price-chart-wrap .pc-svg .pc-line-label.actual { fill: var(--ink); }
+  .price-chart-wrap .pc-svg .pc-line-label.merged { fill: var(--accent); }
+  .price-chart-wrap .pc-svg .pc-line-label.baseline.hidden { visibility: hidden; }
+  .price-chart-wrap .pc-svg .pc-vol-bar {
+    fill: var(--ink-4);
+    stroke: none;
+  }
+  .price-chart-wrap .pc-svg .pc-vol-label {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    fill: var(--ink-4);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .price-chart-wrap .pc-svg .pc-vol-axis {
+    stroke: var(--line);
+    stroke-width: 1;
+    fill: none;
+  }
+  .price-chart-wrap .pc-svg .pc-crosshair {
+    stroke: var(--ink-4);
+    stroke-width: 1;
+    stroke-dasharray: 2 2;
+    pointer-events: none;
+  }
+  .price-chart-wrap .pc-svg .pc-tooltip-box {
+    fill: var(--paper);
+    stroke: var(--ink-4);
+    stroke-width: 1;
+  }
+  .price-chart-wrap .pc-svg .pc-tooltip-date {
+    font-family: var(--mono);
+    font-size: 9px;
+    fill: var(--ink-3);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .price-chart-wrap .pc-svg .pc-tooltip-price {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    fill: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .price-chart-wrap .pc-svg .pc-hover-rect {
+    fill: transparent;
+    cursor: crosshair;
+  }
   .price-chart-wrap .pc-foot {
     margin-top: 8px;
     padding-top: 8px;
@@ -2689,8 +2736,13 @@ function updateAdjustedPrice() {
    - Three reference lines: BASELINE DCF (dashed), ADJUSTED (oxblood,
      redrawn on slider drag), ACTUAL (black).
    ============================================================ */
-const PC_VB_W = 800, PC_VB_H = 320;
+const PC_VB_W = 800;
+const PC_VB_H_BASE = 320;       // height when no volume sub-chart
+const PC_VB_H_WITH_VOL = 400;   // height when volume sub-chart present
 const PC_PAD = { top: 18, right: 130, bottom: 26, left: 12 };
+const PC_VOL_GAP = 10;          // gap between price plot and volume plot
+const PC_VOL_H = 60;            // volume plot height
+const PC_OVERLAP_PX = 12;       // pixel threshold for ADJ/BASELINE label merge
 
 function renderPriceChartContainer(ticker, mode) {
   return `
@@ -2726,9 +2778,16 @@ function _pcGetReferencePrices() {
   return { actual, baseline, adjusted };
 }
 
+function _pcHasVolume(points) {
+  return points.some(p => typeof p.volume === 'number' && p.volume > 0);
+}
+
 function _pcComputeGeometry(points, refs) {
+  const hasVol = _pcHasVolume(points);
+  const vbH = hasVol ? PC_VB_H_WITH_VOL : PC_VB_H_BASE;
   const innerW = PC_VB_W - PC_PAD.left - PC_PAD.right;
-  const innerH = PC_VB_H - PC_PAD.top - PC_PAD.bottom;
+  // Price plot keeps its original 320-base height; volume plot is appended below.
+  const innerH = PC_VB_H_BASE - PC_PAD.top - PC_PAD.bottom;
   const closes = points.map(p => p.close);
   const maxData = Math.max(...closes, refs.actual, refs.baseline, refs.adjusted != null ? refs.adjusted : refs.baseline);
   const yMax = maxData * 1.1;
@@ -2738,7 +2797,23 @@ function _pcComputeGeometry(points, refs) {
   const n = points.length;
   const xForIndex = (i) => x0 + (n <= 1 ? innerW / 2 : (i * innerW) / (n - 1));
   const yForPrice = (p) => y0 + innerH - ((p - yMin) / (yMax - yMin)) * innerH;
-  return { innerW, innerH, x0, y0, yMin, yMax, xForIndex, yForPrice, n };
+
+  let vol = null;
+  if (hasVol) {
+    const volTop = y0 + innerH + PC_VOL_GAP;
+    const volMax = Math.max(...points.map(p => Number(p.volume) || 0));
+    const volForIndex = (i) => {
+      const v = Number(points[i].volume) || 0;
+      const ratio = volMax > 0 ? v / volMax : 0;
+      const h = ratio * PC_VOL_H;
+      return { y: volTop + (PC_VOL_H - h), h };
+    };
+    // Monthly bar width: derive from spacing between months, then 0.4x for breathing.
+    const monthSpacing = n > 1 ? innerW / (n - 1) : innerW;
+    const barW = Math.max(1.2, monthSpacing * 0.4);
+    vol = { top: volTop, height: PC_VOL_H, max: volMax, barW, volForIndex };
+  }
+  return { innerW, innerH, x0, y0, yMin, yMax, xForIndex, yForPrice, n, hasVol, vbH, vol };
 }
 
 function renderPriceChart() {
@@ -2793,8 +2868,43 @@ function renderPriceChart() {
        <text id="pc-label-adjusted" class="pc-line-label adjusted" x="${labelX}" y="${(parseFloat(yAdjusted) + 3).toFixed(2)}">ADJ · $${refs.adjusted.toFixed(2)}</text>`
     : '';
 
+  // Volume sub-chart (if data available)
+  let volSvg = '';
+  if (geom.hasVol && geom.vol) {
+    const bars = [];
+    for (let i = 0; i < points.length; i++) {
+      const meta = geom.vol.volForIndex(i);
+      if (meta.h <= 0) continue;
+      const cx = geom.xForIndex(i);
+      const x = cx - geom.vol.barW / 2;
+      bars.push(`<rect class="pc-vol-bar" x="${x.toFixed(2)}" y="${meta.y.toFixed(2)}" width="${geom.vol.barW.toFixed(2)}" height="${meta.h.toFixed(2)}"/>`);
+    }
+    const volBaselineY = (geom.vol.top + geom.vol.height).toFixed(2);
+    volSvg = `
+      <g class="pc-vol">
+        ${bars.join('')}
+        <line class="pc-vol-axis" x1="${geom.x0}" y1="${volBaselineY}" x2="${geom.x0 + geom.innerW}" y2="${volBaselineY}"/>
+        <text class="pc-vol-label" x="${geom.x0}" y="${(geom.vol.top + geom.vol.height - 4).toFixed(2)}">VOL</text>
+      </g>
+    `;
+  }
+
+  // Invisible hover capture rect over price plot area for crosshair + tooltip
+  const hoverRect = `<rect class="pc-hover-rect" id="pc-hover-rect" x="${geom.x0}" y="${geom.y0}" width="${geom.innerW}" height="${geom.innerH}"/>`;
+  // Placeholders for crosshair + tooltip (positioned by JS on mousemove)
+  const overlay = `
+    <g id="pc-overlay" style="display:none">
+      <line id="pc-crosshair" class="pc-crosshair" x1="0" y1="${geom.y0}" x2="0" y2="${geom.y0 + geom.innerH}"/>
+      <g id="pc-tooltip" transform="translate(0,0)">
+        <rect class="pc-tooltip-box" id="pc-tooltip-box" x="0" y="0" width="90" height="38"/>
+        <text class="pc-tooltip-date" id="pc-tooltip-date" x="8" y="14">2024-01</text>
+        <text class="pc-tooltip-price" id="pc-tooltip-price" x="8" y="30">$0.00</text>
+      </g>
+    </g>
+  `;
+
   const svg = `
-    <svg class="pc-svg" viewBox="0 0 ${PC_VB_W} ${PC_VB_H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <svg class="pc-svg" viewBox="0 0 ${PC_VB_W} ${geom.vbH}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
       ${gridLines}
       ${xGrid}
       <line class="pc-axis" x1="${geom.x0}" y1="${geom.y0 + geom.innerH}" x2="${geom.x0 + geom.innerW}" y2="${geom.y0 + geom.innerH}"/>
@@ -2806,9 +2916,99 @@ function renderPriceChart() {
       <text class="pc-line-label actual" x="${labelX}" y="${(parseFloat(yActual) + 3).toFixed(2)}">MKT · $${refs.actual.toFixed(2)}</text>
       ${yLabels}
       ${xLabels}
+      ${volSvg}
+      ${overlay}
+      ${hoverRect}
     </svg>
   `;
   host.innerHTML = svg;
+  _pcApplyLabelOverlap(refs);
+  _pcBindHover(points, geom);
+}
+
+/* Detect ADJ vs BASELINE label collision and merge into a single accent label */
+function _pcApplyLabelOverlap(refs) {
+  const baselineLabel = document.querySelector('.pc-line-label.baseline');
+  const adjLabel = document.getElementById('pc-label-adjusted');
+  if (!baselineLabel || !adjLabel || refs == null || refs.adjusted == null) {
+    if (baselineLabel) baselineLabel.classList.remove('hidden');
+    if (adjLabel) {
+      adjLabel.classList.remove('merged');
+      if (refs && refs.adjusted != null) adjLabel.textContent = 'ADJ · $' + refs.adjusted.toFixed(2);
+    }
+    return;
+  }
+  const yBaseline = parseFloat(baselineLabel.getAttribute('y'));
+  const yAdj = parseFloat(adjLabel.getAttribute('y'));
+  if (Math.abs(yAdj - yBaseline) < PC_OVERLAP_PX) {
+    baselineLabel.classList.add('hidden');
+    adjLabel.classList.add('merged');
+    adjLabel.textContent = 'ADJ = DCF · $' + refs.adjusted.toFixed(2);
+  } else {
+    baselineLabel.classList.remove('hidden');
+    adjLabel.classList.remove('merged');
+    adjLabel.textContent = 'ADJ · $' + refs.adjusted.toFixed(2);
+  }
+}
+
+/* Bind crosshair + tooltip to the price plot */
+function _pcBindHover(points, geom) {
+  const svg = document.querySelector('#pc-svg-host .pc-svg');
+  const hoverRect = document.getElementById('pc-hover-rect');
+  const overlay = document.getElementById('pc-overlay');
+  const crosshair = document.getElementById('pc-crosshair');
+  const tooltipG = document.getElementById('pc-tooltip');
+  const dateEl = document.getElementById('pc-tooltip-date');
+  const priceEl = document.getElementById('pc-tooltip-price');
+  const boxEl = document.getElementById('pc-tooltip-box');
+  if (!svg || !hoverRect || !overlay || !crosshair || !tooltipG) return;
+
+  function clientToSvgX(clientX) {
+    const rect = svg.getBoundingClientRect();
+    const ratio = (clientX - rect.left) / rect.width;
+    return ratio * PC_VB_W;
+  }
+  function nearestIndex(svgX) {
+    if (geom.n <= 1) return 0;
+    const innerWStep = geom.innerW / (geom.n - 1);
+    const rawIdx = Math.round((svgX - geom.x0) / innerWStep);
+    return Math.max(0, Math.min(geom.n - 1, rawIdx));
+  }
+  function move(ev) {
+    const svgX = clientToSvgX(ev.clientX);
+    if (svgX < geom.x0 || svgX > geom.x0 + geom.innerW) {
+      overlay.style.display = 'none';
+      return;
+    }
+    const idx = nearestIndex(svgX);
+    const p = points[idx];
+    if (!p) return;
+    const cx = geom.xForIndex(idx);
+    overlay.style.display = '';
+    crosshair.setAttribute('x1', cx.toFixed(2));
+    crosshair.setAttribute('x2', cx.toFixed(2));
+    const yyyymm = p.date.slice(0, 7);
+    const priceStr = '$' + Number(p.close).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    dateEl.textContent = yyyymm;
+    priceEl.textContent = priceStr;
+    // Size box to content (rough: char width ~7px for 13px mono, ~5.5px for 9px)
+    const wDate = yyyymm.length * 6 + 16;
+    const wPrice = priceStr.length * 7 + 16;
+    const boxW = Math.max(72, wDate, wPrice);
+    boxEl.setAttribute('width', boxW);
+    // Position tooltip: right of cursor +12, top-aligned to plot top +8.
+    // Flip to left if it would overrun the plot right edge.
+    let tx = cx + 12;
+    const plotRight = geom.x0 + geom.innerW;
+    if (tx + boxW > plotRight) tx = cx - 12 - boxW;
+    const ty = geom.y0 + 8;
+    tooltipG.setAttribute('transform', `translate(${tx.toFixed(2)},${ty.toFixed(2)})`);
+  }
+  function leave() {
+    overlay.style.display = 'none';
+  }
+  hoverRect.addEventListener('mousemove', move);
+  hoverRect.addEventListener('mouseleave', leave);
 }
 
 function updateChartAdjustedLine() {
@@ -2828,6 +3028,7 @@ function updateChartAdjustedLine() {
   line.setAttribute('y2', y);
   label.setAttribute('y', (parseFloat(y) + 3).toFixed(2));
   label.textContent = 'ADJ · $' + refs.adjusted.toFixed(2);
+  _pcApplyLabelOverlap(refs);
 }
 
 function _pcChooseTicks(min, max, n) {
