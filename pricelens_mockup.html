@@ -444,6 +444,196 @@
     letter-spacing: 0.02em;
   }
 
+  /* ============================ SHORT-TERM ATTRIBUTION (Section 2.0) ============================ */
+  .st-summary {
+    display: flex;
+    align-items: baseline;
+    gap: 24px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    background: var(--paper-2);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+  }
+  .st-summary .k {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--ink-3);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-right: 6px;
+    font-weight: 500;
+  }
+  .st-summary .v {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--ink);
+    font-weight: 500;
+    font-feature-settings: "tnum" 1;
+    letter-spacing: -0.01em;
+  }
+  .st-summary .v.up { color: var(--positive); }
+  .st-summary .v.down { color: var(--negative); }
+  .st-summary .sep { color: var(--ink-5); }
+
+  .wf-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  .wf-table thead th {
+    text-align: left;
+    padding: 12px 14px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--ink-3);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 500;
+    background: var(--paper-2);
+    border-bottom: 2px solid var(--rule);
+    border-top: 1px solid var(--line);
+  }
+  .wf-table thead th.right { text-align: right; }
+  .wf-table tbody td {
+    padding: 14px 14px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  .wf-table .wf-ix {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+    font-weight: 500;
+    width: 5%;
+  }
+  .wf-table .wf-factor {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    color: var(--ink);
+    width: 20%;
+    font-weight: 500;
+  }
+  .wf-table .wf-factor .wf-zh { display: block; }
+  .wf-table .wf-factor .wf-en {
+    display: block;
+    margin-top: 2px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--ink-4);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+  .wf-table .wf-contrib {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--ink);
+    font-weight: 500;
+    text-align: right;
+    font-feature-settings: "tnum" 1;
+    letter-spacing: -0.01em;
+    width: 13%;
+  }
+  .wf-table .wf-contrib.pos { color: var(--positive); }
+  .wf-table .wf-contrib.neg { color: var(--negative); }
+  .wf-table .wf-contrib.unx { color: var(--ink-4); }
+  .wf-table .wf-evidence {
+    font-size: 12px;
+    color: var(--ink-2);
+    line-height: 1.55;
+    width: 42%;
+  }
+  .wf-table .wf-bar-cell {
+    width: 20%;
+    padding-left: 8px;
+    padding-right: 14px;
+  }
+  .wf-bar-track {
+    position: relative;
+    height: 10px;
+    background: transparent;
+    border-left: 1px solid var(--line-2);
+    border-right: 1px solid var(--line-2);
+  }
+  .wf-bar-axis {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    background: var(--ink-4);
+  }
+  .wf-bar-fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    height: 10px;
+  }
+  .wf-bar-fill.pos { background: var(--positive); }
+  .wf-bar-fill.neg { background: var(--negative); }
+  .wf-bar-fill.unx { background: var(--ink-4); }
+
+  .wf-recon {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    padding: 12px 14px;
+    margin-top: 14px;
+    background: var(--paper-2);
+    border-top: 2px solid var(--rule);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--ink-2);
+    font-feature-settings: "tnum" 1;
+  }
+  .wf-recon .k {
+    font-size: 9.5px;
+    color: var(--ink-3);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-right: 4px;
+  }
+  .wf-recon .v {
+    font-size: 12.5px;
+    color: var(--ink);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .wf-recon .v.up { color: var(--positive); }
+  .wf-recon .v.down { color: var(--negative); }
+  .wf-recon .v.unx { color: var(--ink-4); }
+  .wf-recon .sep { color: var(--ink-5); margin: 0 2px; }
+
+  .wf-empty {
+    padding: 28px 18px;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    border-top: 2px solid var(--rule);
+    font-family: var(--sans);
+    font-size: 12.5px;
+    color: var(--ink-3);
+    line-height: 1.6;
+  }
+  .wf-empty strong {
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .wf-empty code {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    background: var(--paper);
+    padding: 2px 6px;
+    border: 1px solid var(--line);
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+
   /* ============================ ASSUMPTION TABLE ============================ */
   .ass-table {
     width: 100%;
@@ -1315,7 +1505,7 @@ const FIXTURE_DATA = {
 
   COST: {"ticker":"COST","company_name":"Costco Wholesale Corporation","generated_at":"2026-05-26T17:09:18.554448+00:00","mode":"standard","reverse_dcf":{"ticker":"COST","current_price":998.845,"baseline_dcf_price":774.6067514105698,"consensus_assumptions":{"revenue_cagr_5y":0.15,"terminal_growth":0.025,"terminal_fcf_margin":0.05,"wacc":0.09494},"implied_intervals":{},"company_inputs":{"revenue_ttm":275235000000.0,"fcf_ttm":7837000000.0,"shares_outstanding":443652540.0,"net_debt":-5988000000.0,"beta":0.908}},"decoder_output":{"ticker":"COST","mode":"standard","current_price":998.845,"baseline_dcf_price":774.61,"implied_assumptions":[{"id":"COST_revenue_cagr_5y","metric":"revenue_cagr_5y","interval":{"p25":0.1624,"p50":0.218,"p75":0.276},"human_text":"市场必须假设 COST 的 revenue_cagr_5y 在 16.2%-27.6% 区间,中位数 21.8%。对比基准:Costco 过去 5 年实际收入 CAGR 约为 11.3%,行业层面全球大型零售/仓储渠道龙头 5 年收入 CAGR 大致在中个位数到低双位数。","comparison":"过去 5 年 COST 实际收入 CAGR ≈ 11.3%,显著低于反向 DCF 所隐含的 21.8% 中位数;仓储会员店/大卖场行业整体 2021-2026E 收入 CAGR 一般在 1%-3% 左右,COST 需长期维持远高于行业的增速。","load_bearing":true},{"id":"COST_terminal_fcf_margin","metric":"terminal_fcf_margin","interval":{"p25":0.0467,"p50":0.0582,"p75":0.0729},"human_text":"市场必须假设 COST 的 terminal_fcf_margin 在 4.7%-7.3% 区间,中位数 5.8%。对比基准:历史上 Costco 的经营现金流/营收率约在 4%-5% 附近。","comparison":"反向 DCF 隐含的终值 FCF margin 中位数 5.8% 略高于过去 5 年现金流效率中枢,但仍在同业头部零售商合理区间内。","load_bearing":true},{"id":"COST_wacc","metric":"wacc","interval":{"p25":0.0684,"p50":0.0834,"p75":0.1032},"human_text":"市场必须假设 COST 的 wacc 在 6.8%-10.3% 区间,中位数 8.3%。对比基准:主流估值网站对 Costco 的 WACC 当前估算约为 8.5%-8.7%。","comparison":"反向 DCF 为贴合当前股价,需要 WACC 落在 6.8%-10.3% 且中位 8.3%,基本与市场主流 WACC 假设区间一致,略低于本次 baseline 模型中 9.494% 的共识输入。","load_bearing":true},{"id":"COST_terminal_growth","metric":"terminal_growth","interval":{"p25":0.02,"p50":0.025,"p75":0.03},"human_text":"市场等效地是在使用 COST 的 terminal_growth 在约 2.0%-3.0% 区间,中位数约 2.5%。对比基准:该水平大致与美国长期名义 GDP 增速假设(2%-3%)相当。","comparison":"反向 DCF 所对应的终值增长假设基本与宏观或行业常规设定对齐,并未明显高于。","load_bearing":false},{"id":"COST_value_horizon","metric":"explicit_forecast_horizon_years","interval":{"p25":10.0,"p50":10.0,"p75":10.0},"human_text":"市场必须隐含假设 COST 至少还有约 10 年以上的高质量显性预测期,在这段期间内能维持接近反向 DCF 所给出的高增速与较高现金流效率。","comparison":"卖方对 Costco 的详细预测通常覆盖 5-10 年,本次反向 DCF 为匹配当前股价,等价于要求模型显性期在 10 年左右才能将高增速、高效率兑现为价值。","load_bearing":false},{"id":"COST_relative_industry_growth","metric":"growth_premium_vs_industry","interval":{"p25":0.12,"p50":0.15,"p75":0.18},"human_text":"市场必须假设 COST 的收入增速将长期高出仓储/大卖场行业中枢约 12%-18pct,中位数约 15pct。","comparison":"反向 DCF 中隐含的 15pct 左右增速溢价,相当于假设 COST 在未来一个完整周期中继续维持对行业的明显超额增长。","load_bearing":false}],"boundary_explanation":null,"overall_summary":"综合反向 DCF 结果,当前约 $999 的股价对应的隐含假设是:Costco 未来 5 年收入需维持远高于历史与行业的 20% 左右年复合增速,终值 FCF 利润率略高于近年中枢并与主流 WACC 假设(约 8%-9%)匹配。","generated_at":"2026-05-26T17:07:02.621605+00:00"},"evidence_briefs":[]},
 
-  TSLA: {"ticker":"TSLA","company_name":"Tesla, Inc.","generated_at":"2026-05-26T17:13:54.809303+00:00","mode":"boundary","reverse_dcf":{"ticker":"TSLA","current_price":432.41,"baseline_dcf_price":23.613461959174817,"consensus_assumptions":{"revenue_cagr_5y":0.15,"terminal_growth":0.025,"terminal_fcf_margin":0.06559313275754795,"wacc":0.143615},"implied_intervals":{},"company_inputs":{"revenue_ttm":94827000000.0,"fcf_ttm":6220000000.0,"shares_outstanding":3755723871.0,"net_debt":-1794000000.0,"beta":1.793}},"decoder_output":{"ticker":"TSLA","mode":"boundary","current_price":432.41,"baseline_dcf_price":23.61,"implied_assumptions":[],"boundary_explanation":{"mathematical_facts":"在共识假设下(5 年收入 CAGR=15%、终值 FCF margin≈6.6%、WACC≈14.4%)，常规模型给出的基准 DCF 价格只有约 $23.6，远低于当前 $432.4。Reverse DCF 尝试通过 Monte Carlo 去反推“能撑住 $432.4 的参数组合”，结果是: (1) 收入 5 年 CAGR 维度完全无法收敛，任何合理区间内放大增速都不足以把估值拉到当前股价；(2) 终值 FCF margin 的反推唯一可行点落在约 58% 左右，而且只在极少数样本中出现(success_rate≈0.2%)，远高于 TSLA 历史 FCF margin ~3%-9% 区间，也显著高于大部分整车或半导体硬件公司的终值水平，数学上近似要求 TSLA 成为“类软件公司+极低再投资”的结构；(3) WACC 维度要想接近现价，需要把 TSLA 的 WACC 压到约 4.1% 中位数(区间约 4.1%-4.36%，success_rate≈15%)，这相当于把 TSLA 当成接近优质公用事业或超低风险国企的风险定价。综合来看，要用单一、平滑的企业级 DCF 解出 $432.4，需要同时假设“长期 FCF margin≈58% 且风险贴现率≈4% 且收入仍维持高增速”，三者组合在历史对标和财务结构上都不具可比参考，所以 Monte Carlo 解会整体退化为边界态，传统 DCF 在这里失去解释力。","framework_hypotheses":[{"framework_name":"Robotaxi / FSD Real Options(类期权定价框架)","rationale":"现价相对基准 DCF 溢价巨大，且反向 DCF 只有在极端高盈利和极低 WACC 假设下才勉强靠近，说明市场可能并不是在给现有整车业务贴现，而是在给 Robotaxi 车队和 FSD 订阅视角下的“成功/失败二元跳跃结果”付钱。这个框架下，现价可以看成: 当前汽车+能源业务的基础价值(接近甚至略高于基准 DCF) + 若干个关于 Robotaxi/FSD 大规模商业化的长期期权，其期望值来自极少数“FSD 完全放开、车队高利用率、单车年净利润很高”的远端场景。","evidence_query_hint":"TSLA robotaxi 商业化时间表 + FSD 订阅/一次性买断渗透率预测 + 单车 robotaxi 年净利润测算 + 主要市场监管放行节奏"},{"framework_name":"AI 超算平台 / Dojo 平台化框架","rationale":"反向 DCF 指向的 58% 终值 FCF margin 更接近高毛利软件/SaaS 或云服务平台，而不是传统汽车制造。市场可能在把 TSLA 的 AI 训练基础设施(如 Dojo)、内部算力和软件堆栈，看成潜在的对外商业化云平台或“训练即服务”(Training-as-a-Service)。在这个思路下，现价包含了未来 AI 基础设施和模型服务作为独立、高利润业务线的潜在价值，而这些现金流几乎不会出现在传统车企 DCF 的显性预测期里。","evidence_query_hint":"Tesla Dojo / AI 超算 对外商业化计划 + 管理层关于AI平台或训练服务收入占比目标 + 类比 AI 云厂商长期 FCF margin 区间"},{"framework_name":"Energy / 储能平台 Sum-of-Parts(分部加总框架)","rationale":"单一 DCF 会把汽车、储能、光伏等业务混在一起，用统一的增长率、利润率和 WACC 处理，容易在某一两个高增长高利润业务刚起量时出现“整体估值远超现金流”的错位。市场可能在用分部加总(Sum-of-Parts)来看 TSLA，把 Energy Generation & Storage 业务(如 Megapack 等储能项目)视为接近基础设施或公用事业类资产，给予不同于整车业务的更低 WACC 和更高稳态 FCF margin。","evidence_query_hint":"Tesla Energy 储能业务收入与毛利拆分 + Megapack 与电力公用事业签署的长期合同情况 + 卖方对 Energy 分部的独立估值/目标倍数"},{"framework_name":"High-growth Comparable Multiples(高成长可比公司市销率/市盈率框架)","rationale":"由于收入增速阶段性放缓、盈利受价格战与高 capex 拖累，基于当前盈利或自由现金流的 DCF 很难映射到 $432.4 附近的价格，但如果采用高增速科技股常用的 PS(市销率)、PEG(市盈率相对增长)、EV/EBITDA 等倍数，对标的是新能源车、AI 硬件和高端半导体公司而非整车传统 peers，则可以通过“更高的合理倍数”来解释一部分估值溢价。","evidence_query_hint":"TSLA 与高成长科技/半导体/新能源车公司的市销率、市盈率、EV/EBITDA 对比 + 卖方报告对 TSLA 使用的主要估值倍数和可比公司篮子"},{"framework_name":"Mission-driven / 长期愿景溢价 + 叙事折现框架","rationale":"TSLA 的公司叙事覆盖“全球能源转型、自动驾驶、AI、机器人”等多个长期主题，部分投资者可能并不严格通过十几年现金流去定价，而是通过“终局市占率 × 行业天花板 × 相信管理层愿景的程度”来拍一个折扣率很低的长期市值锚点，再反推当前合理价格。这种叙事折现框架下，短期现金流与盈利波动被认为只是通往终局的过渡期。","evidence_query_hint":"TSLA 长期市值/目标价叙事中提到的“终局市占率/盈利池规模”的假设 + 投资者/机构对 Musk 团队执行力的定性评价 + 针对 TSLA 的长期主题型基金持仓结构"}],"recommended_alternative":"在 TSLA 这类强叙事+多业务赛道公司上，建议将传统单一企业级 DCF 降级为“基础情景参考”，核心估值框架改用: (1) Sum-of-Parts(汽车/储能/软件&服务分部单独估值); (2) Robotaxi/FSD 等关键项目的 Real Options 定价; (3) 结合高成长科技/半导体/新能源车的 Market Comparables 倍数体系，三者交叉校验，而不是试图用一套平滑现金流的 DCF 把全部溢价解释干净。"},"overall_summary":"对于 TSLA，单一、平滑现金流的传统 DCF 在 $432.4 附近已经进入数学失效区间，要解出现价需要同时假设极高终值盈利能力和极低风险贴现率，与历史和同业对标均不匹配。","generated_at":"2026-05-26T17:12:42.445536+00:00"},"evidence_briefs":[]}
+  TSLA: {"short_term":{"ticker":"TSLA","window_days":5,"start_date":"2026-05-22","end_date":"2026-05-27","price_start":415.20,"price_end":432.41,"return_pct":0.0414,"factors":[{"name":"fundamental_update","label":"基本面修正 / Fundamental update","contribution_pct":0.022,"evidence_text":"Sell-side 共识 EPS 预期 5d 内 +3.2%，多家 broker 上调 FY26 交付量预期；Q1 Cybertruck 产能爬坡数据好于预期。","raw_data":{}},{"name":"flow_positioning","label":"持仓变动 / Flow & positioning","contribution_pct":0.015,"evidence_text":"Sector ETF (XLY) 5d 净流入 +$420M，TSLA 占成分 ~22%；options put/call ratio 由 0.92 降至 0.71，机构 covering shorts。","raw_data":{}},{"name":"macro_rates","label":"宏观利率 / Macro & rates","contribution_pct":-0.008,"evidence_text":"10Y UST 收益率 5d +14bp 至 4.42%，growth/duration 资产承压；DXY 走强 0.8%，对 TSLA 海外收入折算构成弱风险。","raw_data":{}},{"name":"news_narrative","label":"叙事/新闻 / News & narrative","contribution_pct":0.012,"evidence_text":"5/24 Musk 在股东会上重申 Robotaxi 2026 Q3 试运营时间表；FSD v12.5 OTA 推送至全部 N. America 用户，社媒情绪指数环比 +18%。","raw_data":{}},{"name":"unexplained","label":"不可解释残差 / Unexplained residual","contribution_pct":0.004,"evidence_text":"以上四项之外残差约 +0.4%，归因为流动性微观结构、收盘集合竞价行为及未识别因子。","raw_data":{}}]},"ticker":"TSLA","company_name":"Tesla, Inc.","generated_at":"2026-05-26T17:13:54.809303+00:00","mode":"boundary","reverse_dcf":{"ticker":"TSLA","current_price":432.41,"baseline_dcf_price":23.613461959174817,"consensus_assumptions":{"revenue_cagr_5y":0.15,"terminal_growth":0.025,"terminal_fcf_margin":0.06559313275754795,"wacc":0.143615},"implied_intervals":{},"company_inputs":{"revenue_ttm":94827000000.0,"fcf_ttm":6220000000.0,"shares_outstanding":3755723871.0,"net_debt":-1794000000.0,"beta":1.793}},"decoder_output":{"ticker":"TSLA","mode":"boundary","current_price":432.41,"baseline_dcf_price":23.61,"implied_assumptions":[],"boundary_explanation":{"mathematical_facts":"在共识假设下(5 年收入 CAGR=15%、终值 FCF margin≈6.6%、WACC≈14.4%)，常规模型给出的基准 DCF 价格只有约 $23.6，远低于当前 $432.4。Reverse DCF 尝试通过 Monte Carlo 去反推“能撑住 $432.4 的参数组合”，结果是: (1) 收入 5 年 CAGR 维度完全无法收敛，任何合理区间内放大增速都不足以把估值拉到当前股价；(2) 终值 FCF margin 的反推唯一可行点落在约 58% 左右，而且只在极少数样本中出现(success_rate≈0.2%)，远高于 TSLA 历史 FCF margin ~3%-9% 区间，也显著高于大部分整车或半导体硬件公司的终值水平，数学上近似要求 TSLA 成为“类软件公司+极低再投资”的结构；(3) WACC 维度要想接近现价，需要把 TSLA 的 WACC 压到约 4.1% 中位数(区间约 4.1%-4.36%，success_rate≈15%)，这相当于把 TSLA 当成接近优质公用事业或超低风险国企的风险定价。综合来看，要用单一、平滑的企业级 DCF 解出 $432.4，需要同时假设“长期 FCF margin≈58% 且风险贴现率≈4% 且收入仍维持高增速”，三者组合在历史对标和财务结构上都不具可比参考，所以 Monte Carlo 解会整体退化为边界态，传统 DCF 在这里失去解释力。","framework_hypotheses":[{"framework_name":"Robotaxi / FSD Real Options(类期权定价框架)","rationale":"现价相对基准 DCF 溢价巨大，且反向 DCF 只有在极端高盈利和极低 WACC 假设下才勉强靠近，说明市场可能并不是在给现有整车业务贴现，而是在给 Robotaxi 车队和 FSD 订阅视角下的“成功/失败二元跳跃结果”付钱。这个框架下，现价可以看成: 当前汽车+能源业务的基础价值(接近甚至略高于基准 DCF) + 若干个关于 Robotaxi/FSD 大规模商业化的长期期权，其期望值来自极少数“FSD 完全放开、车队高利用率、单车年净利润很高”的远端场景。","evidence_query_hint":"TSLA robotaxi 商业化时间表 + FSD 订阅/一次性买断渗透率预测 + 单车 robotaxi 年净利润测算 + 主要市场监管放行节奏"},{"framework_name":"AI 超算平台 / Dojo 平台化框架","rationale":"反向 DCF 指向的 58% 终值 FCF margin 更接近高毛利软件/SaaS 或云服务平台，而不是传统汽车制造。市场可能在把 TSLA 的 AI 训练基础设施(如 Dojo)、内部算力和软件堆栈，看成潜在的对外商业化云平台或“训练即服务”(Training-as-a-Service)。在这个思路下，现价包含了未来 AI 基础设施和模型服务作为独立、高利润业务线的潜在价值，而这些现金流几乎不会出现在传统车企 DCF 的显性预测期里。","evidence_query_hint":"Tesla Dojo / AI 超算 对外商业化计划 + 管理层关于AI平台或训练服务收入占比目标 + 类比 AI 云厂商长期 FCF margin 区间"},{"framework_name":"Energy / 储能平台 Sum-of-Parts(分部加总框架)","rationale":"单一 DCF 会把汽车、储能、光伏等业务混在一起，用统一的增长率、利润率和 WACC 处理，容易在某一两个高增长高利润业务刚起量时出现“整体估值远超现金流”的错位。市场可能在用分部加总(Sum-of-Parts)来看 TSLA，把 Energy Generation & Storage 业务(如 Megapack 等储能项目)视为接近基础设施或公用事业类资产，给予不同于整车业务的更低 WACC 和更高稳态 FCF margin。","evidence_query_hint":"Tesla Energy 储能业务收入与毛利拆分 + Megapack 与电力公用事业签署的长期合同情况 + 卖方对 Energy 分部的独立估值/目标倍数"},{"framework_name":"High-growth Comparable Multiples(高成长可比公司市销率/市盈率框架)","rationale":"由于收入增速阶段性放缓、盈利受价格战与高 capex 拖累，基于当前盈利或自由现金流的 DCF 很难映射到 $432.4 附近的价格，但如果采用高增速科技股常用的 PS(市销率)、PEG(市盈率相对增长)、EV/EBITDA 等倍数，对标的是新能源车、AI 硬件和高端半导体公司而非整车传统 peers，则可以通过“更高的合理倍数”来解释一部分估值溢价。","evidence_query_hint":"TSLA 与高成长科技/半导体/新能源车公司的市销率、市盈率、EV/EBITDA 对比 + 卖方报告对 TSLA 使用的主要估值倍数和可比公司篮子"},{"framework_name":"Mission-driven / 长期愿景溢价 + 叙事折现框架","rationale":"TSLA 的公司叙事覆盖“全球能源转型、自动驾驶、AI、机器人”等多个长期主题，部分投资者可能并不严格通过十几年现金流去定价，而是通过“终局市占率 × 行业天花板 × 相信管理层愿景的程度”来拍一个折扣率很低的长期市值锚点，再反推当前合理价格。这种叙事折现框架下，短期现金流与盈利波动被认为只是通往终局的过渡期。","evidence_query_hint":"TSLA 长期市值/目标价叙事中提到的“终局市占率/盈利池规模”的假设 + 投资者/机构对 Musk 团队执行力的定性评价 + 针对 TSLA 的长期主题型基金持仓结构"}],"recommended_alternative":"在 TSLA 这类强叙事+多业务赛道公司上，建议将传统单一企业级 DCF 降级为“基础情景参考”，核心估值框架改用: (1) Sum-of-Parts(汽车/储能/软件&服务分部单独估值); (2) Robotaxi/FSD 等关键项目的 Real Options 定价; (3) 结合高成长科技/半导体/新能源车的 Market Comparables 倍数体系，三者交叉校验，而不是试图用一套平滑现金流的 DCF 把全部溢价解释干净。"},"overall_summary":"对于 TSLA，单一、平滑现金流的传统 DCF 在 $432.4 附近已经进入数学失效区间，要解出现价需要同时假设极高终值盈利能力和极低风险贴现率，与历史和同业对标均不匹配。","generated_at":"2026-05-26T17:12:42.445536+00:00"},"evidence_briefs":[]}
 };
 
 /* ============================================================
@@ -1545,11 +1735,12 @@ function render() {
 
   // body
   const main = document.getElementById('main-col');
+  const shortTermBlock = renderShortTerm(d.short_term, d.ticker);
   if (dec.mode === 'boundary') {
-    main.innerHTML = renderBoundary(dec);
+    main.innerHTML = renderBoundary(dec) + shortTermBlock;
     document.getElementById('reco-adjusted').textContent = 'n/a';
   } else {
-    main.innerHTML = renderStandard(dec);
+    main.innerHTML = renderStandard(dec) + shortTermBlock;
     bindAssumptionRows();
     updateAdjustedPrice();
   }
@@ -1607,7 +1798,7 @@ function renderStandard(dec) {
       <tr class="ev-drawer-row ${state.openAssumption === a.id ? 'open' : ''}" data-drawer-for="${a.id}">
         <td colspan="6">
           <div class="ev-drawer">
-            <div class="ev-drawer-banner">G3-C · Evidence brief 基于市场原始假设 (<strong>p50 = ${fmtSliderValue(a.metric, a.interval.p50)}</strong>) 抓取，滑块调整不会触发重跑。</div>
+            <div class="ev-drawer-banner">G3-C · Evidence brief 基于市场原始假设 (<strong>p50 = ${fmtSliderValue(a.metric, a.interval.p50)}</strong>) 抓取${fmtEvidenceCapturedAt(a.id)}，滑块调整不会触发重跑。</div>
             <h4>Evidence brief · ${a.id}</h4>
             ${renderEvidenceBrief(a.id)}
           </div>
@@ -1679,6 +1870,18 @@ function computeSliderRange(interval) {
   return { min: +min.toFixed(6), max: +max.toFixed(6), step };
 }
 
+function fmtEvidenceCapturedAt(assumptionId) {
+  // G3-C: show source-capture timestamp inside the drawer banner when a brief exists.
+  // Returns empty string when no brief is cached so the banner reads cleanly.
+  const briefs = (state.data && state.data.evidence_briefs) || [];
+  const match = briefs.find(b => b.assumption_id === assumptionId);
+  const ts = match?.generated_at;
+  if (!ts) return '';
+  const date = ts.slice(0, 10);
+  const time = ts.slice(11, 16);
+  return ` · 抓取于 <strong>${date} ${time} UTC</strong>`;
+}
+
 function renderEvidenceBrief(assumptionId) {
   const briefs = (state.data && state.data.evidence_briefs) || [];
   const match = briefs.find(b => b.assumption_id === assumptionId);
@@ -1747,6 +1950,144 @@ function updateAdjustedPrice() {
   const adj = computeAdjustedPrice();
   if (adj == null) { el.textContent = 'n/a'; return; }
   el.textContent = fmtUSD(adj);
+}
+
+/* ============================================================
+   SHORT-TERM ATTRIBUTION (Section 2.0)
+   Renders a 5-day waterfall consuming response.short_term.
+   If the field is null/missing, renders a placeholder so users
+   can see the section exists but no data has been computed yet.
+   ============================================================ */
+function fmtPctSigned(p) {
+  // p is a fraction (e.g. 0.022 -> "+2.2%")
+  const v = p * 100;
+  const sign = v > 0 ? '+' : (v < 0 ? '' : '±');
+  return sign + v.toFixed(1) + '%';
+}
+
+function renderShortTerm(st, ticker) {
+  // Empty state — keep the section visible so users know the feature exists.
+  if (!st || !Array.isArray(st.factors) || st.factors.length === 0) {
+    return `
+      <section class="section">
+        <div class="sec-h">
+          <span class="ix">2.0</span>
+          <h2>5-day Attribution Waterfall · what moved ${ticker} over the last week.</h2>
+          <span class="meta">EXHIBIT 2.1<br>Short-term factors</span>
+        </div>
+        <p class="sec-lede">
+          Beyond the long-term implied assumptions above, PriceLens decomposes the most recent 5-day price move into mutually exclusive factor contributions: fundamental updates, flow &amp; positioning, macro/rates, news/narrative, and an unexplained residual. The reconciliation row below the table makes the decomposition gap explicit rather than hiding it.
+        </p>
+        <div class="exhibit">
+          <span class="lbl">Exhibit 2.1</span>
+          <span class="title">${ticker} · 5-day attribution waterfall</span>
+          <span class="src">PriceLens · Short-term Attribution Agent</span>
+        </div>
+        <div class="wf-empty">
+          <strong>Short-term attribution not yet computed.</strong><br><br>
+          Run <code>python pipeline.py ${ticker} --short-term</code> to populate this section. The agent will pull 5-day price action, decompose it across factors, and surface the supporting evidence for each contribution.
+        </div>
+      </section>
+    `;
+  }
+
+  // Active state — render waterfall table.
+  const factors = st.factors;
+  const maxAbs = Math.max(...factors.map(f => Math.abs(f.contribution_pct))) || 1e-9;
+
+  const rows = factors.map((f, i) => {
+    const ix = String(i + 1).padStart(2, '0');
+    const c = f.contribution_pct;
+    const isUnx = f.name === 'unexplained';
+    const kind = isUnx ? 'unx' : (c >= 0 ? 'pos' : 'neg');
+    const labelParts = (f.label || f.name).split('/');
+    const zh = (labelParts[0] || '').trim();
+    const en = (labelParts[1] || '').trim();
+
+    // Bar: half-width track centered on zero. Width proportional to |c| / maxAbs.
+    const widthPct = (Math.abs(c) / maxAbs) * 50; // up to 50% of track (one half)
+    const barStyle = c >= 0
+      ? `left: 50%; width: ${widthPct.toFixed(2)}%;`
+      : `right: 50%; width: ${widthPct.toFixed(2)}%;`;
+
+    return `
+      <tr>
+        <td class="wf-ix">${ix}</td>
+        <td class="wf-factor">
+          <span class="wf-zh">${zh}</span>
+          ${en ? `<span class="wf-en">${en}</span>` : ''}
+        </td>
+        <td class="wf-contrib ${kind}">${fmtPctSigned(c)}</td>
+        <td class="wf-evidence">${f.evidence_text || ''}</td>
+        <td class="wf-bar-cell">
+          <div class="wf-bar-track">
+            <div class="wf-bar-axis"></div>
+            <div class="wf-bar-fill ${kind}" style="${barStyle}"></div>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  const sumFactors = factors.reduce((acc, f) => acc + f.contribution_pct, 0);
+  const actual = st.return_pct;
+  const gap = actual - sumFactors;
+  const actualKind = actual >= 0 ? 'up' : 'down';
+  const sumKind = sumFactors >= 0 ? 'up' : 'down';
+  const gapKind = Math.abs(gap) < 0.0005 ? '' : (gap > 0 ? 'up' : 'down');
+
+  return `
+    <section class="section">
+      <div class="sec-h">
+        <span class="ix">2.0</span>
+        <h2>5-day Attribution Waterfall · what moved ${st.ticker} ${st.start_date} → ${st.end_date}.</h2>
+        <span class="meta">EXHIBIT 2.1<br>${factors.length} factors</span>
+      </div>
+
+      <p class="sec-lede">
+        Beyond the long-term implied assumptions above, PriceLens decomposes the most recent ${st.window_days}-day price move into mutually exclusive factor contributions. The reconciliation row below the table makes the decomposition gap (Σ factors vs actual return) explicit rather than hiding it.
+      </p>
+
+      <div class="st-summary">
+        <span><span class="k">Window</span><span class="v">${st.start_date}</span><span class="sep">→</span><span class="v">${st.end_date}</span></span>
+        <span><span class="k">Price</span><span class="v">${fmtUSD(st.price_start)}</span><span class="sep">→</span><span class="v">${fmtUSD(st.price_end)}</span></span>
+        <span><span class="k">Return</span><span class="v ${actualKind}">${fmtPctSigned(actual)}</span></span>
+      </div>
+
+      <div class="exhibit">
+        <span class="lbl">Exhibit 2.1</span>
+        <span class="title">${st.ticker} · ${st.window_days}-day attribution waterfall</span>
+        <span class="src">PriceLens · Short-term Attribution Agent</span>
+      </div>
+
+      <table class="wf-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Factor</th>
+            <th class="right">Contribution</th>
+            <th>Evidence</th>
+            <th>Visual</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+
+      <div class="wf-recon">
+        <span><span class="k">Σ factors</span><span class="v ${sumKind}">${fmtPctSigned(sumFactors)}</span></span>
+        <span class="sep">·</span>
+        <span><span class="k">Actual return</span><span class="v ${actualKind}">${fmtPctSigned(actual)}</span></span>
+        <span class="sep">·</span>
+        <span><span class="k">Gap</span><span class="v ${gapKind}">${fmtPctSigned(gap)}</span></span>
+      </div>
+
+      <div class="exhibit-foot">
+        Note: Contributions are computed by the Short-term Attribution Agent and sum to the actual return up to a residual gap; the gap is reported transparently rather than absorbed into the unexplained bucket. Visual bars are scaled to the largest absolute contribution in the window; the vertical axis marks the zero line.
+      </div>
+    </section>
+  `;
 }
 
 /* ============================================================
