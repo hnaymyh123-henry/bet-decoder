@@ -5,21 +5,24 @@ Flow:
   2. Boundary detection (B4)
   3. Decoder narrator (chat mode, ~$0.17)
   4. Evidence hunter per assumption (deepresearch, ~$3.21/each)
-  5. Aggregate + save
+  5. Critic per evidence brief (Python, no LLM, free)
+  6. Synthesizer (chat mode, ~$0.05-0.20)
+  7. Aggregate + save
 
 Cost-safe flags:
   --no-evidence        skip evidence calls entirely (decoder only)
   --max-evidence N     limit to N evidence calls (default: all)
+  --no-critic          skip Python critic (still free; debug only)
+  --no-synthesis       skip synthesizer LLM call
   --offline            cache-only, no API calls (G5 demo mode)
   --no-cache           force fresh API calls
   --flagship           use 235B model for evidence (3x cost)
 
 Examples:
-  python pipeline.py NVDA --no-evidence       # ~$0.17 decoder only
-  python pipeline.py TSLA --no-evidence       # boundary mode test
-  python pipeline.py NVDA --max-evidence 1    # ~$0.17 + $3 = $3.21
-  python pipeline.py NVDA                     # ~$0.17 + N*$3 (full)
-  python pipeline.py NVDA --offline           # demo mode, cache only
+  python pipeline.py NVDA --no-evidence --no-synthesis    # cheapest, decoder only
+  python pipeline.py NVDA --no-evidence                   # decoder + synthesis stub
+  python pipeline.py NVDA --max-evidence 1                # full path on 1 assumption
+  python pipeline.py NVDA --offline                       # demo mode, cache only
 """
 import argparse
 import hashlib
@@ -35,6 +38,7 @@ from client import (
     call_deepresearch,
     parse_loose_json,
 )
+from critic import validate_evidence_brief
 from prompt_loader import load_prompt
 from reverse_dcf import (
     Assumptions,
@@ -231,6 +235,53 @@ def run_evidence(ticker: str, assumption: dict, mode: str, company_name: str,
     return parsed, False
 
 
+# ----- Synthesizer -----
+
+def run_synthesizer(rdcf: dict, mode: str, company_name: str,
+                    decoder: dict, evidence_briefs: list, critic_reports: list,
+                    use_cache: bool, offline: bool):
+    cache_key = f"{rdcf['ticker']}_{_hash(rdcf['ticker'], rdcf['current_price'], mode, len(evidence_briefs), len(critic_reports))}"
+    if use_cache:
+        cached = cache_get("synthesizer", cache_key)
+        if cached:
+            print(f"  [cache hit] synthesizer")
+            return cached, True
+
+    if offline:
+        raise RuntimeError(f"Offline mode but no synthesizer cache for {rdcf['ticker']}")
+
+    # Strip _meta from inputs to keep prompt size manageable
+    decoder_lean = {k: v for k, v in decoder.items() if k != "_meta"}
+    briefs_lean = [{k: v for k, v in b.items() if k != "_meta"} for b in evidence_briefs]
+
+    prompt = load_prompt(
+        "prompts/synthesizer.md",
+        LANG="zh",
+        MODE=mode,
+        TICKER=rdcf["ticker"],
+        COMPANY_NAME=company_name,
+        CURRENT_PRICE=f"{rdcf['current_price']}",
+        BASELINE_PRICE=f"{rdcf['baseline_dcf_price']:.2f}",
+        DECODER_OUTPUT_JSON=json.dumps(decoder_lean, ensure_ascii=False, indent=2),
+        EVIDENCE_BRIEFS_JSON=json.dumps(briefs_lean, ensure_ascii=False, indent=2),
+        CRITIC_REPORTS_JSON=json.dumps(critic_reports, ensure_ascii=False, indent=2),
+        ISO_TIMESTAMP=datetime.now(timezone.utc).isoformat(),
+    )
+    print(f"  [api call] synthesizer (chat, ~$0.05-0.20)")
+    raw = call_chat(prompt, model=MODEL_MINI, verbose=False)
+    try:
+        parsed = parse_loose_json(raw["content"])
+    except json.JSONDecodeError as e:
+        parsed = {"error": str(e), "raw_content": raw["content"]}
+    parsed["_meta"] = {
+        "usage": raw["usage"],
+        "cost_usd": raw["cost_usd"],
+        "reasoning_chars": raw["reasoning_chars"],
+    }
+    cache_put("synthesizer", cache_key, parsed)
+    return parsed, False
+
+
 # ----- Main -----
 
 def main():
@@ -238,6 +289,8 @@ def main():
     parser.add_argument("ticker")
     parser.add_argument("--no-evidence", action="store_true")
     parser.add_argument("--max-evidence", type=int, default=None)
+    parser.add_argument("--no-critic", action="store_true")
+    parser.add_argument("--no-synthesis", action="store_true")
     parser.add_argument("--no-cache", action="store_true")
     parser.add_argument("--offline", action="store_true")
     parser.add_argument("--flagship", action="store_true")
@@ -297,18 +350,45 @@ def main():
     # 4. Evidence
     evidence_briefs = []
     if args.no_evidence:
-        print(f"\n[4/4] SKIPPED evidence (--no-evidence flag)")
+        print(f"\n[4/6] SKIPPED evidence (--no-evidence flag)")
     elif not evidence_targets:
-        print(f"\n[4/4] No assumptions to research")
+        print(f"\n[4/6] No assumptions to research")
     else:
         targets = evidence_targets[: args.max_evidence] if args.max_evidence else evidence_targets
-        print(f"\n[4/4] Evidence hunt for {len(targets)} assumptions...")
+        print(f"\n[4/6] Evidence hunt for {len(targets)} assumptions...")
         for assumption in targets:
             brief, _cached = run_evidence(
                 args.ticker, assumption, mode, company_name,
                 rdcf["current_price"], evidence_model, use_cache, args.offline,
             )
             evidence_briefs.append(brief)
+
+    # 5. Critic (Python, no LLM)
+    critic_reports = []
+    if args.no_critic:
+        print(f"\n[5/6] SKIPPED critic (--no-critic flag)")
+    elif not evidence_briefs:
+        print(f"\n[5/6] No evidence briefs to critic")
+    else:
+        print(f"\n[5/6] Critic mechanical validation ({len(evidence_briefs)} briefs)...")
+        for brief in evidence_briefs:
+            report = validate_evidence_brief(brief)
+            critic_reports.append(report)
+            print(f"  {brief.get('assumption_id', '?'):30s}: {report['verdict']:8s} "
+                  f"(errors={report['counts']['errors']}, warnings={report['counts']['warnings']})")
+
+    # 6. Synthesizer (chat mode)
+    synthesis = None
+    if args.no_synthesis:
+        print(f"\n[6/6] SKIPPED synthesizer (--no-synthesis flag)")
+    else:
+        print(f"\n[6/6] Synthesizer (chat mode, MODE={mode})...")
+        synthesis, _cached = run_synthesizer(
+            rdcf, mode, company_name, decoder, evidence_briefs, critic_reports,
+            use_cache, args.offline,
+        )
+        if "headline" in synthesis:
+            print(f"  headline: {synthesis['headline']}")
 
     # Aggregate
     OUTPUTS_DIR.mkdir(exist_ok=True)
@@ -320,6 +400,8 @@ def main():
         "reverse_dcf": rdcf,
         "decoder_output": decoder,
         "evidence_briefs": evidence_briefs,
+        "critic_reports": critic_reports,
+        "synthesis": synthesis,
     }
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_path = OUTPUTS_DIR / f"{args.ticker}_{timestamp}.json"
@@ -328,7 +410,8 @@ def main():
     # Summary
     decoder_cost = decoder.get("_meta", {}).get("cost_usd", 0)
     evidence_cost = sum(b.get("_meta", {}).get("cost_usd", 0) for b in evidence_briefs)
-    total_cost = decoder_cost + evidence_cost
+    synth_cost = (synthesis or {}).get("_meta", {}).get("cost_usd", 0) if synthesis else 0
+    total_cost = decoder_cost + evidence_cost + synth_cost
 
     print(f"\n=== Summary ===")
     print(f"Ticker:         {args.ticker} ({company_name})")
