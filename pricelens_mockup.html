@@ -1317,7 +1317,11 @@ const state = {
   data: null,
   ticker: 'NVDA',
   openAssumption: null,    // assumption id currently open
-  sliderValues: {},        // assumption id -> current slider value (raw, e.g. 0.63)
+  sliderValues: {},        // assumption id -> current slider value (raw, e.g. 0.63);
+                           // auto-initialised to interval.p50 on render so the slider
+                           // visually starts at p50. Use sliderTouched to know whether
+                           // the user actually moved it.
+  sliderTouched: {},       // assumption id -> true iff user actually dragged the slider
   lang: 'zh'
 };
 
@@ -1325,6 +1329,10 @@ const state = {
    FETCH WITH FIXTURE FALLBACK
    ============================================================ */
 async function loadTicker(ticker) {
+  // Reset per-ticker UI state so sliders from a previous ticker don't leak
+  state.sliderValues = {};
+  state.sliderTouched = {};
+  state.openAssumption = null;
   ticker = ticker.toUpperCase().trim();
   const statusText = document.getElementById('status-text');
   statusText.textContent = 'Loading ' + ticker + '...';
@@ -1438,10 +1446,13 @@ function computeAdjustedPrice() {
     return computeAdjustedPriceStub();
   }
 
-  // effective = consensus baseline, then user slider overrides for any touched DCF metrics
+  // effective = consensus baseline; only override when user has actually moved the slider
+  // (sliderValues is pre-filled with p50 on render for visual position, but a non-null
+  //  value alone doesn't mean the user touched it).
   const effective = { ...rdcf.consensus_assumptions };
   state.data.decoder_output.implied_assumptions.forEach(a => {
     if (!DCF_METRICS.includes(a.metric)) return;
+    if (!state.sliderTouched[a.id]) return;
     const sliderVal = state.sliderValues[a.id];
     if (sliderVal != null) effective[a.metric] = sliderVal;
   });
@@ -1696,6 +1707,7 @@ function bindAssumptionRows() {
       const metric = input.dataset.metric;
       const v = parseFloat(input.value);
       state.sliderValues[id] = v;
+      state.sliderTouched[id] = true;  // mark as user-modified so computeAdjustedPrice overrides consensus
       const curEl = document.querySelector(`[data-cur="${id}"]`);
       if (curEl) {
         curEl.textContent = fmtSliderValue(metric, v);
