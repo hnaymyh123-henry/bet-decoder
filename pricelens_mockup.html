@@ -1069,6 +1069,14 @@
       position: static;
       margin-top: 32px;
     }
+    /* Cover-grid also stacks: the 340px right rail was forcing .page wider
+       than viewport at ~700px viewports. */
+    .cover-grid {
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+    .title-block h1 { font-size: 32px; line-height: 1.1; }
+    .title-block .subtitle { max-width: 100%; }
   }
 
   /* Below ~900px: ass-table comparison column gets pushed too thin — drop it.
