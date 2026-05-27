@@ -6,11 +6,18 @@ Start the server:
     uvicorn api:app --reload --port 8000
 """
 import json
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+
+from sse import stream_evidence_mock
+
+
+def _offline_mode_enabled() -> bool:
+    return os.environ.get("OFFLINE_MODE", "").lower() in ("1", "true", "yes")
 
 OUTPUTS_DIR = Path(__file__).parent / "outputs"
 MOCKUP_PATH = Path(__file__).parent / "pricelens_mockup.html"
@@ -100,6 +107,36 @@ def get_short_term(ticker: str):
 @app.get("/api/decode/{ticker}/5d")
 def get_short_term_legacy_5d(ticker: str):
     return get_short_term(ticker)
+
+
+@app.get("/api/offline-mode")
+def get_offline_mode():
+    return {"offline": _offline_mode_enabled()}
+
+
+@app.get("/api/stream/evidence/{ticker}/{assumption_id}")
+async def stream_evidence(
+    ticker: str, assumption_id: str, text: str = "", mock: bool = True
+):
+    """SSE evidence stream. Current behavior is mock-only; live wiring deferred to Phase C.
+    The `mock` query param is accepted but ignored — Phase C will honor it."""
+    if _offline_mode_enabled():
+        return JSONResponse(
+            status_code=503,
+            content={
+                "error": "offline mode active",
+                "retry_with": "set OFFLINE_MODE=false in env",
+            },
+        )
+    stream = stream_evidence_mock(ticker.upper(), assumption_id, text)
+    return StreamingResponse(
+        stream,
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @app.get("/")

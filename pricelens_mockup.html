@@ -1096,6 +1096,239 @@
   .agent-log .stream .ln { padding: 4px 0; border-bottom: 1px dashed var(--line); }
   .agent-log .stream .ln .ts { color: var(--ink-4); margin-right: 8px; }
   .agent-log .stream .ln .ac { color: var(--accent); }
+  /* G6-C · stream type colors. NO italic. Geist Mono only. */
+  .agent-log .stream .ln.t-thinking .tp { color: var(--ink-3); font-weight: 300; }
+  .agent-log .stream .ln.t-search   .tp { color: var(--accent); font-weight: 500; }
+  .agent-log .stream .ln.t-read     .tp { color: var(--ink); font-weight: 500; }
+  .agent-log .stream .ln.t-synthesize .tp { color: var(--ink-2); font-weight: 500; }
+  .agent-log .stream .ln .tp {
+    display: inline-block;
+    min-width: 56px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 9.5px;
+    margin-right: 10px;
+  }
+  .agent-log .stream .ln .txt { color: var(--ink-2); }
+  .agent-log .al-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding: 8px 12px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    margin-top: 12px;
+  }
+  .agent-log .al-status .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  .agent-log .al-status.done .dot { background: var(--positive); animation: none; }
+  .agent-log .al-status .ts { color: var(--ink-4); margin-left: auto; letter-spacing: 0.04em; }
+  .agent-log .al-usage {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: var(--paper);
+    border-left: 2px solid var(--ink-4);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.02em;
+  }
+  .agent-log .al-usage strong { color: var(--ink); font-weight: 500; }
+
+  /* Evidence drawer streaming state */
+  .ev-streaming {
+    padding: 18px 22px;
+    background: var(--paper);
+    border: 1px dashed var(--line-2);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-2);
+    line-height: 1.75;
+    letter-spacing: 0.02em;
+    min-height: 80px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .ev-streaming .head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .ev-streaming .head .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  .ev-streaming .progress {
+    height: 2px;
+    width: 100%;
+    background: var(--line);
+    margin: 10px 0 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .ev-streaming .progress::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -40%;
+    width: 40%;
+    height: 100%;
+    background: var(--accent);
+    animation: ev-prog 1.6s linear infinite;
+  }
+  @keyframes ev-prog {
+    0%   { left: -40%; }
+    100% { left: 100%; }
+  }
+  .ev-streaming .buf {
+    color: var(--ink-2);
+    border-top: 1px dashed var(--line);
+    padding-top: 10px;
+  }
+  .ev-streaming .buf:empty::before {
+    content: 'awaiting first content delta...';
+    color: var(--ink-4);
+  }
+  .ev-streaming .buf .cursor {
+    display: inline-block;
+    width: 6px; height: 11px;
+    background: var(--accent);
+    vertical-align: -1px;
+    margin-left: 2px;
+    animation: pulse 1s ease-in-out infinite;
+  }
+
+  /* Evidence brief rendered (complete state) */
+  .ev-brief { display: grid; gap: 16px; }
+  .ev-brief .grp {
+    border: 1px solid var(--line);
+    background: var(--paper);
+  }
+  .ev-brief .grp-h {
+    padding: 8px 14px;
+    background: var(--paper-2);
+    border-bottom: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    font-weight: 500;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .ev-brief .grp-h .dir-support  { color: var(--positive); }
+  .ev-brief .grp-h .dir-refute   { color: var(--negative); }
+  .ev-brief .grp-h .dir-neutral  { color: var(--neutral); }
+  .ev-brief .grp-h .cnt { color: var(--ink-4); font-weight: 400; }
+  .ev-brief .it {
+    padding: 12px 16px;
+    border-top: 1px dashed var(--line);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 6px 16px;
+  }
+  .ev-brief .it:first-of-type { border-top: none; }
+  .ev-brief .it .claim {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--ink);
+    grid-column: 1 / -1;
+  }
+  .ev-brief .it .src {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    color: var(--ink-3);
+    word-break: break-all;
+  }
+  .ev-brief .it .src a { color: var(--ink-3); text-decoration: none; border-bottom: 1px dotted var(--ink-4); }
+  .ev-brief .it .src a:hover { color: var(--ink); border-bottom-color: var(--ink); }
+  .ev-brief .it .scores {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    text-align: right;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .ev-brief .it .scores .sc { display: inline-block; margin-left: 8px; }
+  .ev-brief .it .scores .sc strong { color: var(--ink); font-weight: 500; }
+  .ev-brief .summary {
+    padding: 12px 16px;
+    background: var(--paper-2);
+    border-left: 2px solid var(--accent);
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: var(--ink-2);
+  }
+  .ev-brief .summary strong { color: var(--ink); font-weight: 500; }
+
+  /* ============================ OFFLINE TOGGLE ============================ */
+  .offline-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    color: var(--ink-5);
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .offline-toggle .sw {
+    position: relative;
+    width: 24px;
+    height: 12px;
+    border: 1px solid var(--ink-5);
+    background: transparent;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .offline-toggle .sw::after {
+    content: '';
+    position: absolute;
+    top: 1px; left: 1px;
+    width: 8px; height: 8px;
+    background: var(--ink-5);
+    transition: left 0.15s ease, background 0.15s ease;
+  }
+  .offline-toggle.on .sw { background: var(--accent); border-color: var(--accent); }
+  .offline-toggle.on .sw::after { left: 13px; background: var(--paper); }
+  .offline-toggle.on { color: var(--paper); }
+  .offline-toggle:hover { color: var(--paper); }
+  .offline-toggle:hover .sw { border-color: var(--paper); }
+  .offline-toggle.on:hover .sw { border-color: var(--paper); }
+
+  .offline-badge {
+    display: none;
+    background: var(--accent);
+    color: var(--paper);
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 500;
+    padding: 3px 8px;
+    border: 1px solid var(--accent);
+    margin-left: 12px;
+  }
+  body.is-offline .offline-badge { display: inline-block; }
 
   /* ============================ FOOTER ============================ */
   footer.foot { padding: 48px 0 80px; }
@@ -1329,6 +1562,11 @@
       <span>Methodology</span>
     </div>
     <div class="right">
+      <span class="offline-badge" id="offline-badge">OFFLINE</span>
+      <label class="offline-toggle" id="offline-toggle" title="Offline mode disables live evidence streams">
+        <span class="sw"></span>
+        <span>Offline</span>
+      </label>
       <span id="masthead-ts">27 · 05 · 2026</span>
       <span class="live">NYSE OPEN</span>
     </div>
@@ -1521,7 +1759,10 @@ const state = {
                            // visually starts at p50. Use sliderTouched to know whether
                            // the user actually moved it.
   sliderTouched: {},       // assumption id -> true iff user actually dragged the slider
-  lang: 'zh'
+  lang: 'zh',
+  offline: false,          // OFFLINE_MODE — when true, streamEvidence() is short-circuited
+  streamingFor: null,      // assumption id currently being streamed (race-guard)
+  streamStartAt: 0         // ms timestamp for "Done in Xs" status
 };
 
 /* ============================================================
@@ -1537,7 +1778,275 @@ function showToast(html, durationMs = 4500) {
   _toastTimer = setTimeout(() => el.classList.remove('show'), durationMs);
 }
 
+/* ============================================================
+   G4-D · SSE EVIDENCE STREAM (mock-backed during phase B)
+   ============================================================ */
+let _activeStream = null;
+
+function streamEvidence(ticker, assumptionId, assumptionText) {
+  if (state.offline) {
+    showToast('<strong>Offline mode</strong> live evidence stream disabled');
+    return;
+  }
+  // cancel any in-flight stream first
+  if (_activeStream) { try { _activeStream.close(); } catch (_) {} _activeStream = null; }
+
+  const url = '/api/stream/evidence/' + encodeURIComponent(ticker)
+            + '/' + encodeURIComponent(assumptionId)
+            + '?text=' + encodeURIComponent(assumptionText || '')
+            + '&mock=true';
+
+  let es;
+  try {
+    es = new EventSource(url);
+  } catch (err) {
+    showToast('<strong>SSE error</strong> EventSource unavailable');
+    return;
+  }
+  _activeStream = es;
+  state.streamingFor = assumptionId;
+  state.streamStartAt = Date.now();
+
+  agentLogReset(assumptionId);
+  evidenceDrawerStreamStart(assumptionId);
+
+  let contentBuffer = '';
+  let completed = false;
+
+  es.addEventListener('agent_step', (e) => {
+    let d; try { d = JSON.parse(e.data); } catch (_) { return; }
+    agentLogAppend(d);
+  });
+
+  es.addEventListener('content_delta', (e) => {
+    let d; try { d = JSON.parse(e.data); } catch (_) { return; }
+    contentBuffer += (d.text || '');
+    evidenceDrawerAppendContent(assumptionId, contentBuffer);
+  });
+
+  es.addEventListener('usage', (e) => {
+    let d; try { d = JSON.parse(e.data); } catch (_) { return; }
+    agentLogAppendUsage(d);
+  });
+
+  es.addEventListener('complete', (e) => {
+    let d; try { d = JSON.parse(e.data); } catch (_) { d = {}; }
+    completed = true;
+    evidenceDrawerComplete(assumptionId, d.brief || null);
+    agentLogMarkDone();
+    try { es.close(); } catch (_) {}
+    if (_activeStream === es) _activeStream = null;
+    state.streamingFor = null;
+  });
+
+  es.addEventListener('error', (e) => {
+    // Suppress only when we already completed normally (browsers may fire a
+    // generic error on the post-complete close). Any other failure — including
+    // 404 (endpoint missing), 503 (server in offline mode), or connection drop
+    // mid-stream — should surface a toast and restore the drawer.
+    if (completed) {
+      try { es.close(); } catch (_) {}
+      if (_activeStream === es) _activeStream = null;
+      state.streamingFor = null;
+      return;
+    }
+    let msg = 'Stream error';
+    try { if (e && e.data) msg = (JSON.parse(e.data).message) || msg; } catch (_) {}
+    showToast('<strong>SSE error</strong> ' + msg + ' (endpoint may not be ready)');
+    // Restore drawer to "pending" skeleton so user sees a clear empty state.
+    const briefRoot = document.querySelector(
+      `tr.ev-drawer-row[data-drawer-for="${cssEscape(assumptionId)}"] [data-brief-root]`
+    );
+    if (briefRoot) briefRoot.innerHTML = renderEvidenceBrief(assumptionId);
+    // Mark agent log as halted (red dot kept, label updated)
+    const st = document.getElementById('al-status');
+    if (st) {
+      st.innerHTML = '<span class="dot"></span><span>Halted</span>'
+                   + '<span class="ts mono">stream interrupted</span>';
+    }
+    try { es.close(); } catch (_) {}
+    if (_activeStream === es) _activeStream = null;
+    state.streamingFor = null;
+  });
+}
+
+/* ============================================================
+   AGENT ACTIVITY LOG · stream sink
+   ============================================================ */
+function agentLogReset(assumptionId) {
+  const ph = document.querySelector('.agent-log .placeholder');
+  if (ph) ph.style.display = 'none';
+  const stream = document.getElementById('agent-stream');
+  if (!stream) return;
+  stream.innerHTML = '';
+  // remove prior status/usage blocks
+  document.querySelectorAll('.agent-log .al-status, .agent-log .al-usage').forEach(n => n.remove());
+  const status = document.createElement('div');
+  status.className = 'al-status streaming';
+  status.id = 'al-status';
+  status.innerHTML = '<span class="dot"></span><span>Streaming</span>'
+                   + '<span class="ts mono" id="al-status-ts">' + (assumptionId || '') + '</span>';
+  stream.parentNode.insertBefore(status, stream);
+}
+
+function agentLogAppend(step) {
+  const stream = document.getElementById('agent-stream');
+  if (!stream) return;
+  const t = (step.type || 'thinking').toLowerCase();
+  const ts = step.ts || '';
+  const txt = step.text || '';
+  const ln = document.createElement('div');
+  ln.className = 'ln mono t-' + t;
+  ln.innerHTML = '<span class="ts">[' + escapeHTML(ts) + ']</span>'
+               + '<span class="tp">' + escapeHTML(typeShort(t)) + '</span>'
+               + '<span class="txt">' + escapeHTML(txt) + '</span>';
+  stream.appendChild(ln);
+  stream.scrollTop = stream.scrollHeight;
+}
+
+function agentLogAppendUsage(u) {
+  // Drop a single usage line (replace prior if exists)
+  document.querySelectorAll('.agent-log .al-usage').forEach(n => n.remove());
+  const box = document.createElement('div');
+  box.className = 'al-usage';
+  const pin = (u.prompt_tokens != null) ? u.prompt_tokens.toLocaleString('en-US') : '—';
+  const pout = (u.completion_tokens != null) ? u.completion_tokens.toLocaleString('en-US') : '—';
+  const cost = (u.cost_usd != null) ? ('$' + Number(u.cost_usd).toFixed(2)) : '—';
+  box.innerHTML = 'tokens <strong>' + pin + '</strong> in + <strong>'
+                + pout + '</strong> out &middot; <strong>' + cost + '</strong>';
+  const stream = document.getElementById('agent-stream');
+  if (stream) stream.parentNode.appendChild(box);
+}
+
+function agentLogMarkDone() {
+  const st = document.getElementById('al-status');
+  if (!st) return;
+  st.classList.remove('streaming');
+  st.classList.add('done');
+  const elapsedMs = Math.max(0, Date.now() - state.streamStartAt);
+  const secs = (elapsedMs / 1000).toFixed(1);
+  st.innerHTML = '<span class="dot"></span><span>Done</span>'
+               + '<span class="ts mono">' + secs + 's elapsed</span>';
+}
+
+function typeShort(t) {
+  if (t === 'thinking') return 'think';
+  if (t === 'search') return 'search';
+  if (t === 'read') return 'read';
+  if (t === 'synthesize') return 'synth';
+  return (t || '').slice(0, 6);
+}
+
+function escapeHTML(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+/* ============================================================
+   EVIDENCE DRAWER · streaming reveal
+   ============================================================ */
+function evidenceDrawerStreamStart(assumptionId) {
+  const drawer = document.querySelector(`tr.ev-drawer-row[data-drawer-for="${cssEscape(assumptionId)}"] .ev-drawer`);
+  if (!drawer) return;
+  // preserve the banner; replace the brief body only
+  const briefRoot = drawer.querySelector('[data-brief-root]');
+  if (!briefRoot) return;
+  briefRoot.innerHTML = `
+    <div class="ev-streaming" data-streaming="${escapeHTML(assumptionId)}">
+      <div class="head"><span class="dot"></span><span>Receiving stream</span></div>
+      <div class="progress"></div>
+      <div class="buf" data-buf></div>
+    </div>
+  `;
+}
+
+function evidenceDrawerAppendContent(assumptionId, accumulatedText) {
+  const buf = document.querySelector(
+    `tr.ev-drawer-row[data-drawer-for="${cssEscape(assumptionId)}"] .ev-streaming .buf`
+  );
+  if (!buf) return;
+  // Phase B: render as plain text (no markdown parser) + blinking cursor.
+  buf.innerHTML = escapeHTML(accumulatedText) + '<span class="cursor"></span>';
+}
+
+function evidenceDrawerComplete(assumptionId, brief) {
+  const drawer = document.querySelector(
+    `tr.ev-drawer-row[data-drawer-for="${cssEscape(assumptionId)}"] .ev-drawer`
+  );
+  if (!drawer) return;
+  const briefRoot = drawer.querySelector('[data-brief-root]');
+  if (!briefRoot) return;
+
+  if (brief) {
+    // cache the brief so subsequent opens don't re-stream
+    if (!state.data.evidence_briefs) state.data.evidence_briefs = [];
+    const existingIx = state.data.evidence_briefs.findIndex(b => b.assumption_id === assumptionId);
+    if (existingIx >= 0) state.data.evidence_briefs[existingIx] = brief;
+    else state.data.evidence_briefs.push(brief);
+  }
+  briefRoot.innerHTML = renderEvidenceBrief(assumptionId);
+}
+
+/* CSS.escape polyfill for older browsers when building selectors with IDs that
+   contain underscores / dots like "NVDA_revenue_cagr_5y". The naive fallback
+   is enough — all our ids are [A-Z0-9_]+. */
+function cssEscape(s) {
+  if (window.CSS && CSS.escape) return CSS.escape(s);
+  return String(s).replace(/([^\w-])/g, '\\$1');
+}
+
+/* ============================================================
+   OFFLINE MODE TOGGLE
+   ============================================================ */
+async function initOfflineToggle() {
+  const stored = localStorage.getItem('pricelens_offline');
+  let offline = stored === '1';
+  // Try to sync with server; if server says offline, force on.
+  try {
+    const r = await fetch('/api/offline-mode');
+    if (r.ok) {
+      const d = await r.json();
+      if (typeof d.offline === 'boolean') {
+        // server is authoritative when true; preserves user choice when false
+        if (d.offline) offline = true;
+      }
+    }
+  } catch (_) { /* server unreachable — keep localStorage value */ }
+
+  applyOffline(offline);
+
+  const toggle = document.getElementById('offline-toggle');
+  if (toggle) {
+    toggle.addEventListener('click', () => {
+      applyOffline(!state.offline);
+      localStorage.setItem('pricelens_offline', state.offline ? '1' : '0');
+    });
+  }
+}
+
+function applyOffline(on) {
+  state.offline = !!on;
+  document.body.classList.toggle('is-offline', state.offline);
+  const tog = document.getElementById('offline-toggle');
+  if (tog) tog.classList.toggle('on', state.offline);
+  if (state.offline && _activeStream) {
+    try { _activeStream.close(); } catch (_) {}
+    _activeStream = null;
+    state.streamingFor = null;
+  }
+}
+
 async function loadTicker(ticker) {
+  // Cancel any in-flight evidence stream from the previous ticker
+  if (_activeStream) { try { _activeStream.close(); } catch (_) {} _activeStream = null; }
+  state.streamingFor = null;
+  // Reset agent log to placeholder state
+  const ph = document.querySelector('.agent-log .placeholder');
+  if (ph) ph.style.display = '';
+  const stream = document.getElementById('agent-stream');
+  if (stream) stream.innerHTML = '';
+  document.querySelectorAll('.agent-log .al-status, .agent-log .al-usage').forEach(n => n.remove());
   // Reset per-ticker UI state so sliders from a previous ticker don't leak
   state.sliderValues = {};
   state.sliderTouched = {};
@@ -1812,7 +2321,7 @@ function renderStandard(dec) {
           <div class="ev-drawer">
             <div class="ev-drawer-banner">G3-C · Evidence brief 基于市场原始假设 (<strong>p50 = ${fmtSliderValue(a.metric, a.interval.p50)}</strong>) 抓取${fmtEvidenceCapturedAt(a.id)}，滑块调整不会触发重跑。</div>
             <h4>Evidence brief · ${a.id}</h4>
-            ${renderEvidenceBrief(a.id)}
+            <div data-brief-root>${renderEvidenceBrief(a.id)}</div>
           </div>
         </td>
       </tr>
@@ -1901,15 +2410,63 @@ function renderEvidenceBrief(assumptionId) {
     return `
       <div class="ev-skeleton">
         <strong>Evidence brief pending.</strong><br><br>
-        No cached brief was found for <code>${assumptionId}</code>. To populate this drawer, run:
-        <br><br>
-        <code>python pipeline.py ${state.ticker} --max-evidence N</code>
-        <br><br>
-        When live, the agent's search queries and source reads will stream into the <strong>Agent Activity Log</strong> on the right while the brief renders here.
+        No cached brief was found for <code>${assumptionId}</code>. Click the row above to trigger a live agent run — search queries, source reads, and synthesis steps will stream into the <strong>Agent Activity Log</strong> on the right while the structured brief renders here.
       </div>
     `;
   }
-  return `<div class="ev-skeleton">Evidence brief loaded · ${match.evidence_count?.support || 0} support · ${match.evidence_count?.refute || 0} refute · ${match.overall_balance}.</div>`;
+  // Structured render when brief carries Appendix-A schema (items grouped by direction).
+  // Strict PRD §15 Appendix A read path. Field names = direction / claim / body_md
+  // / sources[]{url,title,date,publisher} / scores{recency,source_quality,relevance}.
+  const items = Array.isArray(match.evidence_items) ? match.evidence_items : [];
+  if (items.length) {
+    const groups = { support: [], refute: [], neutral: [] };
+    items.forEach(it => {
+      const d = (it.direction || 'neutral').toLowerCase();
+      (groups[d] || groups.neutral).push(it);
+    });
+    const renderGroup = (key, label) => {
+      const arr = groups[key];
+      if (!arr.length) return '';
+      const rows = arr.map(it => {
+        const claim = escapeHTML(it.claim || '');
+        const src0 = Array.isArray(it.sources) && it.sources.length ? it.sources[0] : {};
+        const url = src0.url || '';
+        const host = url ? safeHost(url) : (src0.publisher || '');
+        const srcLink = url
+          ? `<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(host)}</a>`
+          : escapeHTML(host || '—');
+        const sc = it.scores || {};
+        const sq = sc.source_quality != null ? Number(sc.source_quality) : null;
+        const sr = sc.relevance != null ? Number(sc.relevance) : null;
+        const rc = sc.recency != null ? Number(sc.recency) : null;
+        const scoreParts = [];
+        if (sq != null) scoreParts.push(`<span class="sc">Q <strong>${sq}</strong>/5</span>`);
+        if (sr != null) scoreParts.push(`<span class="sc">R <strong>${sr}</strong>/5</span>`);
+        if (rc != null) scoreParts.push(`<span class="sc">T <strong>${rc}</strong>/5</span>`);
+        const scores = scoreParts.length ? `<div class="scores">${scoreParts.join('')}</div>` : '';
+        return `<div class="it">
+          <div class="claim">${claim}</div>
+          <div class="src">${srcLink}</div>
+          ${scores}
+        </div>`;
+      }).join('');
+      return `<div class="grp">
+        <div class="grp-h"><span class="dir-${key}">${escapeHTML(label)}</span><span class="cnt">${arr.length} sources</span></div>
+        ${rows}
+      </div>`;
+    };
+    return `<div class="ev-brief">
+      ${renderGroup('support', 'Support')}
+      ${renderGroup('refute', 'Refute')}
+      ${renderGroup('neutral', 'Neutral')}
+    </div>`;
+  }
+  // Legacy / minimal payload — keep prior one-liner.
+  return `<div class="ev-skeleton">Evidence brief loaded · ${match.evidence_count?.support || 0} support · ${match.evidence_count?.refute || 0} refute · ${match.overall_balance || '—'}.</div>`;
+}
+
+function safeHost(url) {
+  try { return new URL(url).host; } catch (_) { return url; }
 }
 
 function bindAssumptionRows() {
@@ -1918,8 +2475,22 @@ function bindAssumptionRows() {
       // ignore clicks on tooltip trigger
       if (e.target.closest('.tip-trigger') || e.target.closest('.tip-body')) return;
       const id = row.dataset.id;
-      state.openAssumption = state.openAssumption === id ? null : id;
+      const wasOpen = state.openAssumption === id;
+      state.openAssumption = wasOpen ? null : id;
       render();
+      if (!wasOpen) {
+        // Phase B: auto-trigger stream when no cached brief exists (mock-only, cheap).
+        // Phase C/D will gate this behind an explicit button + cost modal.
+        const briefs = (state.data && state.data.evidence_briefs) || [];
+        const hasBrief = briefs.some(b => b.assumption_id === id);
+        if (!hasBrief && !state.offline) {
+          const a = state.data.decoder_output.implied_assumptions.find(x => x.id === id);
+          const text = a ? a.human_text : '';
+          streamEvidence(state.ticker, id, text);
+        } else if (state.offline) {
+          showToast('<strong>Offline mode</strong> live evidence stream disabled');
+        }
+      }
     });
   });
   document.querySelectorAll('input[data-slider]').forEach(input => {
@@ -2209,6 +2780,7 @@ document.getElementById('lang-en').addEventListener('click', () => setLang('en')
 
 /* boot */
 setLang('zh');
+initOfflineToggle();
 loadTicker('NVDA');
 </script>
 
