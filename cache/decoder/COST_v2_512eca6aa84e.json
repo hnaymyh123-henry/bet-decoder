@@ -1,0 +1,95 @@
+{
+  "ticker": "COST",
+  "mode": "standard",
+  "current_price": 1002.93,
+  "baseline_dcf_price": 774.61,
+  "implied_assumptions": [
+    {
+      "id": "COST_revenue_cagr_5y",
+      "metric": "revenue_cagr_5y",
+      "interval": {
+        "p25": 0.1635,
+        "p50": 0.2191,
+        "p75": 0.2771
+      },
+      "human_text": "市场必须假设 COST 的未来5年营收CAGR在16.3%-27.7%区间,中位数约21.9%。作为对比,过去4年营收CAGR约为7%,卖方一致营收增速预期约为21.5%。",
+      "comparison": "历史上,2022-2025年COST营收CAGR约7%,当前卖方一致营收增速预期约21.5%,与反向DCF中位数约21.9%接近。",
+      "load_bearing": true
+    },
+    {
+      "id": "COST_terminal_fcf_margin",
+      "metric": "terminal_fcf_margin",
+      "interval": {
+        "p25": 0.0469,
+        "p50": 0.0584,
+        "p75": 0.0732
+      },
+      "human_text": "市场必须假设 COST 的长期终值FCF margin在4.7%-7.3%区间,中位数约5.8%。作为对比,过去4年FCF margin均值约为2%,当前TTM约为2.8%,共识DCF假设的终值FCF margin为5%。",
+      "comparison": "过去4年COST FCF margin均值约2%,当前TTM约2.8%,共识DCF基线终值FCF margin为5%,而反向DCF隐含的中位终值约5.8%。",
+      "load_bearing": true
+    },
+    {
+      "id": "COST_wacc",
+      "metric": "wacc",
+      "interval": {
+        "p25": 0.0683,
+        "p50": 0.0832,
+        "p75": 0.1029
+      },
+      "human_text": "市场必须假设 COST 的长期WACC在6.8%-10.3%区间,中位数约8.3%。作为对比,共识DCF基线WACC为9.5%左右,隐含估值对应的贴现率略低于共识中枢。",
+      "comparison": "共识DCF基线WACC约为9.5%,而反向DCF对应的WACC中位数约8.3%,区间覆盖约6.8%-10.3%。",
+      "load_bearing": true
+    },
+    {
+      "id": "COST_growth_vs_price_gap",
+      "metric": "price_vs_baseline_dcf_gap",
+      "interval": {
+        "p25": 0.25,
+        "p50": 0.29,
+        "p75": 0.35
+      },
+      "human_text": "市场必须假设 COST 的整体成长和回报参数组合,足以支撑当前股价较基线DCF估值溢价约25%-35%区间,中位数约29%。作为对比,当前价格约$1002.93,基线DCF价格约$774.61。",
+      "comparison": "当前股价$1002.93相对于基线DCF价格$774.61约高出29%,隐含未来营收增速、利润率和资本成本的综合假设需要同时偏离共识中枢,以弥合约25%-35%的估值差距。",
+      "load_bearing": false
+    },
+    {
+      "id": "COST_terminal_growth_quality",
+      "metric": "terminal_growth_implied_quality",
+      "interval": {
+        "p25": 0.022,
+        "p50": 0.025,
+        "p75": 0.028
+      },
+      "human_text": "在保持终值增速大致与共识相近(约2.2%-2.8%,中位数约2.5%)的前提下,市场必须假设 COST 能将仓储会员制模式长期转化为更高质量的自由现金流,即终值阶段仍能维持高于历史均值的FCF margin与稳定增速组合。",
+      "comparison": "共识DCF对COST终值收入增速假设约为2.5%,反向DCF仍围绕该水平上下波动,但同时叠加显著高于历史均值(约2%)的终值FCF margin,以支持当前价格。",
+      "load_bearing": false
+    },
+    {
+      "id": "COST_duration_of_high_growth",
+      "metric": "high_growth_duration_implicit",
+      "interval": {
+        "p25": 5.0,
+        "p50": 7.0,
+        "p75": 9.0
+      },
+      "human_text": "市场必须假设 COST 的高于历史的营收与FCF复合增速(接近20%甚至以上)能够持续约5-9年,中位数隐含时长约7年,而不仅是短期一两年的业绩弹性。",
+      "comparison": "卖方一致营收增速预期约21.5%、EPS增速约45.5%主要集中在中短期预测期内,反向DCF则要求接近该水平的高质量增长在更长时间(约5-9年)内持续,才能匹配当前价格。",
+      "load_bearing": false
+    }
+  ],
+  "boundary_explanation": null,
+  "overall_summary": "综合来看,要支撑COST当前约$1002.93的股价,市场隐含假设是:未来5年营收CAGR需维持在约16%-28%区间且接近卖方共识中枢,终值FCF margin需从历史约2%显著抬升至约5%-7%,同时贴现率较共识略低且该组合效应需在5-9年的较长时间内持续,从而弥合理论DCF价值约29%的溢价。",
+  "generated_at": "2026-05-27T02:48:55.355997+00:00",
+  "_meta": {
+    "usage": {
+      "prompt_tokens": 11511,
+      "completion_tokens": 5559,
+      "total_tokens": 17070,
+      "completion_tokens_details": {
+        "reasoning_tokens": 4096
+      }
+    },
+    "cost_usd": 0.06997875,
+    "reasoning_chars": 6051
+  }
+}

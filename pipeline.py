@@ -109,6 +109,15 @@ def build_reverse_dcf_output(data: CompanyData) -> dict:
         "baseline_dcf_price": baseline_price,
         "consensus_assumptions": asdict(consensus),
         "implied_intervals": intervals,
+        # Raw inputs so the frontend can recompute DCF when user moves the slider
+        # (avoids round-trip latency). Keep in sync with reverse_dcf.dcf_equity_value_per_share.
+        "company_inputs": {
+            "revenue_ttm": data.revenue_ttm,
+            "fcf_ttm": data.fcf_ttm,
+            "shares_outstanding": data.shares_outstanding,
+            "net_debt": data.net_debt,
+            "beta": data.beta,
+        },
     }
 
 

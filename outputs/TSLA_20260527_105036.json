@@ -1,0 +1,96 @@
+{
+  "ticker": "TSLA",
+  "company_name": "Tesla, Inc.",
+  "generated_at": "2026-05-27T02:50:36.290288+00:00",
+  "mode": "boundary",
+  "reverse_dcf": {
+    "ticker": "TSLA",
+    "current_price": 433.59,
+    "baseline_dcf_price": 27.548630266385647,
+    "consensus_assumptions": {
+      "revenue_cagr_5y": 0.15,
+      "terminal_growth": 0.025,
+      "terminal_fcf_margin": 0.06559313275754795,
+      "wacc": 0.1275
+    },
+    "implied_intervals": {
+      "revenue_cagr_5y": null,
+      "terminal_fcf_margin": {
+        "p25": 0.5379054863086112,
+        "p50": 0.5747026868444196,
+        "p75": 0.5842791587926919,
+        "samples": 20,
+        "success_rate": 0.04
+      },
+      "wacc": {
+        "p25": 0.04092126119655738,
+        "p50": 0.041912081700174936,
+        "p75": 0.0437053913874857,
+        "samples": 75,
+        "success_rate": 0.15
+      }
+    },
+    "company_inputs": {
+      "revenue_ttm": 94827000000.0,
+      "fcf_ttm": 6220000000.0,
+      "shares_outstanding": 3755723871.0,
+      "net_debt": -1794000000.0,
+      "beta": 1.793
+    }
+  },
+  "decoder_output": {
+    "ticker": "TSLA",
+    "mode": "boundary",
+    "current_price": 433.59,
+    "baseline_dcf_price": 27.55,
+    "implied_assumptions": [],
+    "boundary_explanation": {
+      "mathematical_facts": "在共识假设下，Baseline DCF 给出的 TSLA 内在价值约为 27.55 美元，而当前股价为 433.59 美元，二者相差超过 15 倍。为了仅靠单一阶段的长期自由现金流贴现模型推导出 433.59 美元，需要在同一套模型内同时满足以下条件：(1) 未来 5 年营收复合增速必须远高于卖方一致 15.8% 的预期，并显著脱离过去 4 年约 5% 的实际营收 CAGR；(2) 终值 FCF margin 需要从过去 4 年约 6% 的均值、TTM 6.6% 的水平跃升到接近或显著高于 50%-60% 的区间，已接近或超过绝大多数成熟软件/平台型公司的长期盈利水平；(3) 贴现率 WACC 需要从当前假设的 12.75% 降至约 4%-5% 的长期水平，远低于 TSLA 目前 1.793 的 beta 所隐含的股权风险溢价。反向 Monte Carlo 求解中，revenue_cagr_5y、terminal_fcf_margin、wacc 三个关键变量要么不收敛，要么出现极端组合(如超高利润率叠加超低贴现率)，导致只有极少数样本能同时满足 433.59 美元这一价格(terminal_fcf_margin 样本成功率约 4%，wacc 样本成功率约 15%)，模型在可行参数空间内几乎找不到“既与历史/共识有弱一致性，又能推导出现价”的解。因此，在标准单阶段长期 DCF 框架下，想要用一组连续、稳定且与现实约束相符的参数来解释 TSLA 当前价格在数学上基本不可行，从而进入了 DCF 的“边界态”。",
+      "framework_hypotheses": [
+        {
+          "framework_name": "Robotaxi optionality / FSD 平台期权定价框架",
+          "rationale": "TSLA 当前股价明显超出基于整车业务和现有能源业务做 DCF 的合理区间，市场可能在用“Robotaxi + 全自动驾驶(FSD)平台”的实物期权框架来定价，把未来大规模 L4/L5 无人驾驶商业化，以及由此带来的高毛利订阅收入视为一个巨额深度虚值期权。这个框架下，投资者不会以传统 DCF 的方式对 FSD 收入做单一路径贴现，而是用“成功概率 × 成功时的高盈利平台价值”的方式估算期权价值，允许短期/中期现金流对估值解释度很低，但保留远期大规模商业化的上限空间，从而自然推导出远高于传统汽车 OEM 模型的估值倍数和长期利润率想象空间。",
+          "evidence_query_hint": "TSLA FSD 渗透率 + 订阅价格假设 + Robotaxi 商业化时间表 + Robotaxi TAM 规模 + FSD 长期利润率区间"
+        },
+        {
+          "framework_name": "AI + 自研芯片平台化框架(“Tesla as AI/Compute Company”)",
+          "rationale": "部分市场参与者可能把 TSLA 视作“AI 基础设施 + 自研算力平台”公司，而非单一整车制造商。在这一框架下，Dojo 等自研算力平台、自动驾驶训练集群、以及潜在对外开放算力/软件服务(如类似云服务的按量计费模式)会被类比为高毛利、高可扩展性的 AI 平台业务，其估值方法更接近高成长云计算或 GPU/算力平台企业：重点关注长期模型中“每单位算力/每辆车所带来的 AI 服务收入”和“装机基数 × 单车/单算力 ARPU”，而不是只看当前 FCF。这样一来，理论上可以接受更高的长期 EBIT/FCF margin 假设(接近平台软件)，以及更低的有效贴现率(因为平台复利期很长)，从而绕开传统汽车 DCF 的束缚。",
+          "evidence_query_hint": "Tesla Dojo 资本开支 + 训练算力规模 + 对外商业化计划 + 管理层对 AI 平台业务收入目标/毛利率的公开表述"
+        },
+        {
+          "framework_name": "Energy & Storage + Supercharger Network 基础设施框架",
+          "rationale": "另一个框架是把 TSLA 视为“能源与储能 + 充电网络”基础设施运营商，重点不在于当前整车 FCF，而在于未来电池储能(Energy Generation & Storage)和全球 Supercharger 网络的类似公用事业/基础设施收益流。该框架下，市场可能会给储能和充电网络单独估值，套用类似“准公用事业 + 高成长基础设施”的模型：对长期装机容量和利用小时数进行情景分析，并给予较高的资本回报率和更长的资产寿命，进而在 Sum-of-Parts 中为非汽车业务贡献一块较大的现值。对整车业务的 DCF 只是底座，而能源和充电基础设施更像是中长期现金流的第二引擎。",
+          "evidence_query_hint": "Tesla Energy 储能装机容量目标 + Megapack 产能规划 + Supercharger 网络利用率/收费模式 + 管理层对能源业务长期收入与利润占比的指引"
+        },
+        {
+          "framework_name": "Global Platform / Ecosystem + 品牌溢价框架",
+          "rationale": "市场也可能在用“全球平台生态 + 品牌资产”的框架定价，把 TSLA 视为一个覆盖整车、能源、软件订阅、保险、充电服务的综合生态平台，而不仅仅是单一产品线公司。在这个框架下，估值更接近“长期生态渗透率 × 单用户/单车 LTV”的思路：以全球车队保有量为基础，叠加未来在保险、软件订阅、能源管理服务上的 ARPU 提升，给予类似消费平台/生态型公司更高的终值倍数。此时，单一阶段的汽车 FCF DCF 只解释了生态价值的一部分，剩余部分以品牌溢价和用户关系的形式存在，很难在传统 DCF 的终值增长率和终值 margin 这两个维度中被完全量化。",
+          "evidence_query_hint": "Tesla 车队保有量预测 + 每辆车软件/服务/保险 ARPU 估计 + 管理层关于“Tesla 生态系统”或“per-vehicle recurring revenue”的公开表述"
+        },
+        {
+          "framework_name": "Long-duration Growth / “Quality Duration” 框架(延长期高增长 + 低折现)",
+          "rationale": "还有一种可能的定价思路是，市场把 TSLA 视作“极长久期成长资产”，在心理上拉长了“高增长期”的持续时间，并在定价中隐含了更低的长期风险溢价。这个框架不会特别精细地区分汽车、FSD 或能源，而是整体上假设 TSLA 可以在远超一般周期的时间内(例如 15-20 年以上)维持较高的营收增速和资本回报率，并在宏观层面享受类似“优质长期资产”的贴现率。这样做会自然抬升 DCF 模型中的远期现金流权重，使得对短中期 FCF 的敏感度下降，模型在实践中更多被简化为“远期稳定高盈利 × 低贴现率”的类永续成长股估值，难以用标准 5-10 年显式预测期的反向 DCF 来准确反演。",
+          "evidence_query_hint": "卖方/买方关于 TSLA 10-20 年长期增长叙事 + 长期目标市占率 + 长期资本回报率(ROIC/ROE)假设 + 对 TSLA 股权风险溢价/贴现率的敏感性分析"
+        }
+      ],
+      "recommended_alternative": "Sum-of-Parts + Real Options + Long-duration Growth Scenario 分析。具体而言：(1) 将 TSLA 拆分为整车、FSD/Robotaxi、能源与储能、充电网络/服务等多个业务板块，分别采用更贴近业务属性的估值方法(Sum-of-Parts)；(2) 对 FSD、Robotaxi、AI 平台等高度不确定、分布极偏的项目，采用实物期权(Real Options)框架，而不是在单一 DCF 中强行给出点估计；(3) 对整体公司层面，辅以“长期高增长期长度 + 贴现率”情景分析(Long-duration Growth Scenario)，在 10-20 年时间尺度上做多情景/敏感性测试，而不是依赖单一一组参数的传统反向 DCF。"
+    },
+    "overall_summary": "在 TSLA 当前约 433.59 美元的股价水平下，单一阶段的传统长期 DCF 在数学上几乎无法通过合理且稳定的一组营收增速、终值 FCF margin 和 WACC 来同时解释现价与历史/共识数据，因此进入了模型的“边界态”。更合适的做法是承认标准 DCF 的局限，将 TSLA 视作包含 Robotaxi/FSD 期权、AI 平台、能源与储能及生态系统在内的多元长期资产组合，采用 Sum-of-Parts 结合 Real Options 和长期情景分析的框架来理解市场隐含定价。",
+    "generated_at": "2026-05-27T02:49:37.734942+00:00",
+    "_meta": {
+      "usage": {
+        "prompt_tokens": 16299,
+        "completion_tokens": 9583,
+        "total_tokens": 25882,
+        "completion_tokens_details": {
+          "reasoning_tokens": 7263
+        }
+      },
+      "cost_usd": 0.11620375,
+      "reasoning_chars": 23217
+    }
+  },
+  "evidence_briefs": [],
+  "critic_reports": [],
+  "synthesis": null
+}
