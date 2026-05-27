@@ -202,8 +202,8 @@
 
   .cover-grid {
     display: grid;
-    grid-template-columns: 1fr 340px;
-    gap: 56px;
+    grid-template-columns: 1fr 260px;
+    gap: 48px;
   }
   .title-block .industry {
     font-family: var(--mono);
@@ -442,6 +442,123 @@
     padding-top: 8px;
     border-top: 1px dashed var(--line);
     letter-spacing: 0.02em;
+  }
+
+  /* ============================ PRICE HISTORY CHART (Section 1 hero) ============================ */
+  .price-chart-wrap {
+    margin-bottom: 28px;
+    padding: 18px 20px 14px;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+  }
+  .price-chart-wrap .pc-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .price-chart-wrap .pc-head .lbl {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .price-chart-wrap .pc-head .title {
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--ink);
+    font-weight: 500;
+    margin-left: 12px;
+    flex: 1;
+  }
+  .price-chart-wrap .pc-head .src {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.04em;
+  }
+  .price-chart-wrap .pc-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    background: var(--paper);
+    font-feature-settings: "tnum" 1;
+  }
+  .price-chart-wrap .pc-svg .pc-grid {
+    stroke: var(--line);
+    stroke-width: 1;
+    stroke-dasharray: 2 3;
+    fill: none;
+  }
+  .price-chart-wrap .pc-svg .pc-axis {
+    stroke: var(--line-2);
+    stroke-width: 1;
+    fill: none;
+  }
+  .price-chart-wrap .pc-svg .pc-history {
+    stroke: var(--ink-3);
+    stroke-width: 1.5;
+    fill: none;
+    stroke-linejoin: miter;
+    stroke-linecap: butt;
+  }
+  .price-chart-wrap .pc-svg .pc-line-baseline {
+    stroke: var(--ink-4);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+  .price-chart-wrap .pc-svg .pc-line-adjusted {
+    stroke: var(--accent);
+    stroke-width: 1.5;
+    transition: y1 0.12s ease, y2 0.12s ease;
+  }
+  .price-chart-wrap .pc-svg .pc-line-actual {
+    stroke: var(--ink);
+    stroke-width: 1;
+  }
+  .price-chart-wrap .pc-svg .pc-axis-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    fill: var(--ink-4);
+    letter-spacing: 0.04em;
+  }
+  .price-chart-wrap .pc-svg .pc-line-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .price-chart-wrap .pc-svg .pc-line-label.baseline { fill: var(--ink-4); }
+  .price-chart-wrap .pc-svg .pc-line-label.adjusted {
+    fill: var(--accent);
+    transition: y 0.12s ease;
+  }
+  .price-chart-wrap .pc-svg .pc-line-label.actual { fill: var(--ink); }
+  .price-chart-wrap .pc-foot {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--line);
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--ink-4);
+    letter-spacing: 0.02em;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .price-chart-wrap .pc-foot .hint { color: var(--ink-3); }
+  .price-chart-wrap .pc-empty {
+    padding: 32px 12px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-4);
+    letter-spacing: 0.04em;
   }
 
   /* ============================ SHORT-TERM ATTRIBUTION (Section 2.0) ============================ */
@@ -1762,7 +1879,9 @@ const state = {
   lang: 'zh',
   offline: false,          // OFFLINE_MODE — when true, streamEvidence() is short-circuited
   streamingFor: null,      // assumption id currently being streamed (race-guard)
-  streamStartAt: 0         // ms timestamp for "Done in Xs" status
+  streamStartAt: 0,        // ms timestamp for "Done in Xs" status
+  priceHistory: null,      // {ticker, period, interval, points:[{date,close}]}
+  priceChartGeom: null     // cached chart geometry for slider->y mapping
 };
 
 /* ============================================================
@@ -2078,7 +2197,28 @@ async function loadTicker(ticker) {
   state.ticker = ticker;
   state.openAssumption = null;
   state.sliderValues = {};
+  state.priceHistory = null;
+  state.priceChartGeom = null;
   render();
+
+  // Fetch price history in the background — chart renders when it arrives.
+  fetchPriceHistory(ticker);
+}
+
+async function fetchPriceHistory(ticker) {
+  try {
+    const r = await fetch('/api/price-history/' + ticker + '?period=5y');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const ph = await r.json();
+    // Race guard — if user switched ticker mid-fetch, abandon.
+    if (state.ticker !== ticker) return;
+    state.priceHistory = ph;
+    renderPriceChart();
+  } catch (e) {
+    if (state.ticker !== ticker) return;
+    const host = document.getElementById('pc-svg-host');
+    if (host) host.innerHTML = '<div class="pc-empty">Price history unavailable for ' + ticker + '.</div>';
+  }
 }
 
 /* ============================================================
@@ -2265,6 +2405,10 @@ function render() {
     bindAssumptionRows();
     updateAdjustedPrice();
   }
+  // If price history is already cached for this ticker, paint immediately.
+  if (state.priceHistory && state.priceHistory.ticker === state.ticker) {
+    renderPriceChart();
+  }
 }
 
 /* ============================================================
@@ -2335,6 +2479,8 @@ function renderStandard(dec) {
         <h2>Implied assumption table — what the market must believe.</h2>
         <span class="meta">EXHIBIT 1.1<br>${dec.implied_assumptions.length} assumptions</span>
       </div>
+
+      ${renderPriceChartContainer(dec.ticker, 'standard')}
 
       <p class="sec-lede">
         Each row below is one variable the standard DCF would otherwise take as input. PriceLens holds the current quote as the target output and solves for the assumption interval (p25 · p50 · p75) under Monte Carlo perturbation of the remaining inputs.
@@ -2531,8 +2677,184 @@ function bindAssumptionRows() {
 function updateAdjustedPrice() {
   const el = document.getElementById('reco-adjusted');
   const adj = computeAdjustedPrice();
-  if (adj == null) { el.textContent = 'n/a'; return; }
-  el.textContent = fmtUSD(adj);
+  if (adj == null) { el.textContent = 'n/a'; }
+  else el.textContent = fmtUSD(adj);
+  if (typeof updateChartAdjustedLine === 'function') updateChartAdjustedLine();
+}
+
+/* ============================================================
+   PRICE HISTORY CHART (Section 1 hero)
+   - Hand-rolled SVG, no chart libs.
+   - viewBox 0 0 800 320, responsive width via CSS.
+   - Three reference lines: BASELINE DCF (dashed), ADJUSTED (oxblood,
+     redrawn on slider drag), ACTUAL (black).
+   ============================================================ */
+const PC_VB_W = 800, PC_VB_H = 320;
+const PC_PAD = { top: 18, right: 130, bottom: 26, left: 12 };
+
+function renderPriceChartContainer(ticker, mode) {
+  return `
+    <div class="price-chart-wrap" id="price-chart-wrap" data-mode="${mode}">
+      <div class="pc-head">
+        <span class="lbl">Exhibit 1.0</span>
+        <span class="title">${ticker} · 5-year monthly close vs DCF reference levels</span>
+        <span class="src">yfinance · monthly</span>
+      </div>
+      <div id="pc-svg-host">
+        <div class="pc-empty">Loading 5y price history...</div>
+      </div>
+      <div class="pc-foot">
+        <span>Note: monthly close, last 5 years. Reference lines: BASELINE DCF (consensus), ADJUSTED (your slider), ACTUAL (current quote).</span>
+        <span class="hint">Drag any assumption slider below to move ADJUSTED in real time.</span>
+      </div>
+    </div>
+  `;
+}
+
+function _pcGetReferencePrices() {
+  if (!state.data) return null;
+  const dec = state.data.decoder_output;
+  const actual = dec.current_price;
+  const baseline = dec.baseline_dcf_price;
+  let adjusted;
+  if (dec.mode === 'boundary') {
+    adjusted = null;
+  } else {
+    const adj = computeAdjustedPrice();
+    adjusted = (adj == null) ? baseline : adj;
+  }
+  return { actual, baseline, adjusted };
+}
+
+function _pcComputeGeometry(points, refs) {
+  const innerW = PC_VB_W - PC_PAD.left - PC_PAD.right;
+  const innerH = PC_VB_H - PC_PAD.top - PC_PAD.bottom;
+  const closes = points.map(p => p.close);
+  const maxData = Math.max(...closes, refs.actual, refs.baseline, refs.adjusted != null ? refs.adjusted : refs.baseline);
+  const yMax = maxData * 1.1;
+  const yMin = 0;
+  const x0 = PC_PAD.left;
+  const y0 = PC_PAD.top;
+  const n = points.length;
+  const xForIndex = (i) => x0 + (n <= 1 ? innerW / 2 : (i * innerW) / (n - 1));
+  const yForPrice = (p) => y0 + innerH - ((p - yMin) / (yMax - yMin)) * innerH;
+  return { innerW, innerH, x0, y0, yMin, yMax, xForIndex, yForPrice, n };
+}
+
+function renderPriceChart() {
+  const host = document.getElementById('pc-svg-host');
+  if (!host) return;
+  const ph = state.priceHistory;
+  const refs = _pcGetReferencePrices();
+  if (!ph || !ph.points || ph.points.length < 2 || !refs) {
+    host.innerHTML = '<div class="pc-empty">No price history available.</div>';
+    return;
+  }
+  const points = ph.points;
+  const geom = _pcComputeGeometry(points, refs);
+  state.priceChartGeom = geom;
+
+  // Path data for history polyline
+  let d = '';
+  for (let i = 0; i < points.length; i++) {
+    const cmd = i === 0 ? 'M' : 'L';
+    d += cmd + geom.xForIndex(i).toFixed(2) + ' ' + geom.yForPrice(points[i].close).toFixed(2) + ' ';
+  }
+
+  // Y axis ticks: choose 5 ticks across [0, yMax]
+  const yTicks = _pcChooseTicks(geom.yMin, geom.yMax, 5);
+  const gridLines = yTicks.map(v => {
+    const y = geom.yForPrice(v).toFixed(2);
+    return `<line class="pc-grid" x1="${geom.x0}" y1="${y}" x2="${geom.x0 + geom.innerW}" y2="${y}"/>`;
+  }).join('');
+  const yLabels = yTicks.map(v => {
+    const y = geom.yForPrice(v).toFixed(2);
+    return `<text class="pc-axis-label" x="${geom.x0 + geom.innerW + 4}" y="${(parseFloat(y) + 3).toFixed(2)}" text-anchor="start">$${_pcFmtTick(v)}</text>`;
+  }).join('');
+
+  // X axis ticks: one per year boundary
+  const yearTicks = _pcYearTicks(points, geom);
+  const xGrid = yearTicks.map(t =>
+    `<line class="pc-grid" x1="${t.x.toFixed(2)}" y1="${geom.y0}" x2="${t.x.toFixed(2)}" y2="${geom.y0 + geom.innerH}"/>`
+  ).join('');
+  const xLabels = yearTicks.map(t =>
+    `<text class="pc-axis-label" x="${t.x.toFixed(2)}" y="${(geom.y0 + geom.innerH + 14).toFixed(2)}" text-anchor="middle">${t.year}</text>`
+  ).join('');
+
+  // Reference lines
+  const yActual = geom.yForPrice(refs.actual).toFixed(2);
+  const yBaseline = geom.yForPrice(refs.baseline).toFixed(2);
+  const yAdjusted = refs.adjusted != null ? geom.yForPrice(refs.adjusted).toFixed(2) : null;
+  const xLineEnd = geom.x0 + geom.innerW;
+  const labelX = (xLineEnd + 6).toFixed(2);
+
+  const adjustedLineSvg = yAdjusted != null
+    ? `<line id="pc-line-adjusted" class="pc-line-adjusted" x1="${geom.x0}" y1="${yAdjusted}" x2="${xLineEnd}" y2="${yAdjusted}"/>
+       <text id="pc-label-adjusted" class="pc-line-label adjusted" x="${labelX}" y="${(parseFloat(yAdjusted) + 3).toFixed(2)}">ADJ · $${refs.adjusted.toFixed(2)}</text>`
+    : '';
+
+  const svg = `
+    <svg class="pc-svg" viewBox="0 0 ${PC_VB_W} ${PC_VB_H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      ${gridLines}
+      ${xGrid}
+      <line class="pc-axis" x1="${geom.x0}" y1="${geom.y0 + geom.innerH}" x2="${geom.x0 + geom.innerW}" y2="${geom.y0 + geom.innerH}"/>
+      <path class="pc-history" d="${d.trim()}"/>
+      <line class="pc-line-baseline" x1="${geom.x0}" y1="${yBaseline}" x2="${xLineEnd}" y2="${yBaseline}"/>
+      ${adjustedLineSvg}
+      <line class="pc-line-actual" x1="${geom.x0}" y1="${yActual}" x2="${xLineEnd}" y2="${yActual}"/>
+      <text class="pc-line-label baseline" x="${labelX}" y="${(parseFloat(yBaseline) + 3).toFixed(2)}">DCF · $${refs.baseline.toFixed(2)}</text>
+      <text class="pc-line-label actual" x="${labelX}" y="${(parseFloat(yActual) + 3).toFixed(2)}">MKT · $${refs.actual.toFixed(2)}</text>
+      ${yLabels}
+      ${xLabels}
+    </svg>
+  `;
+  host.innerHTML = svg;
+}
+
+function updateChartAdjustedLine() {
+  if (!state.priceChartGeom || !state.data) return;
+  if (state.data.decoder_output.mode === 'boundary') return;
+  const line = document.getElementById('pc-line-adjusted');
+  const label = document.getElementById('pc-label-adjusted');
+  if (!line || !label) return;
+  const refs = _pcGetReferencePrices();
+  if (!refs || refs.adjusted == null) return;
+  // Clamp to chart bounds in case slider drove price beyond yMax (rare but possible)
+  const geom = state.priceChartGeom;
+  const yMax = geom.yMax;
+  const clamped = Math.max(0, Math.min(refs.adjusted, yMax));
+  const y = geom.yForPrice(clamped).toFixed(2);
+  line.setAttribute('y1', y);
+  line.setAttribute('y2', y);
+  label.setAttribute('y', (parseFloat(y) + 3).toFixed(2));
+  label.textContent = 'ADJ · $' + refs.adjusted.toFixed(2);
+}
+
+function _pcChooseTicks(min, max, n) {
+  const step = (max - min) / (n - 1);
+  const ticks = [];
+  for (let i = 0; i < n; i++) ticks.push(min + step * i);
+  return ticks;
+}
+
+function _pcFmtTick(v) {
+  if (v >= 1000) return (v / 1000).toFixed(1) + 'k';
+  if (v >= 100) return v.toFixed(0);
+  if (v >= 10) return v.toFixed(0);
+  return v.toFixed(1);
+}
+
+function _pcYearTicks(points, geom) {
+  const seen = new Set();
+  const ticks = [];
+  for (let i = 0; i < points.length; i++) {
+    const yr = points[i].date.slice(0, 4);
+    if (!seen.has(yr)) {
+      seen.add(yr);
+      ticks.push({ year: yr, x: geom.xForIndex(i) });
+    }
+  }
+  return ticks;
 }
 
 /* ============================================================
@@ -2696,6 +3018,8 @@ function renderBoundary(dec) {
         <h2>DCF boundary mode — single-framework explanation has failed.</h2>
         <span class="meta">B4 · BOUNDARY<br>Multi-framework</span>
       </div>
+
+      ${renderPriceChartContainer(dec.ticker, 'boundary')}
 
       <div class="boundary-banner">
         <span class="icon">⚠</span>

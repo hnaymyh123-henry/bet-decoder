@@ -7,6 +7,7 @@ Start the server:
 """
 import json
 import os
+import time
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -21,6 +22,8 @@ def _offline_mode_enabled() -> bool:
 
 OUTPUTS_DIR = Path(__file__).parent / "outputs"
 MOCKUP_PATH = Path(__file__).parent / "pricelens_mockup.html"
+PRICE_HISTORY_CACHE_DIR = Path(__file__).parent / "cache" / "price_history"
+PRICE_HISTORY_TTL_SECONDS = 24 * 60 * 60  # 1 day
 
 app = FastAPI(title="PriceLens API")
 
@@ -137,6 +140,80 @@ async def stream_evidence(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@app.get("/api/price-history/{ticker}")
+def get_price_history(ticker: str, period: str = "5y"):
+    """Monthly close prices over N years for chart rendering.
+
+    Backed by a file cache (1 day TTL) so frontend reloads don't hammer yfinance.
+    Returns: {"ticker": ..., "period": ..., "interval": "1mo",
+              "points": [{"date": "YYYY-MM-DD", "close": float}, ...]}
+    """
+    ticker_upper = ticker.upper()
+    allowed_periods = {"1y", "2y", "5y", "10y", "max"}
+    if period not in allowed_periods:
+        raise HTTPException(
+            status_code=400,
+            detail=f"period must be one of {sorted(allowed_periods)}",
+        )
+
+    PRICE_HISTORY_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    cache_file = PRICE_HISTORY_CACHE_DIR / f"{ticker_upper}_{period}.json"
+
+    if cache_file.exists():
+        age = time.time() - cache_file.stat().st_mtime
+        if age < PRICE_HISTORY_TTL_SECONDS:
+            try:
+                return JSONResponse(content=json.loads(cache_file.read_text(encoding="utf-8")))
+            except (OSError, json.JSONDecodeError):
+                pass  # fall through to refetch
+
+    try:
+        import yfinance as yf
+        hist = yf.Ticker(ticker_upper).history(period=period, interval="1mo")
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to fetch price history for {ticker_upper} from yfinance: {exc}",
+        )
+
+    if hist is None or hist.empty:
+        raise HTTPException(
+            status_code=502,
+            detail=f"yfinance returned no data for {ticker_upper}. Check ticker symbol.",
+        )
+
+    points = []
+    for ts, row in hist.iterrows():
+        close = row.get("Close")
+        if close is None:
+            continue
+        try:
+            close_f = float(close)
+        except (TypeError, ValueError):
+            continue
+        if close_f != close_f:  # NaN check
+            continue
+        points.append({"date": ts.strftime("%Y-%m-%d"), "close": round(close_f, 4)})
+
+    if not points:
+        raise HTTPException(
+            status_code=502,
+            detail=f"yfinance returned no usable close prices for {ticker_upper}.",
+        )
+
+    payload = {
+        "ticker": ticker_upper,
+        "period": period,
+        "interval": "1mo",
+        "points": points,
+    }
+    try:
+        cache_file.write_text(json.dumps(payload), encoding="utf-8")
+    except OSError:
+        pass  # serving the data matters more than cache write
+    return JSONResponse(content=payload)
 
 
 @app.get("/")
