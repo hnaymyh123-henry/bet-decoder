@@ -233,6 +233,148 @@ def _new_job_id() -> str:
     return uuid.uuid4().hex
 
 
+# ===========================================================================
+# Module 4 — Workbench REST (cards + decode + synthesize).
+#
+# Pure CRUD over db.py DAOs + thin wrappers around decode_bet / synthesize_cards.
+# These are the endpoints the multi-card workbench front-end calls. Contract:
+# API_CONTRACT.md §5. The live activity SSE is the separate /api/stream/* family
+# above; the front-end pairs POST /api/decode (gets job_id + card) with an
+# EventSource on /api/stream/activity/{job_id} for the agent feed.
+# ===========================================================================
+
+
+@app.get("/api/cards")
+def list_cards(series_key: str = None, subject: str = None, source_type: str = None):
+    """List stored Bet Cards, newest-first.
+
+    Filter by series_key, or by (subject, source_type) pair, or nothing (= all).
+    Returns lossless card_to_json for each."""
+    conn = _db()
+    cards = db.list_cards(
+        conn, series_key=series_key, subject=subject, source_type=source_type
+    )
+    return {"cards": [db.card_to_json(c) for c in cards]}
+
+
+@app.get("/api/cards/{card_id}")
+def get_card(card_id: str):
+    """Fetch one card by id. 404 with error_code=card_not_found if absent."""
+    conn = _db()
+    card = db.get_card(conn, card_id)
+    if card is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error_code": "card_not_found", "message": f"No card for id {card_id}."},
+        )
+    return JSONResponse(content=db.card_to_json(card))
+
+
+@app.post("/api/decode")
+def decode_card(body: dict):
+    """Decode a bet into a BetCard and persist it.
+
+    Body: {source_type, source_input, lang?}. Drives M2 decode_bet → db.save_card.
+    Returns {job_id, card: card_to_json}. The front-end opens an EventSource on
+    /api/stream/activity/{job_id} to watch the agent reason (replay, since this
+    path persists the event log). OFFLINE_MODE refuses with 503."""
+    if _offline_mode_enabled():
+        return JSONResponse(
+            status_code=503,
+            content={"error_code": "offline_mode", "message": "OFFLINE_MODE active; live decode refused."},
+        )
+    source_type = (body or {}).get("source_type")
+    source_input = (body or {}).get("source_input")
+    lang = (body or {}).get("lang", "zh")
+    if not source_type or source_input is None:
+        return JSONResponse(
+            status_code=400,
+            content={"error_code": "bad_request", "message": "source_type and source_input are required."},
+        )
+
+    import decoder
+
+    conn = _db()
+    job_id = (body or {}).get("job_id") or _new_job_id()
+    subject = source_input if isinstance(source_input, str) else "portfolio"
+
+    # Run the decode through the activity sink so the reasoning is persisted to
+    # activity_logs (job_id), then save the resulting card. run_job guarantees a
+    # terminal event and never raises, so a decode failure still returns a card
+    # (decode_bet degrades to a "数据不足" card rather than raising).
+    def work(emit):
+        return decoder.decode_bet(source_type, source_input, lang, emit=emit, conn=conn)
+
+    try:
+        info = activity.run_job(
+            work, job_id=job_id, source_ref=str(subject), conn=conn,
+            done_text="解码完成",
+        )
+    except Exception as exc:
+        return JSONResponse(
+            status_code=502,
+            content={"error_code": "upstream_error", "message": f"decode failed: {exc}"},
+        )
+
+    card = info.get("result")
+    if card is None:
+        return JSONResponse(
+            status_code=502,
+            content={"error_code": "upstream_error", "message": info.get("error") or "decode produced no card."},
+        )
+
+    try:
+        stored_id = db.save_card(conn, card)
+        card.card_id = stored_id
+    except Exception as exc:
+        return JSONResponse(
+            status_code=502,
+            content={"error_code": "upstream_error", "message": f"save_card failed: {exc}"},
+        )
+
+    return {"job_id": job_id, "card": db.card_to_json(card)}
+
+
+@app.delete("/api/cards/{card_id}")
+def delete_card(card_id: str):
+    """Delete a card (FK cascade to children). Returns {deleted: bool}."""
+    conn = _db()
+    return {"deleted": db.delete_card(conn, card_id)}
+
+
+@app.post("/api/synthesize")
+def synthesize(body: dict):
+    """Cross-card synthesis over an existing card set.
+
+    Body: {card_ids: [...], lang?}. Drives M3 synthesize_cards (chat mode, cached
+    in llm_cache). Returns the SynthesisResult dict (headline_insight may be
+    None → front-end shows an honest empty state). OFFLINE_MODE refuses."""
+    if _offline_mode_enabled():
+        return JSONResponse(
+            status_code=503,
+            content={"error_code": "offline_mode", "message": "OFFLINE_MODE active; live synthesis refused."},
+        )
+    card_ids = (body or {}).get("card_ids")
+    lang = (body or {}).get("lang", "zh")
+    if not isinstance(card_ids, list) or len(card_ids) < 1:
+        return JSONResponse(
+            status_code=400,
+            content={"error_code": "bad_request", "message": "card_ids (list) is required."},
+        )
+
+    import synthesizer
+
+    conn = _db()
+    try:
+        result = synthesizer.synthesize_cards(card_ids, lang, conn=conn)
+    except Exception as exc:
+        return JSONResponse(
+            status_code=502,
+            content={"error_code": "upstream_error", "message": f"synthesis failed: {exc}"},
+        )
+    return JSONResponse(content=result)
+
+
 @app.get("/api/price-history/{ticker}")
 def get_price_history(ticker: str, period: str = "5y"):
     """Monthly close prices over N years for chart rendering.
