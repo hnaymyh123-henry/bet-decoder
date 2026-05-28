@@ -31,6 +31,14 @@ from __future__ import annotations
 import argparse
 import sys
 
+# Make stdout/stderr UTF-8 so the demo plan (中文 + ✅) prints on Windows gbk
+# consoles instead of raising UnicodeEncodeError.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import evidence
 
 # ---------------------------------------------------------------------------
