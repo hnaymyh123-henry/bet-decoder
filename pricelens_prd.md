@@ -1,22 +1,32 @@
 # PriceLens · Product Requirements Document
 
-> 反向解码股票价格背后的市场隐含推理
+> ⚠ **2026-05-28 · 重大 pivot 至 BET DECODER** — 详见 [BET_DECODER_VISION.md](BET_DECODER_VISION.md)
 >
-> 版本：v0.5 · 2026-05-27 · solo project
+> 反向解码任意投资 bet 隐含的假设(从单股反向 DCF 扩展为"通用 bet 解码器")
+>
+> 版本：v0.7 · 2026-05-28 · open-source
 
 ---
 
 ## 0. TL;DR
 
-**PriceLens 是一个反向运行的投研 Agent。** 现有所有投研 AI 都在做"分析公司 → 输出报告"——PriceLens 反过来：以**当前股价为输入**，反推市场必须假设了什么才能算出这个价格，并对每条假设的证据强度评分。
+**Bet Decoder 是投资 bet 的 X 光机, 开源项目。** 输入任何 bet — 市场当前价 / 分析师目标价 / 朋友推文 / 你的持仓 — 输出"这个 bet 隐含相信什么 + 跟其他 bet 的对比 + 跨 bet 的洞察"。
+
+经过 6 轮 UI 迭代 (demo_b → demo_g) 验证, 原 "PriceLens · 单股反向 DCF 报告" 定位的产品形态本质是"研报", 用户动作是"读"。**Bet Decoder 把同一个反向解码 engine 升级为"通用 bet 解码器", 用户动作变成"用"** — 粘贴任意 bet source → 看 agent 实时解码 → 多卡并列 → AI 跨卡综合。
 
 | 项 | 内容 |
 |---|---|
-| 赛道 | UCWS Singapore Hackathon 2026 · Agent 赛道 · MiroMind 命题 |
-| 核心叙事 | "推理透明" — 透明的是市场的集体推理，不是 AI 自己的推理 |
-| 时间 | 2026-04-25 启动 · 2026-06-03 筛选 · 2026-06-13 Demo Day |
-| 团队 | 1 人 |
-| 状态 | PRD v0.5 · **W1 + W2 已 closed**;W3 进行中(5d 短期归因 + 前端打磨)|
+| 定位 | **投资 bet 的 X 光机** · 通用反向 bet 解码 · 开源自托管 |
+| 核心叙事 | "推理透明" — 不再仅限市场推理, 而是 **任意投资观点** 的推理 |
+| 核心 primitive | **Bet Card** — 每个被解码的 bet 都是一张可保存 / 可对比 / 可聚合的卡 |
+| 真正的 Aha | **多卡共存 + AI 跨卡综合** (不是单卡漂亮) — 详见 vision §3 |
+| LLM 提供方 | MiroMind API (deep research + chat 两种模式) |
+| 数据源 | yfinance (MVP); 后续可接 SEC EDGAR / Wind / 分析师报告 URL 抓取 |
+| 维护 | 单维护者起步, 欢迎贡献 |
+| 路线图节点 | 2026-06-13 v1.0 公开发布 · 之后按 GitHub Issues 演进 |
+| 状态 | PRD v0.7 · pivot 至 Bet Decoder, 等待开发方案细化(详见 vision §5 实现路径) |
+
+⚠ **本文档剩余章节(§1-§15)是 pivot 前的 v0.6 内容**, 部分仍适用(LLM 架构 / 反向 DCF 算法 / SQLite 存储 / 风险), 部分已 superseded(demo script / 功能列表 / UI 设计)。Pivot 后的产品形态以 BET_DECODER_VISION.md 为准, PRD 后续会 backfill 重写。
 
 ---
 
@@ -31,11 +41,20 @@
 | 量化平台 | Bloomberg Terminal, FactSet | 提供数据，不解释价格 |
 | **共同缺失** | — | **没有任何工具系统性地反向解码市场推理** |
 
-### 1.2 主题契合度
+### 1.2 差异化定位
 
-MiroMind 命题强调 "AI 的判断过程要可见、可追踪、可验证"。多数参赛队伍会做"AI 自己推理的可视化"——这条已经被 Perplexity 等做过。
+"AI 的判断过程要可见、可追踪、可验证" 是行业共识，但绝大多数工具走的是"AI 自己推理的可视化"——这条已经被 Perplexity / Brightwave / ChatGPT Deep Research 做得很好，再做一遍没有意义。
 
-**PriceLens 的差异化**：透明的对象是**市场**的集体推理，不是 AI 的推理。这是投资领域最深层的黑盒——当一个分析师说"市场已经 price-in 了"时，他指的就是这个黑盒。没有任何成熟产品做过。
+**PriceLens 选择反向赛道**：透明的对象是**市场**的集体推理，不是 AI 的推理。这是投资领域最深层的黑盒——当一个分析师说"市场已经 price-in 了"时，他指的就是这个黑盒。我们没看到任何成熟开源或商业产品系统性地解决这件事。
+
+### 1.3 为什么开源
+
+反向 DCF + LLM 证据评分这件事天然适合开源:
+
+1. **方法论需要可审计** — 投研工具如果是黑盒，就违背了"推理透明"的核心命题。代码必须可读，公式必须可改。
+2. **数据接口需要多元化** — 不同地区、不同资产类别需要接不同数据源(US/yfinance, CN/Wind, EU/Refinitiv)，闭源很难覆盖。
+3. **Prompt 与 schema 需要迭代** — Evidence brief 的 JSON schema、Critic 规则、Decoder 叙事风格都应该接受社区反馈持续演进。
+4. **降低投研工具的门槛** — Bloomberg 终端 $24k/年，PriceLens 自托管成本只有 LLM 调用费($0.1-3/股)。
 
 ---
 
@@ -393,7 +412,8 @@ TSLA 段落是整个 demo 的 "honesty moment"：
 | Agent 编排 | **MiroFlow** | 赞助方主推；做 graph 编排，不强依赖任何模型 |
 | 后端 | Python 3.11 + FastAPI | 与 MiroFlow 生态一致 |
 | 前端 | Vanilla HTML/JS（直接基于 `pricelens_mockup.html` 扩展） | 不引入新框架，节省时间 |
-| 部署 | 本地 Demo | hackathon 不需要 prod 部署 |
+| 存储 | **SQLite (单文件)** + 文件兜底缓存 (价格历史) | v0.6 起从 JSON 文件迁出;开源用户 `git clone && python pipeline.py NVDA` 即用,无需外部 DB |
+| 部署 | 本地自托管 (uvicorn + 浏览器) ;Docker 镜像 post-v1.0 提供 | 单文件 SQLite + FastAPI 直接 `pip install -r requirements.txt && uvicorn api:app` |
 
 ---
 
@@ -438,7 +458,9 @@ TSLA 段落是整个 demo 的 "honesty moment"：
 
 ---
 
-## 11. Demo Day 演示脚本（5 分钟草案）
+## 11. v1.0 发布演示脚本（5 分钟）
+
+> 同时是 2026-06-13 公开发布演示稿；脚本与产品演进解耦，每次大版本可重写。
 
 ```
 [0:00-0:30] 问题陈述
@@ -490,20 +512,20 @@ TSLA 段落是整个 demo 的 "honesty moment"：
 
 ## 12. 成功标准
 
-### 黑客松层面
-- ✅ 进入 Demo Day Top 15-20 finalist（线上筛选通过）
-- 🎯 进入 Agent 赛道前 3
-- 🏆 拿到 Agent 赛道冠军（$10K）
+### 产品层面（v1.0 演示 / 公开发布后 30 天）
+- 用户说 "我没见过这种角度" → ✅ 差异化成功
+- 用户尝试拖动滑块 / 点开 evidence drawer → ✅ 核心交互成功
+- 用户问 "这能不能扩展到 X 板块 / X 数据源" → ✅ 留下扩展心智
 
-### 产品层面（5 分钟 demo 后评委反应）
-- 评委说 "我没见过这种角度" → ✅ 差异化成功
-- 评委尝试点击/交互节点 → ✅ 交互成功
-- 评委问 "这能不能扩展到 X" → ✅ 留下深刻印象
+### 开源层面（v1.0 公开发布后 90 天）
+- GitHub repo: README + LICENSE + CONTRIBUTING + 安装文档齐全
+- 任意开发者可在 10 分钟内 `git clone && pip install && uvicorn` 跑通
+- 100+ stars / 5+ forks / 2+ 外部贡献的 PR
+- 至少 1 个非创建者运行过 `python pipeline.py` 并产生 evidence 缓存的实例
 
-### 开源层面（次要加分）
-- GitHub repo 完整，README 清晰
-- 代码可被他人 fork 跑通
-- 50+ stars
+### 方法学层面（长期）
+- 反向 DCF 方法学被引用 / 复用到其他资产类别(债券、商品、汇率)
+- Evidence brief schema (Appendix A) 被其他工具或论文采用
 
 ---
 
@@ -534,7 +556,9 @@ TSLA 段落是整个 demo 的 "honesty moment"：
 | `requirements.txt` | Python 依赖 |
 | `prompts/evidence_hunter.md` | Evidence Hunter prompt 模板（standard + boundary 两种 mode） |
 | `prompts/decoder_narrator.md` | Long-term Decoder narrator prompt 模板（数字 → 人话假设） |
-| `hackathon_track.png` | MiroMind 赛道原始命题图 |
+| `hackathon_track.png` | 历史:项目最早的命题灵感来源(MiroMind Agent 赛道命题图) |
+| `db.py` | SQLite DAO 层(v0.6 起;迁移自原 outputs/ + cache/ 文件存储) |
+| `migrate_to_sqlite.py` | 一次性迁移脚本:把旧 JSON 文件导入 SQLite |
 
 ---
 

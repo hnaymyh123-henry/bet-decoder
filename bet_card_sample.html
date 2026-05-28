@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=900">
+<title>Bet Card 样例 · 真实 NVDA 数据 · Module 1 schema 验证</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper-0:#FAF8F3; --paper-1:#F5F1E8; --paper-2:#EFE9DC;
+  --ink-1:#14110C; --ink-2:#3D3934; --ink-3:#6B6660; --ink-4:#9B948C; --ink-5:#C9C2B8;
+  --rule:#E8E2D5; --rule-strong:#D4CDBE;
+  --oxblood:#6B2737; --oxblood-2:#8A3848; --oxblood-soft:rgba(107,39,55,0.10);
+  --olive:#4A5D3A; --olive-soft:rgba(74,93,58,0.10);
+  --amber:#8A6D2C; --amber-soft:rgba(138,109,44,0.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Geist',-apple-system,sans-serif;background:var(--paper-0);color:var(--ink-1);
+     font-size:14px;line-height:1.55;font-feature-settings:'tnum','ss01';-webkit-font-smoothing:antialiased;
+     padding:40px 24px;}
+.wrap{max-width:680px;margin:0 auto;}
+.page-tag{font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;
+          color:var(--ink-3);margin-bottom:18px;text-align:center;}
+
+/* ===== Bet Card ===== */
+.card{background:var(--paper-1);border:1px solid var(--ink-1);box-shadow:3px 3px 0 var(--rule-strong);}
+.card-head{padding:16px 20px;border-bottom:1px solid var(--rule-strong);
+           display:flex;justify-content:space-between;align-items:flex-start;}
+.card-subj{font-size:20px;font-weight:600;letter-spacing:-0.01em;}
+.card-subj .badge{font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:0.12em;
+                  text-transform:uppercase;background:var(--ink-1);color:var(--paper-0);
+                  padding:2px 8px;border-radius:2px;margin-left:8px;vertical-align:middle;}
+.card-source{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-3);margin-top:4px;letter-spacing:0.04em;}
+.card-dcf{text-align:right;font-family:'Geist Mono',monospace;}
+.card-dcf .lab{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-4);}
+.card-dcf .val{font-size:13px;color:var(--ink-2);font-weight:500;}
+
+/* staleness banner */
+.stale-banner{background:var(--amber-soft);border-bottom:1px solid var(--amber);
+              padding:8px 20px;font-size:11.5px;color:var(--amber);font-family:'Geist Mono',monospace;
+              letter-spacing:0.03em;display:flex;align-items:center;gap:8px;}
+.stale-banner .dot{width:6px;height:6px;border-radius:50%;background:var(--amber);}
+.stale-banner a{color:var(--oxblood);font-weight:600;text-decoration:underline;cursor:pointer;}
+
+.card-body{padding:16px 20px;}
+.bets-intro{font-size:13px;color:var(--ink-2);margin-bottom:14px;}
+.bets-intro strong{color:var(--ink-1);font-weight:600;}
+
+.bet{display:grid;grid-template-columns:22px 1fr auto;gap:10px;padding:12px 0;
+     border-bottom:1px dotted var(--rule-strong);align-items:baseline;}
+.bet:last-of-type{border-bottom:none;}
+.bet .idx{font-family:'Geist Mono',monospace;color:var(--ink-4);font-size:13px;}
+.bet .claim{font-size:13.5px;}
+.bet .claim .interval{display:block;font-family:'Geist Mono',monospace;font-size:10.5px;
+                      color:var(--ink-3);margin-top:3px;letter-spacing:0.03em;}
+.bet .nums{text-align:right;font-family:'Geist Mono',monospace;white-space:nowrap;}
+.bet .nums .implied{font-size:16px;font-weight:700;color:var(--oxblood);}
+.bet .nums .baseline{display:block;font-size:10px;color:var(--ink-4);margin-top:2px;}
+.bet.nosolution .nums .implied{color:var(--amber);}
+.bet.nosolution .claim .interval{color:var(--amber);}
+
+.risks{margin-top:14px;padding-top:12px;border-top:1px solid var(--rule-strong);
+       font-size:12px;color:var(--ink-2);}
+.risks .lab{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:0.12em;
+            text-transform:uppercase;color:var(--oxblood);font-weight:600;margin-right:8px;}
+
+.card-foot{padding:10px 20px;border-top:1px solid var(--rule-strong);background:var(--paper-2);
+           display:flex;gap:18px;}
+.toggle-link{font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:0.08em;
+             text-transform:uppercase;color:var(--ink-3);cursor:pointer;border:none;background:none;
+             padding:0;text-decoration:underline;text-underline-offset:3px;}
+.toggle-link:hover{color:var(--oxblood);}
+
+/* expandable sections */
+.expand{display:none;padding:14px 20px;border-top:1px solid var(--rule-strong);background:var(--paper-0);}
+.expand.open{display:block;}
+.expand h4{font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;
+           color:var(--ink-3);margin-bottom:10px;}
+.chain-step{display:grid;grid-template-columns:14px 1fr;gap:8px;padding:3px 0;align-items:baseline;font-size:12.5px;}
+.chain-step .m{font-family:'Geist Mono',monospace;font-size:12px;align-self:start;padding-top:2px;}
+.chain-step.fact .c{font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--ink-2);}
+.chain-step.fact .m{color:var(--ink-4);}
+.chain-step.implied .m{color:var(--oxblood);font-weight:600;}
+.chain-step.implied .c{font-weight:500;}
+.chain-step.support .m{color:var(--olive);} .chain-step.support .c{color:var(--olive);font-size:11.5px;}
+.chain-step.break .m{color:var(--oxblood);} .chain-step.break .c{color:var(--oxblood);font-size:11.5px;font-weight:500;}
+.chain-step .src{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-4);margin-left:5px;}
+
+/* storage view */
+.storage{font-family:'Geist Mono',monospace;font-size:11px;line-height:1.7;color:var(--ink-2);}
+.storage .tbl{margin-bottom:14px;}
+.storage .tname{color:var(--oxblood);font-weight:600;letter-spacing:0.06em;}
+.storage .row{padding-left:14px;color:var(--ink-2);}
+.storage .k{color:var(--ink-3);}
+.storage .fk{color:var(--oxblood-2);}
+.storage .new{background:var(--olive-soft);padding:0 4px;}
+.storage .reuse{background:var(--paper-2);padding:0 4px;color:var(--ink-3);}
+
+.note{margin-top:20px;font-size:12px;color:var(--ink-3);line-height:1.7;
+      border-left:2px solid var(--rule-strong);padding-left:14px;}
+.note strong{color:var(--ink-1);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="page-tag">BET CARD 样例 · 真实 NVDA SQLite 数据 · MODULE 1 SCHEMA 验证</div>
+
+  <!-- ===== THE CARD ===== -->
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="card-subj">NVDA <span class="badge">Market</span></div>
+        <div class="card-source">$214.86 · 2026-05-27 收盘 · 反向 DCF 解码</div>
+      </div>
+      <div class="card-dcf">
+        <span class="lab">基线 DCF</span>
+        <span class="val">$65.22</span>
+      </div>
+    </div>
+
+    <div class="stale-banner">
+      <span class="dot"></span>
+      本卡基于 2026-05-27 收盘 · 非今日最新交易日 → 历史快照
+      &nbsp;<a onclick="alert('生产版会在这里触发对今日价的重新解码, 生成一张新的当日 Market 卡')">重新解码</a>
+    </div>
+
+    <div class="card-body">
+      <div class="bets-intro">要让 NVDA 在 <strong>$214.86</strong> 站得住, 市场必须 <strong>同时</strong> 相信:</div>
+
+      <div class="bet">
+        <span class="idx">①</span>
+        <span class="claim">营收 5 年复合增速 (CAGR)
+          <span class="interval">蒙特卡洛区间 44%–57% · 收敛成功率 100%</span>
+        </span>
+        <span class="nums">
+          <span class="implied">50%</span>
+          <span class="baseline">基线 15%</span>
+        </span>
+      </div>
+
+      <div class="bet">
+        <span class="idx">②</span>
+        <span class="claim">折现率 (WACC)
+          <span class="interval">蒙特卡洛区间 5.2%–7.3% · 收敛成功率 96%</span>
+        </span>
+        <span class="nums">
+          <span class="implied">6.2%</span>
+          <span class="baseline">基线 12.8%</span>
+        </span>
+      </div>
+
+      <div class="bet nosolution">
+        <span class="idx">③</span>
+        <span class="claim">终值 FCF 利润率
+          <span class="interval">⚠ 无解 — consensus 增速下, 任何利润率都撑不住此价</span>
+        </span>
+        <span class="nums">
+          <span class="implied">无解</span>
+          <span class="baseline">基线 45%</span>
+        </span>
+      </div>
+
+      <div class="risks">
+        <span class="lab">关键风险</span>
+        ASIC 替代 (TPU+Trainium 已占内部推理 15%) · hyperscaler ROI 2027 后可能转负
+      </div>
+    </div>
+
+    <div class="card-foot">
+      <button class="toggle-link" onclick="toggle('chain')">▾ 详细决策链</button>
+      <button class="toggle-link" onclick="toggle('storage')">▾ 查看底层存储 (schema 验证)</button>
+    </div>
+
+    <!-- decision chain -->
+    <div class="expand" id="chain">
+      <h4>Bet ① CAGR 50% 的决策链</h4>
+      <div class="chain-step fact"><span class="m">·</span><span class="c">反向求解: 固定 WACC/margin 于 consensus, 解出使 $214.86 成立的 CAGR</span></div>
+      <div class="chain-step implied"><span class="m">⇒</span><span class="c">隐含 CAGR p50 = 49.9% (区间 44-57%)</span></div>
+      <div class="chain-step fact"><span class="m">·</span><span class="c">意味着营收 $130B → ~$985B (Y5), 约 7.6×</span></div>
+      <div class="chain-step support"><span class="m">✓</span><span class="c">Hyperscaler 2026 capex $420B+ 已指引<span class="src">— MSFT/GOOG/META/AMZN</span></span></div>
+      <div class="chain-step break"><span class="m">⚠</span><span class="c">ASIC 替代成本仅 NVDA 1/3<span class="src">— Reuters 5/18</span></span></div>
+    </div>
+
+    <!-- storage view -->
+    <div class="expand" id="storage">
+      <h4>这张卡在 SQLite 里怎么存的 (方案 C)</h4>
+      <div class="storage">
+        <div class="tbl">
+          <div><span class="tname">bet_cards</span> <span class="new">新增信封表</span></div>
+          <div class="row"><span class="k">card_id:</span> 1</div>
+          <div class="row"><span class="k">subject:</span> "NVDA"</div>
+          <div class="row"><span class="k">source_type:</span> "market"</div>
+          <div class="row"><span class="k">card_kind:</span> "single"</div>
+          <div class="row"><span class="k">source_ref:</span> "$214.86 (2026-05-27 收盘)"</div>
+          <div class="row"><span class="k">series_key:</span> "NVDA|market"</div>
+          <div class="row"><span class="k">created_at:</span> "2026-05-27T04:35:16Z"</div>
+          <div class="row"><span class="fk">run_id: 20</span> ───┐ FK 指向 ↓</div>
+        </div>
+        <div class="tbl">
+          <div><span class="tname">runs</span> <span class="reuse">复用现有, +2 列</span></div>
+          <div class="row"><span class="k">id:</span> 20</div>
+          <div class="row"><span class="k">ticker:</span> "NVDA"</div>
+          <div class="row"><span class="new">anchor_price: 214.86</span> &nbsp;<span class="new">anchor_type: "market"</span> ← 新列</div>
+          <div class="row"><span class="k">baseline_dcf:</span> 65.22</div>
+        </div>
+        <div class="tbl">
+          <div><span class="tname">rdcf_intervals</span> <span class="reuse">复用现有, 真实数据</span></div>
+          <div class="row">run 20 · revenue_cagr_5y: p25=43.6% <b>p50=49.9%</b> p75=57.0% success=1.0</div>
+          <div class="row">run 20 · wacc: p25=5.2% <b>p50=6.15%</b> p75=7.3% success=0.96</div>
+          <div class="row">run 20 · terminal_fcf_margin: <span style="color:var(--amber)">NO SOLUTION</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>这张卡验证了 Module 1 的 schema:</strong><br>
+    · 单股卡 = <span style="font-family:'Geist Mono',monospace">bet_cards</span> 信封 + <span style="font-family:'Geist Mono',monospace">run_id</span> 指向复用的 <span style="font-family:'Geist Mono',monospace">runs</span> 明细 (方案 C)<br>
+    · 3 个 bet = 反向 DCF 的 3 个参数 (CAGR / WACC / 终值利润率), implied vs 基线对照<br>
+    · "无解" 的终值利润率原样保留 (不是 bug, 是诚实的边界信号)<br>
+    · 新鲜度按天: 卡是 5-27 的, 今天 5-28 → 自动标"历史快照"<br>
+    · Bet 值可空 / 可"无解" → 兼容 Opinion 残缺 & 边界态<br>
+    <br>
+    <strong>注意:</strong> 真实隐含 CAGR 是 <strong>50%</strong> 不是我之前 demo 里圆整的 55%; WACC 隐含 <strong>6.2%</strong> 极低 (市场把 NVDA 当超低风险); 终值利润率<strong>无解</strong> — 这三点比 hardcode 的故事更尖锐。
+  </div>
+</div>
+
+<script>
+function toggle(id){
+  document.getElementById(id).classList.toggle('open');
+}
+</script>
+</body>
+</html>

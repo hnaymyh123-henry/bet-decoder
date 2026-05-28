@@ -7,22 +7,29 @@
 
 ## Project at a glance
 
-**Project name:** PriceLens — Reverse-engineered investment thesis decoder
-**Event:** UCWS Singapore Hackathon 2026 — Agent track, MiroMind partnership
-**One-line pitch:** Given a stock price, PriceLens reverse-engineers what assumptions the market must be making to arrive at it, and surfaces the evidence behind each one.
-**Timeline:** 2026-04-25 launch · online screening 2026-06-03 to 06-05 · Demo Day Singapore 2026-06-13
-**Team size:** 1 (solo)
-**Status:** PRD v0.5. **W1 + W2 closed** (Test A/B passed, $3.39 spent; pipeline 6-step end-to-end works with Python critic + chat synthesizer wired; FastAPI 4 endpoints; frontend mockup driven by real data with ticker switcher / boundary mode / slider real DCF / bilingual disclaimer). Total ~$3.78 spent of $100 budget. 12+ commits on master after git init. **W3 in progress**: 5d short-term attribution (Worker A/B parallel) + G3-C frozen-evidence tag + this docs sync. SSE streaming (G4-D) + OFFLINE_MODE (G5-B) deferred to W4 alongside the demo pre-run.
+**Project name:** Bet Decoder (formerly: PriceLens) — Investment-bet X-ray, open-source
+**Positioning:** Self-hosted, single-file-SQLite open-source tool. Anyone can `git clone && uvicorn api:app` and run their own instance. Pivoted 2026-05-28 from "single-stock reverse DCF report" to "universal investment-bet decoder".
+**Origin (historical):** Started as an entry to UCWS Singapore Hackathon 2026 (Agent track, MiroMind partnership). 2026-05-27: re-framed as open-source product. 2026-05-28: pivoted to Bet Decoder concept after 6 rounds of UI iteration (demo_b → demo_g) revealed the "single stock report" form was inherently report-like rather than app-like.
+**One-line pitch:** Paste any investment bet (current price / analyst target / tweet / your portfolio) → Bet Decoder X-rays what that bet implicitly believes, lets you stack multiple bets side-by-side, and has AI synthesize cross-bet insights.
+**Roadmap:** 2026-06-13 v1.0 public release · post-release driven by GitHub Issues; LICENSE / README / Dockerfile not yet in (queued).
+**Maintainership:** Single maintainer at v1.0; designed for contributions.
+**Status:** PRD v0.7. **W1+W2+W3 closed.** **SQLite migration closed** (13 tables, 17 runs migrated, QA APPROVE, `.gitignore` patched). **Pivot to Bet Decoder closed in concept** (BET_DECODER_VISION.md drafted, demo_b-g deleted, PRD v0.6→v0.7 with pivot announcement). **Next:** awaiting user decision on P1-P5 implementation pacing (4.5 days hardcoded prototype path).
+
+**⚠ ALWAYS READ BET_DECODER_VISION.md before doing product/UI work** — it has the current product form, Bet Card primitive spec, 5-act demo narrative, Aha matrix, P1-P5 implementation phases, and the codebase interface map.
 
 ---
 
 ## Why this project exists
 
-**MiroMind track theme:** "推理透明" (reasoning transparency). The judging criterion is whether the AI's reasoning process is auditable, traceable, and verifiable — not just whether the answer is correct.
+**Core thesis:** Existing investment-research AI tools all do `analyze company → output report`. PriceLens does the inverse: `take price as input → decompose into implicit assumptions → score evidence per assumption`. The object of transparency is **the market's collective reasoning**, not the AI's own reasoning. We don't see any mature open-source or commercial product systematically doing this.
 
-**Differentiation from other entries:** Most teams will build "AI research agent + citation links + reasoning visualization." PriceLens is the inverse — instead of `analyze company → output report`, it does `take price as input → decompose into implicit assumptions → score evidence`. The thing being decoded is the market's collective reasoning, not the AI's own reasoning. This is angle is novel within the track.
+**Why investment research specifically:** Stock prices are uniquely well-suited to reverse decomposition because the DCF math is well-known and the underlying data (financials, consensus, market data) is fully public. Bonds / FX / commodities can follow once methodology is proven.
 
-**Why investment research specifically:** MiroMind's own track copy mentioned 投研 (investment research) as a sample domain. Stock prices are uniquely well-suited to reverse decomposition because the DCF math is well-known and the underlying data (financials, consensus, market data) is fully public.
+**Why open-source:**
+1. A reasoning-transparency tool *must* be auditable; closed-source contradicts the thesis
+2. Different markets need different data sources (US/yfinance, CN/Wind, EU/Refinitiv) — closed source can't cover all
+3. Prompts + schemas (evidence brief, critic rules, decoder voice) should iterate against community feedback
+4. Lowers the barrier to investment research — Bloomberg Terminal is $24k/yr; self-hosted PriceLens is only the LLM call cost (~$0.10-3 per stock)
 
 ---
 
@@ -31,14 +38,17 @@
 | File | Purpose |
 |---|---|
 | `CLAUDE.md` | This file — project context for Claude sessions |
-| `pricelens_prd.md` | Product requirements doc v0.4 — scope, features, milestones, G1-G6 + B1-B4 decisions, §6.4 DCF boundary state, Appendix A evidence schema |
+| **`BET_DECODER_VISION.md`** | **🔥 2026-05-28 pivot** — Bet Decoder product vision, Bet Card primitive, 5-act demo, P1-P5 implementation. READ THIS FIRST for any product/UI work. |
+| `pricelens_prd.md` | Product requirements doc v0.7 — head section is pivot announcement, body §1-§15 is pre-pivot v0.6 content (LLM arch / DCF algo / SQLite / risks still valid; demo script & feature list superseded). |
 | `reverse_dcf.py` | Reverse DCF prototype with Monte Carlo interval estimation (G2). Run: `python reverse_dcf.py NVDA` |
 | `requirements.txt` | Python deps: yfinance, numpy, scipy |
 | `prompts/evidence_hunter.md` | Evidence Hunter prompt template (deepresearch mode; supports standard + boundary modes per B4) |
 | `prompts/decoder_narrator.md` | Long-term Decoder narrator prompt template (chat mode; numbers → human-readable assumptions) |
-| `api.py` | FastAPI server. Run: `uvicorn api:app --reload --port 8000`. Serves cached pipeline outputs from `outputs/` + the mockup at `/`. No LLM. |
-| `outputs/{TICKER}_{timestamp}.json` | Pipeline output per ticker per run. Frontend reads via `/api/decode/{ticker}`. |
-| `cache/decoder/`, `cache/evidence/`, `cache/synthesizer/` | Cached LLM outputs (G5 foundation). Cache key invalidates on input change; decoder bumped to v2 schema 2026-05-27. |
+| `api.py` | FastAPI server. Run: `uvicorn api:app --reload --port 8000`. Serves pipeline outputs (from SQLite as of v0.6) + the mockup at `/`. No LLM. |
+| `db.py` | SQLite DAO layer (v0.6+). Single source of truth for schema DDL and `save_pipeline_run` / `get_latest_run` / `cache_get` / `cache_put`. DB file: `pricelens.db` at project root. |
+| `migrate_to_sqlite.py` | One-shot migration: reads legacy `outputs/*.json` + `cache/{decoder,evidence,synthesizer}/*.json`, writes them into `pricelens.db`. Idempotent. |
+| `outputs/{TICKER}_{timestamp}.json` | **Legacy (v0.5 and earlier).** Pipeline used to write per-run JSON here. As of v0.6, retained as on-disk safety net for ~1 week then to be deleted; new runs write to SQLite. |
+| `cache/decoder/`, `cache/evidence/`, `cache/synthesizer/` | **Legacy (v0.5 and earlier).** LLM cache moved into the `llm_cache` table in SQLite at v0.6. `cache/price_history/` STAYS as files (time series + TTL fits the filesystem better). |
 | `critic.py` | Python mechanical validation of evidence briefs per PRD §15 Appendix A.4. No LLM. Returns `{issues, verdict, counts}`. |
 | `short_term.py` | 5d short-term attribution (W3). Decomposes price move into fundamental / flow / unexplained factors. yfinance only, no LLM. |
 | `.claude/launch.json` | Preview server config. `preview_start pricelens-api` launches uvicorn on port 8765. |
@@ -155,6 +165,14 @@ Data Tools:
 ---
 
 ## Last session summary (rolling)
+
+**2026-05-28 (Phase 1 产品对齐 ✅ 全部完成 — 5 模块全 LOCKED,共 49 决策)** — 续上一 session,把剩余 Module 3/5/4 全 close-out。**全部落盘**:`PRD-draft.md` 顶部 meta = "ALL 5 modules LOCKED, Next=Step D freeze PRD → Phase 2";`docs/glossary.md` 累计 ~24 术语。**Module 3 跨卡综合(10)**:纯消费方关系引擎+综合叙事;图谱+叙事双层(headline_insight=demo 字幕);手动触发+卡集合hash缓存;**全程 chat mode**;五关系按卡配对自动路由(同标的→共识/分歧/矛盾,跨标的→同源,同序列→漂移);强度只分**强/中/弱**(蒙特卡洛 band 宽当"多大差距才有意义"尺子,同源用几何均值);同源主题对齐走 chat 模糊匹配;失败诚实留空;SynthesisResult 存 llm_cache。**Module 5 Agent活动流(7)**:事件协议+SSE管道+埋点的横切基础设施;定位=过程透明价值载体(非进度条);**live+持久化可回放带时序模拟**(配套预跑缓存demo);事件=决策级语义推理步单档+kind标签;**统一工作台feed**;emit回调注入M2/M3;串行+排队;ActivityEvent 存 activity_logs。**Module 4 工作台前端(8,快速过)**:展示交互层调M2/M3+消费M5流;复用扩展 pricelens_mockup.html;严守设计系统;**三区布局**(主画布多卡并列+右侧活动流feed+底部综合面板);卡形态继承M1。**关键洞察**:BetCard 答 What / ActivityEvent 答 How,正交两 primitive。**回填项(邻居模块已LOCKED但需补接口产物,不算重开)**:M2 ← R1 单股卡产主题暴露% + R2 DCF driver 带蒙特卡洛 band;M1 ← 新增 activity_logs 表。**协作边界进 memory**:Phase 1 只问产品决策,纯实现/代码复用细节自理。**下一步**:Step D 把 PRD-draft.md 冻结成正式 PRD.md → Phase 2 技术拆解。恢复:读 PRD-draft.md(5 模块全 LOCKED)+ glossary,直接进 Step D 或 Phase 2。
+
+**2026-05-28 (Phase 1 产品对齐进行中 — /dev Module 1+2 已 LOCKED)** — 在 BET DECODER pivot 后,走 `/dev` Phase 1 模块化对齐。5 模块顺序:1.Bet Card 数据模型 → 2.Decoder Engine → 3.跨卡综合 → 5.Agent 活动流 → 4.工作台前端。**状态锚点全部落盘**:`PRD-draft.md`(顶部 progress meta = module 2/5 locked, current=3, layer=Big Picture)+ `docs/glossary.md`(14 术语)+ 2 张真数据样例卡(`bet_card_sample.html` 单股 / `portfolio_card_sample.html` 组合仪表盘)。**Module 1 LOCKED(14 决策)**:卡分两类(单股卡片/组合仪表盘)、Bet Card 命名、单股 3 source 共用 schema(bet 可空)、不可变快照、series 分组+去重+日收盘粒度、新鲜度按天、被动存储层、**方案 C 混合复用 runs**(新增 bet_cards 信封 + portfolio_holdings/portfolio_exposures 2 表 + runs 加 anchor_price/anchor_type)、组合编辑草稿态。**Module 2 LOCKED(10 决策)**:**frame-adaptive agentic decode**(agent 按公司挑 lens,reverse_dcf.py 降级成 DCF lens 一个工具)、诚实定位(不宣称还原真相)、MVP 只做 Market+Portfolio、lens 注册表 7 个(DCF/PE/PS/EV-EBITDA/P-FCF/P-B/PEG)+ primary+交叉验证、证据强制不跳过、**锚 lens 第二梯队 + anchor mode 对 AI 复合体(GPU/存储/光模块/AI 应用)作 primary**、anchor 输出=基础+叙事/期权成分对账现价。**known-未决**:宏观流动性分母变量(V2 接真数据)· Opinion 模糊文本抽取(V2)。**下一步**:Module 3(跨卡综合)Big Picture。恢复方式:读 PRD-draft.md 顶部 progress meta + glossary,继续 `/dev` Phase 1 Step B。
+
+**2026-05-28 (BET DECODER PIVOT — major product reframe)** — After 6 rounds of UI iteration (demo_b sliders → demo_c outline → demo_d mind map → demo_e progressive tree → demo_f bespoke per-method → demo_g time-machine+tension), user called out "the product form is a visualized research report, not an App/Agent." This catalyzed a pivot from "single-stock reverse DCF report" to "**Bet Decoder — investment-bet X-ray**". Core insight: the reverse-decoding engine is universal — it can decode ANY bet (market price / analyst PT / tweet / portfolio), not just one stock's market bet. New product primitive is "**Bet Card**" — every decoded bet becomes a portable card with Subject / Source / Bets / Risks / decision chain. Multi-card coexistence + AI cross-card synthesis (e.g., "your portfolio depends on the same assumption as Goldman's PT") is the true Aha that no single feature gives. Deliverables this turn: (1) `BET_DECODER_VISION.md` 350+ lines complete vision doc (Bet Card spec, 5-act demo, P1-P5 implementation, codebase interface map, UI lineage notes from b→g); (2) deleted demo_b through demo_g; (3) `pricelens_prd.md` bumped v0.6→v0.7 with pivot announcement at top, body sections marked partially superseded. Name confirmed: **Bet Decoder** (BAT was autocorrect of Bet). **Next**: user decides P1-P5 pacing for hardcoded prototype (4.5 days total).
+
+**2026-05-27 (positioning + storage pivot)** — User called the strategic shift: "改掉 Hackathon-centric 定位,做成真正的开源项目,起码先从 JSON 文件迁到 SQLite." Three decisions locked: (1) start the pivot NOW (before v1.0 demo), not after; (2) SQLite schema = full normalization (multi-table + foreign keys, 11 tables + llm_cache + schema_meta); (3) scope = PRD/CLAUDE.md rewrite + storage migration (README/LICENSE/Dockerfile queued for next pass). PRD upgraded to v0.6: §0 reframed from "UCWS Hackathon" → "open-source self-hosted tool"; §1.3 new section on why open-source; §8 tech stack adds storage row (SQLite + price_history files); §11 renamed "v1.0 release demo script"; §12 success criteria rewritten (drops finalist/top-3/$10k, adds GitHub stars/forks/external PRs/external runs); §14 docs table adds db.py + migrate_to_sqlite.py. Dispatched: Worker A (db.py + migration script) and Worker B (rewire pipeline.py + api.py), B blocked by A. `cache/price_history/` stays as files (time series + TTL fits filesystem). Legacy `outputs/*.json` + `cache/{decoder,evidence,synthesizer}/*.json` get migrated then deprecated for ~1 week as safety net.
 
 **2026-05-20** — Locked PRD v0.1, generated three iterations of the HTML mockup (final = research-report aesthetic), extracted the design system into a permanent doc, organized everything into this folder.
 

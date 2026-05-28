@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=900">
+<title>Portfolio Bet Card 样例 · 组合仪表盘 · Module 1 schema 验证</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper-0:#FAF8F3; --paper-1:#F5F1E8; --paper-2:#EFE9DC;
+  --ink-1:#14110C; --ink-2:#3D3934; --ink-3:#6B6660; --ink-4:#9B948C; --ink-5:#C9C2B8;
+  --rule:#E8E2D5; --rule-strong:#D4CDBE;
+  --oxblood:#6B2737; --oxblood-2:#8A3848; --oxblood-soft:rgba(107,39,55,0.10);
+  --olive:#4A5D3A; --olive-soft:rgba(74,93,58,0.10);
+  --amber:#8A6D2C; --amber-soft:rgba(138,109,44,0.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Geist',-apple-system,sans-serif;background:var(--paper-0);color:var(--ink-1);
+     font-size:14px;line-height:1.55;font-feature-settings:'tnum','ss01';-webkit-font-smoothing:antialiased;
+     padding:40px 24px;}
+.wrap{max-width:760px;margin:0 auto;}
+.page-tag{font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;
+          color:var(--ink-3);margin-bottom:18px;text-align:center;}
+
+/* ===== Dashboard ===== */
+.dash{background:var(--paper-1);border:1px solid var(--ink-1);box-shadow:3px 3px 0 var(--rule-strong);}
+.dash-head{padding:18px 22px;border-bottom:1px solid var(--rule-strong);
+           display:flex;justify-content:space-between;align-items:flex-start;}
+.dash-subj{font-size:21px;font-weight:600;letter-spacing:-0.01em;}
+.dash-subj .badge{font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;
+                  background:var(--ink-1);color:var(--paper-0);padding:2px 8px;border-radius:2px;margin-left:8px;vertical-align:middle;}
+.dash-source{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-3);margin-top:4px;letter-spacing:0.04em;}
+.dash-total{text-align:right;font-family:'Geist Mono',monospace;}
+.dash-total .lab{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-4);}
+.dash-total .val{font-size:16px;color:var(--ink-1);font-weight:600;}
+
+.dash-body{padding:18px 22px;}
+.section-lab{font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;
+             color:var(--ink-2);font-weight:600;margin-bottom:4px;}
+.section-sub{font-size:12px;color:var(--ink-3);margin-bottom:16px;}
+
+/* theme exposure bars */
+.theme{margin-bottom:16px;}
+.theme-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;}
+.theme-name{font-size:13.5px;font-weight:500;color:var(--ink-1);}
+.theme-name .risk-tag{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:0.08em;
+                      background:var(--oxblood);color:var(--paper-0);padding:1px 6px;border-radius:2px;margin-left:8px;}
+.theme-pct{font-family:'Geist Mono',monospace;font-size:15px;font-weight:700;color:var(--oxblood);}
+.theme-bar{height:10px;background:var(--paper-2);position:relative;overflow:hidden;}
+.theme-bar .fill{height:100%;background:var(--oxblood);transition:width 400ms ease;}
+.theme.t2 .theme-pct{color:var(--ink-2);} .theme.t2 .theme-bar .fill{background:var(--ink-3);}
+.theme.t3 .theme-pct{color:var(--olive);} .theme.t3 .theme-bar .fill{background:var(--olive);}
+.theme.t4 .theme-pct{color:var(--amber);} .theme.t4 .theme-bar .fill{background:var(--amber);}
+.theme-contrib{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-3);margin-top:5px;letter-spacing:0.03em;}
+
+/* concentration callout */
+.concentration{margin-top:8px;background:var(--oxblood-soft);border-left:3px solid var(--oxblood);
+               padding:12px 16px;font-size:13px;color:var(--ink-1);line-height:1.6;}
+.concentration .lab{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;
+                    color:var(--oxblood);font-weight:600;display:block;margin-bottom:4px;}
+.concentration strong{color:var(--oxblood);font-weight:700;}
+
+/* hidden tension */
+.tension-note{margin-top:12px;background:var(--amber-soft);border-left:3px solid var(--amber);
+              padding:10px 16px;font-size:12px;color:var(--ink-2);line-height:1.6;}
+.tension-note .lab{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;
+                   color:var(--amber);font-weight:600;margin-right:8px;}
+
+.dash-foot{padding:10px 22px;border-top:1px solid var(--rule-strong);background:var(--paper-2);display:flex;gap:18px;}
+.toggle-link{font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;
+             color:var(--ink-3);cursor:pointer;border:none;background:none;padding:0;text-decoration:underline;text-underline-offset:3px;}
+.toggle-link:hover{color:var(--oxblood);}
+
+.expand{display:none;padding:16px 22px;border-top:1px solid var(--rule-strong);background:var(--paper-0);}
+.expand.open{display:block;}
+.expand h4{font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px;}
+
+/* holdings table */
+.holdings{width:100%;border-collapse:collapse;font-size:12.5px;}
+.holdings th{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:0.08em;text-transform:uppercase;
+             color:var(--ink-3);text-align:left;padding:6px 8px;border-bottom:1px solid var(--rule-strong);font-weight:600;}
+.holdings td{padding:7px 8px;border-bottom:1px dotted var(--rule);}
+.holdings .tk{font-family:'Geist Mono',monospace;font-weight:600;}
+.holdings .wt{font-family:'Geist Mono',monospace;text-align:right;color:var(--oxblood);font-weight:600;}
+.holdings .themes{color:var(--ink-3);font-size:11.5px;}
+.holdings .link{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-4);}
+
+/* storage */
+.storage{font-family:'Geist Mono',monospace;font-size:11px;line-height:1.7;color:var(--ink-2);}
+.storage .tbl{margin-bottom:14px;}
+.storage .tname{color:var(--oxblood);font-weight:600;letter-spacing:0.06em;}
+.storage .row{padding-left:14px;}
+.storage .k{color:var(--ink-3);} .storage .fk{color:var(--oxblood-2);}
+.storage .new{background:var(--olive-soft);padding:0 4px;}
+
+.note{margin-top:20px;font-size:12px;color:var(--ink-3);line-height:1.7;border-left:2px solid var(--rule-strong);padding-left:14px;}
+.note strong{color:var(--ink-1);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="page-tag">PORTFOLIO BET CARD 样例 · 组合仪表盘形态 · MODULE 1 SCHEMA 验证</div>
+
+  <div class="dash">
+    <div class="dash-head">
+      <div>
+        <div class="dash-subj">我的组合 <span class="badge">Portfolio · 8 持仓</span></div>
+        <div class="dash-source">手动粘贴持仓 · 2026-05-28 · 8 只票各自反向 DCF 后聚合</div>
+      </div>
+      <div class="dash-total">
+        <span class="lab">组合市值</span>
+        <span class="val">$486K</span>
+      </div>
+    </div>
+
+    <div class="dash-body">
+      <div class="section-lab">你的钱实际在 BET 什么</div>
+      <div class="section-sub">把 8 只票各自的隐含假设, 按持仓权重聚合到主题级</div>
+
+      <div class="theme t1">
+        <div class="theme-top">
+          <span class="theme-name">AI 基础设施 capex 持续高位 <span class="risk-tag">集中风险</span></span>
+          <span class="theme-pct">76%</span>
+        </div>
+        <div class="theme-bar"><div class="fill" style="width:76%"></div></div>
+        <div class="theme-contrib">贡献: NVDA · MSFT · META · GOOG · AMZN</div>
+      </div>
+
+      <div class="theme t2">
+        <div class="theme-top">
+          <span class="theme-name">利率回落 / 低折现率</span>
+          <span class="theme-pct">58%</span>
+        </div>
+        <div class="theme-bar"><div class="fill" style="width:58%"></div></div>
+        <div class="theme-contrib">贡献: 全部成长股 (隐含 WACC 普遍低于 CAPM)</div>
+      </div>
+
+      <div class="theme t3">
+        <div class="theme-top">
+          <span class="theme-name">消费韧性</span>
+          <span class="theme-pct">34%</span>
+        </div>
+        <div class="theme-bar"><div class="fill" style="width:34%"></div></div>
+        <div class="theme-contrib">贡献: AAPL · COST · AMZN(零售) · TSLA</div>
+      </div>
+
+      <div class="theme t4">
+        <div class="theme-top">
+          <span class="theme-name">中国市场敞口</span>
+          <span class="theme-pct">16%</span>
+        </div>
+        <div class="theme-bar"><div class="fill" style="width:16%"></div></div>
+        <div class="theme-contrib">贡献: AAPL · TSLA</div>
+      </div>
+
+      <div class="concentration">
+        <span class="lab">⚠ 集中风险 (Aha)</span>
+        你的前 5 大持仓 (<strong>76%</strong> 仓位) <strong>全部依赖同一件事:hyperscaler AI capex 持续高位</strong>。
+        你以为持有 5 家不同公司分散了风险, 实际上是在<strong>押同一个赌注 5 次</strong> —
+        一旦 2027 hyperscaler capex 见顶, 这 5 只票会同步下跌。
+      </div>
+
+      <div class="tension-note">
+        <span class="lab">隐藏对冲</span>
+        GOOG + AMZN (合计 22%) 在自建 ASIC (TPU/Trainium), 这是 NVDA 的威胁 —
+        组合内部其实有个小对冲:若 ASIC 胜出, GOOG/AMZN 受益但 NVDA 受损。但净敞口仍是"AI infra 总量"做多。
+      </div>
+    </div>
+
+    <div class="dash-foot">
+      <button class="toggle-link" onclick="toggle('holdings')">▾ 按持仓展开</button>
+      <button class="toggle-link" onclick="toggle('storage')">▾ 查看底层存储 (schema 验证)</button>
+    </div>
+
+    <div class="expand" id="holdings">
+      <h4>8 持仓明细 (每只链回自己的单股解码)</h4>
+      <table class="holdings">
+        <tr><th>标的</th><th>权重</th><th>主要隐含 bet</th><th>单股卡</th></tr>
+        <tr><td class="tk">NVDA</td><td class="wt">22%</td><td class="themes">AI infra · GPU 龙头地位</td><td class="link">→ run 20</td></tr>
+        <tr><td class="tk">MSFT</td><td class="wt">18%</td><td class="themes">AI infra(Azure) · 云增长 · 低折现</td><td class="link">→ run 31</td></tr>
+        <tr><td class="tk">META</td><td class="wt">14%</td><td class="themes">AI infra(自建) · 广告市场</td><td class="link">→ run 32</td></tr>
+        <tr><td class="tk">GOOG</td><td class="wt">12%</td><td class="themes">AI infra · 搜索/广告 · <b>TPU 自研</b></td><td class="link">→ run 33</td></tr>
+        <tr><td class="tk">AMZN</td><td class="wt">10%</td><td class="themes">AI infra(AWS) · 零售 · <b>Trainium</b></td><td class="link">→ run 34</td></tr>
+        <tr><td class="tk">AAPL</td><td class="wt">10%</td><td class="themes">消费硬件 · 服务 · 中国</td><td class="link">→ run 35</td></tr>
+        <tr><td class="tk">COST</td><td class="wt">8%</td><td class="themes">消费韧性 · 会员制</td><td class="link">→ run 17</td></tr>
+        <tr><td class="tk">TSLA</td><td class="wt">6%</td><td class="themes">EV 需求 · 自动驾驶 · 中国</td><td class="link">→ run 14</td></tr>
+      </table>
+    </div>
+
+    <div class="expand" id="storage">
+      <h4>这张组合仪表盘在 SQLite 里怎么存的 (方案 C)</h4>
+      <div class="storage">
+        <div class="tbl">
+          <div><span class="tname">bet_cards</span> (信封, card_kind=portfolio)</div>
+          <div class="row"><span class="k">card_id:</span> 9 &nbsp; <span class="k">subject:</span> "我的组合"</div>
+          <div class="row"><span class="k">source_type:</span> "portfolio" &nbsp; <span class="k">card_kind:</span> "portfolio"</div>
+          <div class="row"><span class="fk">run_id: NULL</span> ← 组合卡不指向单个 run</div>
+        </div>
+        <div class="tbl">
+          <div><span class="tname">portfolio_holdings</span> <span class="new">新表</span> · 8 行</div>
+          <div class="row">card_id=9, ticker="NVDA", weight_pct=22, <span class="fk">run_id=20</span></div>
+          <div class="row">card_id=9, ticker="MSFT", weight_pct=18, <span class="fk">run_id=31</span></div>
+          <div class="row">... (每只票链回它自己的单股 run, 可下钻)</div>
+        </div>
+        <div class="tbl">
+          <div><span class="tname">portfolio_exposures</span> <span class="new">新表</span> · 4 行</div>
+          <div class="row">card_id=9, theme="AI infra capex", exposure_pct=76,</div>
+          <div class="row">&nbsp;&nbsp;contributing_tickers=["NVDA","MSFT","META","GOOG","AMZN"],</div>
+          <div class="row">&nbsp;&nbsp;<span style="color:var(--oxblood)">is_concentration_risk=1</span></div>
+          <div class="row">card_id=9, theme="利率回落", exposure_pct=58, ...</div>
+          <div class="row">card_id=9, theme="消费韧性", exposure_pct=34, ...</div>
+          <div class="row">card_id=9, theme="中国敞口", exposure_pct=16, ...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>这张仪表盘验证了 Q1.8 的 portfolio 表设计:</strong><br>
+    · <span style="font-family:'Geist Mono',monospace">bet_cards</span> 信封 card_kind=portfolio, run_id=NULL(组合不指向单个 run)<br>
+    · <span style="font-family:'Geist Mono',monospace">portfolio_holdings</span>:8 行, 每只票 weight_pct + run_id(链回单股解码,可下钻)<br>
+    · <span style="font-family:'Geist Mono',monospace">portfolio_exposures</span>:4 行主题, exposure_pct + contributing_tickers + is_concentration_risk<br>
+    · <strong>集中风险 callout</strong> = <span style="font-family:'Geist Mono',monospace">is_concentration_risk=1</span> 字段直接驱动 → 这是 Aha 1 的核心产物<br>
+    <br>
+    <strong>形态差异:</strong> 单股卡是紧凑卡片(可多张并列对比); 组合卡是<strong>展开式仪表盘</strong>(主题暴露条 + 集中风险 + 持仓明细)。两者共用 bet_cards 信封但底层明细表不同。
+  </div>
+</div>
+
+<script>
+function toggle(id){document.getElementById(id).classList.toggle('open');}
+</script>
+</body>
+</html>
