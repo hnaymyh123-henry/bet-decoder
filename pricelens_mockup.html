@@ -1711,6 +1711,357 @@
     .ass-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .ass-table { min-width: 480px; }
   }
+
+  /* ===================================================================== */
+  /* ============== M4 · BET DECODER WORKBENCH (multi-card) =============== */
+  /* Re-uses the canonical design-system tokens (paper-on-paper, oxblood    */
+  /* accent, Geist). NO warm/sample palette, NO blue/purple/gradient/italic.*/
+  /* ===================================================================== */
+
+  /* ---- Composer (top input + source-type select + decode) ---- */
+  .composer {
+    padding: 24px 0 20px;
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 20px;
+    align-items: center;
+  }
+  .composer .lbl {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .composer-inputs { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .composer select,
+  .composer input[type="text"] {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 9px 12px;
+    letter-spacing: 0.02em;
+  }
+  .composer select:focus,
+  .composer input[type="text"]:focus { border-color: var(--ink); outline: none; }
+  .composer input[type="text"] { min-width: 220px; flex: 1; }
+  .composer .src-select { text-transform: uppercase; font-size: 11px; letter-spacing: 0.08em; }
+  .composer .go {
+    background: var(--ink);
+    color: var(--paper);
+    border: 1px solid var(--ink);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 10px 18px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .composer .go:hover { background: var(--paper); color: var(--ink); }
+  .composer .go:disabled { opacity: 0.4; cursor: default; }
+  .composer .presets { display: flex; gap: 8px; }
+  .composer .preset {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    color: var(--ink-3);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+  .composer .preset:hover { border-color: var(--ink); color: var(--ink); }
+  .composer .status { text-align: right; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.04em; }
+  .composer .status .mode-tag {
+    display: inline-block; margin-left: 8px; padding: 2px 7px;
+    background: var(--paper-2); border: 1px solid var(--line);
+    text-transform: uppercase; letter-spacing: 0.12em; font-size: 9px;
+  }
+
+  /* ---- Three-zone workbench grid ---- */
+  .workbench {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    grid-template-areas:
+      "canvas  feed"
+      "synth   synth";
+    gap: 28px;
+    padding: 28px 0 56px;
+    align-items: start;
+  }
+  .wb-canvas { grid-area: canvas; min-width: 0; }
+  .wb-feed   { grid-area: feed; }
+  .wb-synth  { grid-area: synth; min-width: 0; }
+
+  /* Canvas header (count + synthesize CTA) */
+  .canvas-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 1px solid var(--rule); padding-bottom: 10px; margin-bottom: 20px;
+  }
+  .canvas-head .ttl { font-size: 13px; font-weight: 500; letter-spacing: -0.01em; }
+  .canvas-head .ttl .ct { font-family: var(--mono); color: var(--ink-3); margin-left: 8px; font-size: 11.5px; }
+  .canvas-head .actions { display: flex; gap: 10px; align-items: center; }
+  .canvas-head .synth-btn {
+    background: var(--paper); border: 1px solid var(--ink); color: var(--ink);
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    padding: 8px 14px; cursor: pointer; font-weight: 500;
+  }
+  .canvas-head .synth-btn:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+  .canvas-head .synth-btn:disabled { opacity: 0.35; cursor: default; }
+
+  /* Card grid: multiple cards side-by-side */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    gap: 20px;
+    align-items: start;
+  }
+  .canvas-empty {
+    border: 1px dashed var(--line); background: var(--paper-2);
+    padding: 40px 28px; text-align: center; color: var(--ink-3);
+    font-size: 13px; line-height: 1.7;
+  }
+  .canvas-empty strong { color: var(--ink-2); font-weight: 500; display: block; margin-bottom: 8px; }
+
+  /* ---- Bet Card (single, compact) ---- */
+  .bet-card {
+    border: 1px solid var(--ink);
+    background: var(--paper);
+    display: flex; flex-direction: column;
+  }
+  .bet-card.selected { box-shadow: 0 0 0 2px var(--accent); }
+  .bet-card .bc-head {
+    padding: 14px 16px; border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+  }
+  .bet-card .bc-sel { margin-top: 3px; }
+  .bet-card .bc-sel input { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+  .bet-card .bc-id { flex: 1; }
+  .bet-card .bc-subj { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+  .bet-card .bc-badge {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+    background: var(--ink); color: var(--paper); padding: 2px 7px; margin-left: 7px; vertical-align: middle;
+  }
+  .bet-card .bc-source { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin-top: 4px; letter-spacing: 0.03em; }
+  .bet-card .bc-dcf { text-align: right; font-family: var(--mono); white-space: nowrap; }
+  .bet-card .bc-dcf .lab { display: block; font-size: 8.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-4); }
+  .bet-card .bc-dcf .val { font-size: 12.5px; color: var(--ink-2); font-weight: 500; }
+  .bet-card .bc-del {
+    border: none; background: none; color: var(--ink-5); cursor: pointer;
+    font-family: var(--mono); font-size: 14px; line-height: 1; padding: 0 2px;
+  }
+  .bet-card .bc-del:hover { color: var(--accent); }
+
+  .bet-card .bc-stale {
+    background: rgba(140,111,0,0.10); border-bottom: 1px solid var(--neutral);
+    padding: 7px 16px; font-family: var(--mono); font-size: 10.5px; color: var(--neutral);
+    letter-spacing: 0.02em; display: flex; align-items: center; gap: 7px;
+  }
+  .bet-card .bc-stale .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--neutral); }
+
+  .bet-card .bc-body { padding: 14px 16px; }
+  .bet-card .bc-intro { font-size: 12.5px; color: var(--ink-2); margin-bottom: 12px; }
+  .bet-card .bc-intro strong { color: var(--ink); font-weight: 600; }
+
+  .bet-card .bet-row {
+    display: grid; grid-template-columns: 20px 1fr auto; gap: 9px;
+    padding: 10px 0; border-bottom: 1px dotted var(--line); align-items: baseline;
+  }
+  .bet-card .bet-row:last-of-type { border-bottom: none; }
+  .bet-card .bet-row .idx { font-family: var(--mono); color: var(--ink-4); font-size: 12px; }
+  .bet-card .bet-row .claim { font-size: 12.5px; }
+  .bet-card .bet-row .claim .iv {
+    display: block; font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+    margin-top: 3px; letter-spacing: 0.02em;
+  }
+  .bet-card .bet-row .nums { text-align: right; font-family: var(--mono); white-space: nowrap; }
+  .bet-card .bet-row .nums .impl { font-size: 15px; font-weight: 600; color: var(--accent); }
+  .bet-card .bet-row .nums .base { display: block; font-size: 9.5px; color: var(--ink-4); margin-top: 2px; }
+  .bet-card .bet-row.nosol .nums .impl { color: var(--neutral); }
+  .bet-card .bet-row.nosol .claim .iv { color: var(--neutral); }
+
+  .bet-card .bc-risks {
+    margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line);
+    font-size: 11.5px; color: var(--ink-2); line-height: 1.55;
+  }
+  .bet-card .bc-risks .lab {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin-right: 7px;
+  }
+  .bet-card .bc-foot {
+    padding: 9px 16px; border-top: 1px solid var(--line); background: var(--paper-2);
+    display: flex; gap: 16px;
+  }
+  .bet-card .bc-foot .tlink {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-3); cursor: pointer; border: none; background: none; padding: 0;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+  .bet-card .bc-foot .tlink:hover { color: var(--accent); }
+  .bet-card .bc-expand { display: none; padding: 13px 16px; border-top: 1px solid var(--line); background: var(--paper); }
+  .bet-card .bc-expand.open { display: block; }
+  .bet-card .bc-expand h4 {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-3); margin-bottom: 9px; font-weight: 500;
+  }
+  .bet-card .chain-step { display: grid; grid-template-columns: 13px 1fr; gap: 8px; padding: 3px 0; align-items: baseline; font-size: 12px; }
+  .bet-card .chain-step .m { font-family: var(--mono); font-size: 11.5px; }
+  .bet-card .chain-step.fact .m { color: var(--ink-4); }
+  .bet-card .chain-step.fact .c { font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+  .bet-card .chain-step.implied .m { color: var(--accent); font-weight: 600; }
+  .bet-card .chain-step.implied .c { font-weight: 500; }
+  .bet-card .chain-step.support .m, .bet-card .chain-step.support .c { color: var(--positive); font-size: 11px; }
+  .bet-card .chain-step.break .m { color: var(--accent); }
+  .bet-card .chain-step.break .c { color: var(--accent); font-size: 11px; font-weight: 500; }
+
+  /* ---- Portfolio dashboard card (expanded form) ---- */
+  .bet-card.portfolio { grid-column: 1 / -1; }   /* dashboards span full canvas width */
+  .pf-body { padding: 16px 18px; }
+  .pf-seclab { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); font-weight: 600; margin-bottom: 3px; }
+  .pf-secsub { font-size: 11.5px; color: var(--ink-3); margin-bottom: 14px; }
+  .pf-theme { margin-bottom: 14px; }
+  .pf-theme-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+  .pf-theme-name { font-size: 13px; font-weight: 500; color: var(--ink); }
+  .pf-theme-name .risk-tag {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+    background: var(--accent); color: var(--paper); padding: 1px 6px; margin-left: 8px;
+  }
+  .pf-theme-pct { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--accent); }
+  .pf-theme.t2 .pf-theme-pct { color: var(--ink-2); }
+  .pf-theme.t3 .pf-theme-pct { color: var(--positive); }
+  .pf-theme.t4 .pf-theme-pct { color: var(--neutral); }
+  .pf-bar { height: 9px; background: var(--paper-3); position: relative; overflow: hidden; }
+  .pf-bar .fill { height: 100%; background: var(--accent); }
+  .pf-theme.t2 .pf-bar .fill { background: var(--ink-3); }
+  .pf-theme.t3 .pf-bar .fill { background: var(--positive); }
+  .pf-theme.t4 .pf-bar .fill { background: var(--neutral); }
+  .pf-contrib { font-family: var(--mono); font-size: 10px; color: var(--ink-3); margin-top: 5px; letter-spacing: 0.02em; }
+  .pf-conc {
+    margin-top: 6px; background: var(--accent-soft); border-left: 3px solid var(--accent);
+    padding: 11px 15px; font-size: 12.5px; color: var(--ink); line-height: 1.6;
+  }
+  .pf-conc .lab { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); font-weight: 600; display: block; margin-bottom: 4px; }
+  .pf-conc strong { color: var(--accent); font-weight: 700; }
+  .pf-holdings { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .pf-holdings th {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-3); text-align: left; padding: 6px 8px; background: var(--paper-2);
+    border-bottom: 2px solid var(--rule); font-weight: 600;
+  }
+  .pf-holdings th.r, .pf-holdings td.r { text-align: right; }
+  .pf-holdings td { padding: 7px 8px; border-bottom: 1px dotted var(--line); }
+  .pf-holdings .tk { font-family: var(--mono); font-weight: 600; }
+  .pf-holdings .wt { font-family: var(--mono); color: var(--accent); font-weight: 600; }
+
+  /* ---- Activity feed (right zone) ---- */
+  .wb-feed .af-head { border-bottom: 1px solid var(--rule); padding-bottom: 9px; margin-bottom: 12px; }
+  .wb-feed .af-head .lbl { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
+  .wb-feed .af-head .title { font-size: 14px; font-weight: 500; margin-top: 3px; letter-spacing: -0.01em; }
+  .wb-feed .powered { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; color: var(--ink-4); text-transform: uppercase; display: block; margin-bottom: 14px; }
+  .wb-feed .af-placeholder {
+    border: 1px dashed var(--line); background: var(--paper-2); padding: 18px;
+    font-size: 11.5px; color: var(--ink-3); line-height: 1.7;
+  }
+  .wb-feed .af-placeholder strong { color: var(--ink-2); font-weight: 500; }
+  .af-stream { display: flex; flex-direction: column; }
+  .af-event { padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 11.5px; line-height: 1.55; }
+  .af-event .meta { display: flex; gap: 8px; align-items: baseline; margin-bottom: 3px; }
+  .af-event .kind {
+    font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 1px 6px; border: 1px solid var(--line); color: var(--ink-3);
+  }
+  /* kind-tagged styling */
+  .af-event.k-decision    .kind { color: var(--ink); border-color: var(--ink-3); }
+  .af-event.k-computation .kind { color: var(--neutral); border-color: var(--neutral); }
+  .af-event.k-evidence    .kind { color: var(--positive); border-color: var(--positive); }
+  .af-event.k-relation    .kind { color: var(--accent); border-color: var(--accent); }
+  .af-event .subj { font-family: var(--mono); font-size: 9.5px; color: var(--ink-4); }
+  .af-event .ts { font-family: var(--mono); font-size: 9px; color: var(--ink-5); margin-left: auto; }
+  .af-event .txt { color: var(--ink-2); }
+  .af-event.terminal-done .txt { color: var(--positive); font-weight: 500; }
+  .af-event.terminal-error .txt { color: var(--accent); font-weight: 500; }
+  .af-status {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--ink-3);
+    display: flex; align-items: center; gap: 8px; padding: 10px 0 0;
+  }
+  .af-status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 1.4s ease-in-out infinite; }
+  .af-status.done .dot { background: var(--positive); animation: none; }
+
+  /* ---- Synthesis panel (bottom, expandable) ---- */
+  .wb-synth { border-top: 1px solid var(--rule); padding-top: 0; }
+  .synth-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 0; cursor: pointer;
+  }
+  .synth-bar .lbl { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
+  .synth-bar .title { font-size: 16px; font-weight: 500; letter-spacing: -0.01em; }
+  .synth-bar .chev { font-family: var(--mono); font-size: 13px; color: var(--ink-3); }
+  .synth-content { display: none; padding: 4px 0 36px; }
+  .synth-content.open { display: block; }
+  .synth-headline {
+    background: var(--ink); color: var(--paper); padding: 20px 24px; margin-bottom: 22px;
+  }
+  .synth-headline .lab { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-5); display: block; margin-bottom: 8px; }
+  .synth-headline .text { font-size: 17px; line-height: 1.5; font-weight: 400; }
+  .synth-headline .text strong { color: #FFD89B; font-weight: 600; }
+  .synth-empty {
+    border: 1px dashed var(--line); background: var(--paper-2); padding: 28px 24px;
+    text-align: center; color: var(--ink-3); font-size: 13px; line-height: 1.7;
+  }
+  .synth-empty strong { display: block; color: var(--ink-2); font-weight: 500; margin-bottom: 6px; }
+  .synth-exhibit {
+    display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: baseline;
+    border-bottom: 1px solid var(--line); padding-bottom: 7px; margin: 22px 0 12px;
+  }
+  .synth-exhibit .ex { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+  .synth-exhibit .et { font-size: 12.5px; font-weight: 500; }
+  .synth-exhibit .es { font-family: var(--mono); font-size: 9.5px; color: var(--ink-4); }
+  .rel-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .rel-table th {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-3); text-align: left; padding: 8px 10px; background: var(--paper-2);
+    border-bottom: 2px solid var(--rule); font-weight: 600;
+  }
+  .rel-table th.c, .rel-table td.c { text-align: center; }
+  .rel-table td { padding: 9px 10px; border-bottom: 1px dotted var(--line); vertical-align: top; }
+  .rel-table .rtype { font-family: var(--mono); font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .rel-table .rtype.consensus { color: var(--positive); }
+  .rel-table .rtype.divergence { color: var(--neutral); }
+  .rel-table .rtype.contradiction { color: var(--accent); }
+  .rel-table .rtype.same-source { color: var(--ink); }
+  .rel-table .rtype.drift { color: var(--ink-2); }
+  .rel-table .pair { font-family: var(--mono); font-size: 11px; }
+  .rel-table .strength {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 1px 6px; border: 1px solid var(--line);
+  }
+  .rel-table .strength.strong { color: var(--accent); border-color: var(--accent); }
+  .rel-table .strength.medium { color: var(--neutral); border-color: var(--neutral); }
+  .rel-table .strength.weak { color: var(--ink-4); }
+  .synth-narrative {
+    max-width: 780px; font-size: 13px; line-height: 1.75; color: var(--ink-2);
+    border-left: 2px solid var(--line); padding-left: 16px; margin-top: 18px;
+  }
+
+  /* ---- Responsive: collapse three-zone to single column < 1024px ---- */
+  @media (max-width: 1024px) {
+    .workbench {
+      grid-template-columns: 1fr;
+      grid-template-areas: "canvas" "feed" "synth";
+    }
+    .composer { grid-template-columns: 1fr; gap: 12px; }
+    .composer .status { text-align: left; }
+    .card-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    .pf-holdings { font-size: 11px; }
+    .synth-exhibit { grid-template-columns: 1fr; gap: 4px; }
+  }
 </style>
 </head>
 <body>
@@ -1718,20 +2069,20 @@
 <!-- ============================ MASTHEAD ============================ -->
 <div class="masthead">
   <div class="page masthead-inner">
-    <div class="brand">PriceLens<span class="v">v 0.1</span></div>
+    <div class="brand">Bet Decoder<span class="v">v 1.0</span></div>
     <div class="crumb">
-      <span class="active">Decode</span>
-      <span>Compare</span>
-      <span>Archive</span>
+      <span class="active">Workbench</span>
+      <span>Decode</span>
+      <span>Synthesize</span>
       <span>Methodology</span>
     </div>
     <div class="right">
       <span class="offline-badge" id="offline-badge">OFFLINE</span>
-      <label class="offline-toggle" id="offline-toggle" title="Offline mode disables live evidence streams">
+      <label class="offline-toggle" id="offline-toggle" title="Offline mode disables live decode / synthesis">
         <span class="sw"></span>
         <span>Offline</span>
       </label>
-      <span id="masthead-ts">27 · 05 · 2026</span>
+      <span id="masthead-ts">29 · 05 · 2026</span>
       <span class="live">NYSE OPEN</span>
     </div>
   </div>
@@ -1739,105 +2090,91 @@
 
 <div class="page">
 
-  <!-- ============================ TICKER PICKER ============================ -->
-  <div class="picker">
-    <div class="lbl">Ticker</div>
-    <div class="picker-inputs">
-      <input type="text" id="ticker-input" maxlength="6" placeholder="NVDA">
-      <button class="go" id="go-btn">Decode</button>
+  <!-- ============================ COMPOSER (主流程入口) ============================ -->
+  <div class="composer">
+    <div class="lbl">Decode a bet</div>
+    <div class="composer-inputs">
+      <select class="src-select" id="source-type">
+        <option value="market">Market price</option>
+        <option value="analyst_pt">Analyst PT</option>
+        <option value="opinion">Opinion</option>
+        <option value="portfolio">Portfolio</option>
+      </select>
+      <input type="text" id="bet-input" placeholder="NVDA  ·  or  NVDA,MSFT,GOOG for a portfolio">
+      <button class="go" id="decode-btn">Decode</button>
       <div class="presets">
-        <button class="preset" data-t="COST">COST</button>
-        <button class="preset active" data-t="NVDA">NVDA</button>
-        <button class="preset" data-t="TSLA">TSLA</button>
+        <button class="preset" data-src="market" data-input="COST">COST</button>
+        <button class="preset" data-src="market" data-input="NVDA">NVDA</button>
+        <button class="preset" data-src="market" data-input="TSLA">TSLA</button>
+        <button class="preset" data-src="portfolio" data-input="NVDA,MSFT,GOOG,AMZN,META">Portfolio</button>
       </div>
     </div>
-    <div class="status" id="picker-status">
+    <div class="status" id="composer-status">
       <span id="status-text">Ready</span>
       <span class="mode-tag" id="mode-tag">—</span>
     </div>
   </div>
 
-  <!-- ============================ COVER ============================ -->
-  <section class="cover">
-    <div class="cover-pre">
-      <div class="tag"><span class="accent">EQUITY RESEARCH</span> · REVERSE-DCF DECOMPOSITION · NORTH AMERICA</div>
-      <div class="ref" id="cover-ref">REF · PL-26-0001</div>
-    </div>
+  <!-- ============================ THREE-ZONE WORKBENCH ============================ -->
+  <div class="workbench">
 
-    <div class="cover-grid">
-      <div class="title-block">
-        <div class="industry" id="cover-industry">Reverse DCF Decode</div>
-        <h1>
-          <span class="sec-name"><span id="cover-ticker">—</span> <span class="co" id="cover-company">—</span></span>
-          <span id="cover-headline">Decoding the assumptions behind the current quote.</span>
-        </h1>
-        <p class="subtitle" id="cover-subtitle">
-          Select a ticker to decode what the market must believe to arrive at its current price.
-        </p>
-        <div class="byline">
-          <div>
-            <span class="k">Analyst</span>
-            <span class="v">PriceLens Agent · MiroThinker-1.7</span>
-          </div>
-          <div>
-            <span class="k">Generated</span>
-            <span class="v" id="cover-gen-date">—</span>
-          </div>
-          <div>
-            <span class="k">Mode</span>
-            <span class="v" id="cover-mode">—</span>
-          </div>
-          <div>
-            <span class="k">Run id</span>
-            <span class="v num" id="cover-runid">—</span>
-          </div>
+    <!-- ZONE 1 · MAIN CANVAS — multiple Bet Cards side-by-side -->
+    <div class="wb-canvas" id="wb-canvas">
+      <div class="canvas-head">
+        <div class="ttl">Decoded bets <span class="ct" id="card-count">0 cards</span></div>
+        <div class="actions">
+          <button class="synth-btn" id="synth-btn" disabled>Synthesize · <span id="synth-sel-count">0</span> selected</button>
         </div>
       </div>
-
-      <aside class="recommendation">
-        <div class="reco-head">
-          <span class="lbl">Snapshot</span>
-          <span class="rev" id="reco-rev">—</span>
-        </div>
-        <table class="reco-table">
-          <tr><td class="k">Current price</td><td class="v" id="reco-price">—</td></tr>
-          <tr>
-            <td class="k">Baseline DCF price
-              <span class="tip-wrap"><span class="tip-trigger">i</span><span class="tip-body" id="tip-baseline">Mathematical solution under the DCF framework. DCF has limited applicability for growth / early-stage companies.</span></span>
-            </td>
-            <td class="v" id="reco-baseline">—</td>
-          </tr>
-          <tr><td class="k">Implied gap vs DCF</td><td class="v" id="reco-gap">—</td></tr>
-          <tr><td class="k">Adjusted fair value</td><td class="v accent" id="reco-adjusted">—</td></tr>
-          <tr><td class="k">Assumptions implied</td><td class="v" id="reco-count">—</td></tr>
-        </table>
-        <div class="reco-rating">
-          <span class="badge fair" id="reco-badge">STANDARD MODE</span>
-          <span class="note" id="reco-note">awaiting data</span>
-        </div>
-      </aside>
-    </div>
-  </section>
-
-  <!-- ============================ MAIN BODY ============================ -->
-  <div class="main-grid">
-    <div class="main-col" id="main-col">
-      <!-- Dynamic content inserted here -->
+      <div class="card-grid" id="card-grid">
+        <!-- bet cards injected here -->
+      </div>
+      <div class="canvas-empty" id="canvas-empty">
+        <strong>No bets decoded yet.</strong>
+        Paste a ticker (market price), an analyst target, an opinion, or a comma-separated basket (portfolio) above, then press Decode. Each decoded bet becomes a card you can stack and compare.
+      </div>
     </div>
 
-    <!-- ============================ AGENT LOG ============================ -->
-    <aside class="agent-log" id="agent-log">
-      <div class="al-head">
-        <div class="lbl">G6 · Activity</div>
-        <div class="title">Agent Activity Log</div>
+    <!-- ZONE 2 · ACTIVITY FEED — consumes M5 SSE activity stream -->
+    <aside class="wb-feed" id="wb-feed">
+      <div class="af-head">
+        <div class="lbl">Module 5 · Activity</div>
+        <div class="title">Agent Activity Stream</div>
       </div>
       <span class="powered">Powered by MiroMind Deep Research</span>
-      <div class="placeholder">
-        <strong>Live evidence run pending.</strong><br><br>
-        When you trigger a live evidence run, you'll see the agent's search queries, source reads, and synthesis steps stream here in real time. Cached briefs render instantly without invoking the agent.
+      <div class="af-placeholder" id="af-placeholder">
+        <strong>Live agent feed idle.</strong><br><br>
+        When you decode a bet or synthesize cards, the agent's decision-level reasoning steps stream here in real time — tagged by kind (decision / computation / evidence / relation). Cached cards offer a "replay activity" entry.
       </div>
-      <div class="stream" id="agent-stream"></div>
+      <div class="af-stream" id="af-stream"></div>
     </aside>
+
+    <!-- ZONE 3 · SYNTHESIS PANEL — bottom, expandable -->
+    <section class="wb-synth" id="wb-synth">
+      <div class="synth-bar" id="synth-bar">
+        <div>
+          <div class="lbl">Module 3 · Cross-card synthesis</div>
+          <div class="title" id="synth-title">Synthesis</div>
+        </div>
+        <span class="chev" id="synth-chev">▸</span>
+      </div>
+      <div class="synth-content" id="synth-content">
+        <div class="synth-empty" id="synth-empty">
+          <strong>No synthesis yet.</strong>
+          Select 2 or more cards on the canvas, then press Synthesize. The relation engine compares what each bet implicitly believes and surfaces consensus, divergence, contradiction, shared-source, and drift.
+        </div>
+        <div id="synth-result" style="display:none">
+          <div class="synth-headline" id="synth-headline"></div>
+          <div class="synth-exhibit">
+            <span class="ex">Exhibit S.1</span>
+            <span class="et">Cross-card relation graph</span>
+            <span class="es" id="synth-relsrc">MiroThinker · chat mode</span>
+          </div>
+          <div id="synth-relations"></div>
+          <div class="synth-narrative" id="synth-narrative"></div>
+        </div>
+      </div>
+    </section>
   </div>
 </div>
 
@@ -1846,8 +2183,8 @@
   <div class="page">
     <div class="foot-grid">
       <div>
-        <h5>About this report</h5>
-        <p>PriceLens runs the equation the market just ran — in reverse. Given a price, it solves for the assumptions that price requires, ranks them by sensitivity, and surfaces the evidence behind each. Reasoning made auditable, not generated.</p>
+        <h5>About Bet Decoder</h5>
+        <p>Bet Decoder X-rays any investment bet — a market price, an analyst target, an opinion, or your whole portfolio. It decodes what each bet implicitly believes, stacks them side-by-side, and synthesizes cross-bet relations. Reasoning made auditable, not generated.</p>
       </div>
       <div>
         <h5>Methodology</h5>
@@ -1870,17 +2207,17 @@
       <div>
         <h5>Build info</h5>
         <ul>
-          <li><span class="arr">→</span>UCWS Singapore Hackathon</li>
-          <li><span class="arr">→</span>Agent Track · MiroMind</li>
-          <li><span class="arr">→</span>PriceLens v0.4</li>
-          <li><span class="arr">→</span>Solo project</li>
+          <li><span class="arr">→</span>Bet Decoder · open-source</li>
+          <li><span class="arr">→</span>Self-hosted · SQLite</li>
+          <li><span class="arr">→</span>Workbench v1.0</li>
+          <li><span class="arr">→</span>Module 4 · multi-card</li>
         </ul>
       </div>
     </div>
 
     <div class="disclaimer-block">
       <p class="disclaimer-text" id="disclaimer-text">
-        <strong>Disclaimer.</strong> PriceLens 是研究性工具，展示市场价格背后的隐含假设。所有数值不构成投资建议，使用者需自行判断。
+        <strong>Disclaimer.</strong> Bet Decoder 是研究性工具，展示价格 / 目标价 / 组合背后的隐含假设。所有数值不构成投资建议，使用者需自行判断。
       </p>
       <div class="lang-toggle">
         <button id="lang-zh" class="active">中</button>
@@ -1889,8 +2226,8 @@
     </div>
 
     <div class="foot-bot">
-      <div><span class="brand">PriceLens</span> &nbsp;·&nbsp; UCWS Singapore Hackathon 2026</div>
-      <div>End of report</div>
+      <div><span class="brand">Bet Decoder</span> &nbsp;·&nbsp; Open-source investment-bet X-ray</div>
+      <div>End of workbench</div>
     </div>
   </div>
 </footer>
@@ -1899,40 +2236,116 @@
 
 <script>
 /* ============================================================
-   DEV FALLBACK — REMOVE BEFORE PROD
-   Embedded fixtures used when /api/decode/{TICKER} is unreachable
-   (e.g. opening this file via file:// without the FastAPI backend)
+   BET DECODER · WORKBENCH (M4)
+   Pure presentation/interaction layer. Calls M2/M3 over REST,
+   consumes M5 over SSE. No business logic lives here.
+
+   Flow:
+     compose bet → POST /api/decode → {job_id, card}
+                 → EventSource /api/stream/activity/{job_id} (replay agent feed)
+                 → card rendered into the canvas
+     select >=2 cards → POST /api/synthesize → SynthesisResult
+                 → headline + relation graph + narrative in the bottom panel
+     cached card → "replay activity" → EventSource /api/stream/activity/{job_id}
    ============================================================ */
-const FIXTURE_DATA = {
-  NVDA: {"ticker":"NVDA","company_name":"NVIDIA Corporation","generated_at":"2026-05-26T17:10:24.646653+00:00","mode":"standard","reverse_dcf":{"ticker":"NVDA","current_price":213.79,"baseline_dcf_price":45.36208190733744,"consensus_assumptions":{"revenue_cagr_5y":0.15,"terminal_growth":0.025,"terminal_fcf_margin":0.44770258129648327,"wacc":0.16842000000000001},"implied_intervals":{"revenue_cagr_5y":{"p25":0.5634633919918882,"p50":0.6303808486661049,"p75":0.7060999367575507,"samples":470,"success_rate":0.94},"terminal_fcf_margin":null,"wacc":{"p25":0.05206394229830399,"p50":0.06167926315437003,"p75":0.073331847398246,"samples":480,"success_rate":0.96}},"company_inputs":{"revenue_ttm":215938000000.0,"fcf_ttm":96676000000.0,"shares_outstanding":24221000000.0,"net_debt":435000000.0,"beta":2.244}},"decoder_output":{"ticker":"NVDA","mode":"standard","current_price":213.79,"baseline_dcf_price":45.36,"implied_assumptions":[{"id":"NVDA_revenue_cagr_5y","metric":"revenue_cagr_5y","interval":{"p25":0.563,"p50":0.63,"p75":0.706},"human_text":"市场必须假设 NVDA 的 revenue_cagr_5y 在 56.3%-70.6% 区间,中位数 63.0%。基准方案中使用的共识假设为未来 5 年收入 CAGR 约 15.0%。","comparison":"与共识 DCF 中的 revenue_cagr_5y=15.0% 相比,反向 DCF 所隐含的区间大约是共识增速的 3.7-4.7 倍,中位数约为 4.2 倍。","load_bearing":true},{"id":"NVDA_wacc","metric":"wacc","interval":{"p25":0.052,"p50":0.062,"p75":0.073},"human_text":"市场必须假设 NVDA 的 wacc 在 5.2%-7.3% 区间,中位数 6.2%。基准方案中使用的加权平均资本成本为 16.8%。","comparison":"与共识 DCF 中的 wacc=16.8% 相比,反向 DCF 所隐含的 wacc 约为其 1/3-1/2,中位数约为 0.37 倍,对应明显更低的贴现率环境。","load_bearing":true},{"id":"NVDA_terminal_growth","metric":"terminal_growth","interval":{"p25":0.025,"p50":0.025,"p75":0.03},"human_text":"市场必须假设 NVDA 的 terminal_growth 在 2.5%-3.0% 区间,中位数约 2.5%。基准方案中终值增速假设同样为 2.5%。","comparison":"反向 DCF 隐含的 terminal_growth 与基准 DCF 中的 2.5% 大体一致,略高端情形延伸至 3.0%,整体与发达经济体名义 GDP 增速假设区间相近。","load_bearing":true},{"id":"NVDA_terminal_fcf_margin","metric":"terminal_fcf_margin","interval":{"p25":0.448,"p50":0.48,"p75":0.52},"human_text":"市场必须假设 NVDA 的 terminal_fcf_margin 在 44.8%-52.0% 区间,中位数约 48.0%。基准方案中终值自由现金流率约为 44.8%。","comparison":"与基准 DCF 中的 terminal_fcf_margin≈44.8% 相比,反向 DCF 隐含的区间整体略向上平移,中位数接近 48.0%,明显高于大多数半导体公司历史自由现金流率中位数约 20%-25%。","load_bearing":false},{"id":"NVDA_high_growth_duration","metric":"high_growth_duration","interval":{"p25":8.0,"p50":10.0,"p75":12.0},"human_text":"市场必须假设 NVDA 的 high_growth_duration 在 8-12 年区间,中位数约 10 年,即在较长时期内维持高增速和高利润率组合。基准方案中通常采用的高增速阶段为约 5 年。","comparison":"与传统半导体或大盘 DCF 模型常用的 5 年高增速期相比,反向 DCF 隐含 NVDA 需要额外多出约 3-7 年的高增速延长期,整体高增长持续时间约为传统设定的 1.6-2.4 倍。","load_bearing":false},{"id":"NVDA_value_realization_horizon","metric":"value_realization_horizon","interval":{"p25":12.0,"p50":15.0,"p75":20.0},"human_text":"市场必须假设 NVDA 的 value_realization_horizon 在 12-20 年区间,中位数约 15 年,即需要较长时间的现金流积累来支撑当前股价。基准方案中常见估值视角约为 10 年。","comparison":"与许多卖方模型采用的 10 年估值视角相比,反向 DCF 隐含需要将高质量现金流可见期拉长至约 12-20 年,中位数约为 15 年,在时间维度上对长期成长有更高延展要求。","load_bearing":false}],"boundary_explanation":null,"overall_summary":"相较基准 DCF 给出的约 $45.36 估值,当前约 $213.79 的股价隐含 NVDA 在未来 5 年收入需维持约 56%-71% 的高复合增速,同时在更低贴现率和略高终值现金流率假设下,并延长高增长持续时间与估值视角,共同支撑当前定价水平。","generated_at":"2026-05-26T17:09:41.913378+00:00"},"evidence_briefs":[]},
 
-  COST: {"ticker":"COST","company_name":"Costco Wholesale Corporation","generated_at":"2026-05-26T17:09:18.554448+00:00","mode":"standard","reverse_dcf":{"ticker":"COST","current_price":998.845,"baseline_dcf_price":774.6067514105698,"consensus_assumptions":{"revenue_cagr_5y":0.15,"terminal_growth":0.025,"terminal_fcf_margin":0.05,"wacc":0.09494},"implied_intervals":{},"company_inputs":{"revenue_ttm":275235000000.0,"fcf_ttm":7837000000.0,"shares_outstanding":443652540.0,"net_debt":-5988000000.0,"beta":0.908}},"decoder_output":{"ticker":"COST","mode":"standard","current_price":998.845,"baseline_dcf_price":774.61,"implied_assumptions":[{"id":"COST_revenue_cagr_5y","metric":"revenue_cagr_5y","interval":{"p25":0.1624,"p50":0.218,"p75":0.276},"human_text":"市场必须假设 COST 的 revenue_cagr_5y 在 16.2%-27.6% 区间,中位数 21.8%。对比基准:Costco 过去 5 年实际收入 CAGR 约为 11.3%,行业层面全球大型零售/仓储渠道龙头 5 年收入 CAGR 大致在中个位数到低双位数。","comparison":"过去 5 年 COST 实际收入 CAGR ≈ 11.3%,显著低于反向 DCF 所隐含的 21.8% 中位数;仓储会员店/大卖场行业整体 2021-2026E 收入 CAGR 一般在 1%-3% 左右,COST 需长期维持远高于行业的增速。","load_bearing":true},{"id":"COST_terminal_fcf_margin","metric":"terminal_fcf_margin","interval":{"p25":0.0467,"p50":0.0582,"p75":0.0729},"human_text":"市场必须假设 COST 的 terminal_fcf_margin 在 4.7%-7.3% 区间,中位数 5.8%。对比基准:历史上 Costco 的经营现金流/营收率约在 4%-5% 附近。","comparison":"反向 DCF 隐含的终值 FCF margin 中位数 5.8% 略高于过去 5 年现金流效率中枢,但仍在同业头部零售商合理区间内。","load_bearing":true},{"id":"COST_wacc","metric":"wacc","interval":{"p25":0.0684,"p50":0.0834,"p75":0.1032},"human_text":"市场必须假设 COST 的 wacc 在 6.8%-10.3% 区间,中位数 8.3%。对比基准:主流估值网站对 Costco 的 WACC 当前估算约为 8.5%-8.7%。","comparison":"反向 DCF 为贴合当前股价,需要 WACC 落在 6.8%-10.3% 且中位 8.3%,基本与市场主流 WACC 假设区间一致,略低于本次 baseline 模型中 9.494% 的共识输入。","load_bearing":true},{"id":"COST_terminal_growth","metric":"terminal_growth","interval":{"p25":0.02,"p50":0.025,"p75":0.03},"human_text":"市场等效地是在使用 COST 的 terminal_growth 在约 2.0%-3.0% 区间,中位数约 2.5%。对比基准:该水平大致与美国长期名义 GDP 增速假设(2%-3%)相当。","comparison":"反向 DCF 所对应的终值增长假设基本与宏观或行业常规设定对齐,并未明显高于。","load_bearing":false},{"id":"COST_value_horizon","metric":"explicit_forecast_horizon_years","interval":{"p25":10.0,"p50":10.0,"p75":10.0},"human_text":"市场必须隐含假设 COST 至少还有约 10 年以上的高质量显性预测期,在这段期间内能维持接近反向 DCF 所给出的高增速与较高现金流效率。","comparison":"卖方对 Costco 的详细预测通常覆盖 5-10 年,本次反向 DCF 为匹配当前股价,等价于要求模型显性期在 10 年左右才能将高增速、高效率兑现为价值。","load_bearing":false},{"id":"COST_relative_industry_growth","metric":"growth_premium_vs_industry","interval":{"p25":0.12,"p50":0.15,"p75":0.18},"human_text":"市场必须假设 COST 的收入增速将长期高出仓储/大卖场行业中枢约 12%-18pct,中位数约 15pct。","comparison":"反向 DCF 中隐含的 15pct 左右增速溢价,相当于假设 COST 在未来一个完整周期中继续维持对行业的明显超额增长。","load_bearing":false}],"boundary_explanation":null,"overall_summary":"综合反向 DCF 结果,当前约 $999 的股价对应的隐含假设是:Costco 未来 5 年收入需维持远高于历史与行业的 20% 左右年复合增速,终值 FCF 利润率略高于近年中枢并与主流 WACC 假设(约 8%-9%)匹配。","generated_at":"2026-05-26T17:07:02.621605+00:00"},"evidence_briefs":[]},
+/* ============================================================
+   DEV FIXTURES — used only when the FastAPI backend is unreachable
+   (e.g. opening the file via file://). Lets the UI be exercised with
+   zero real LLM. Shapes mirror db.card_to_json + SynthesisResult.
+   ============================================================ */
+const FIXTURE_CARDS = {
+  NVDA: {
+    card_id: "fix_nvda", subject: "NVDA", source_type: "market", card_kind: "single",
+    source_ref: "$214.86 · 2026-05-27 收盘", bet: null, run_id: 20,
+    series_key: "NVDA|market", trade_date: "2026-05-27", created_at: "2026-05-27T04:35:16Z",
+    holdings: [], theme_exposures: [],
+    _display: {
+      baseline_dcf: 65.22, anchor: 214.86,
+      bets: [
+        { metric: "营收 5 年复合增速 (CAGR)", iv: "蒙特卡洛区间 44%–57% · 收敛 100%", impl: "50%", base: "基线 15%" },
+        { metric: "折现率 (WACC)", iv: "蒙特卡洛区间 5.2%–7.3% · 收敛 96%", impl: "6.2%", base: "基线 12.8%" },
+        { metric: "终值 FCF 利润率", iv: "⚠ 无解 — consensus 增速下任何利润率都撑不住", impl: "无解", base: "基线 45%", nosol: true }
+      ],
+      risks: "ASIC 替代 (TPU+Trainium 已占内部推理 15%) · hyperscaler ROI 2027 后可能转负",
+      chain: [
+        { t: "fact", m: "·", c: "反向求解: 固定 WACC/margin 于 consensus, 解出使 $214.86 成立的 CAGR" },
+        { t: "implied", m: "⇒", c: "隐含 CAGR p50 = 49.9% (区间 44-57%)" },
+        { t: "support", m: "✓", c: "Hyperscaler 2026 capex $420B+ 已指引 — MSFT/GOOG/META/AMZN" },
+        { t: "break", m: "⚠", c: "ASIC 替代成本仅 NVDA 1/3 — Reuters 5/18" }
+      ]
+    }
+  },
+  COST: {
+    card_id: "fix_cost", subject: "COST", source_type: "market", card_kind: "single",
+    source_ref: "$998.85 · 2026-05-27 收盘", bet: null, run_id: 17,
+    series_key: "COST|market", trade_date: "2026-05-27", created_at: "2026-05-27T04:30:00Z",
+    holdings: [], theme_exposures: [],
+    _display: {
+      baseline_dcf: 774.61, anchor: 998.85,
+      bets: [
+        { metric: "营收 5 年复合增速 (CAGR)", iv: "蒙特卡洛区间 16.2%–27.6% · 收敛成功", impl: "21.8%", base: "基线 11.3%" },
+        { metric: "终值 FCF 利润率", iv: "蒙特卡洛区间 4.7%–7.3%", impl: "5.8%", base: "基线 5.0%" },
+        { metric: "折现率 (WACC)", iv: "蒙特卡洛区间 6.8%–10.3%", impl: "8.3%", base: "基线 9.5%" }
+      ],
+      risks: "增速溢价依赖会员续费率维持高位 · 行业整体增速仅中个位数",
+      chain: [
+        { t: "fact", m: "·", c: "固定其它参数, 反解出使 $998.85 成立的 CAGR" },
+        { t: "implied", m: "⇒", c: "隐含 CAGR p50 = 21.8%, 约为历史实际 2 倍" },
+        { t: "support", m: "✓", c: "会员续费率 >90%, 现金流稳定" }
+      ]
+    }
+  },
+  PORTFOLIO: {
+    card_id: "fix_pf", subject: "我的组合", source_type: "portfolio", card_kind: "portfolio",
+    source_ref: "手动粘贴持仓 · 2026-05-28 · 8 只票聚合", bet: null, run_id: null,
+    series_key: "我的组合|portfolio", trade_date: "2026-05-28", created_at: "2026-05-28T02:00:00Z",
+    holdings: [
+      { ticker: "NVDA", weight_pct: 22, run_id: 20 }, { ticker: "MSFT", weight_pct: 18, run_id: 31 },
+      { ticker: "META", weight_pct: 14, run_id: 32 }, { ticker: "GOOG", weight_pct: 12, run_id: 33 },
+      { ticker: "AMZN", weight_pct: 10, run_id: 34 }, { ticker: "AAPL", weight_pct: 10, run_id: 35 },
+      { ticker: "COST", weight_pct: 8, run_id: 17 }, { ticker: "TSLA", weight_pct: 6, run_id: 14 }
+    ],
+    theme_exposures: [
+      { theme: "AI 基础设施 capex 持续高位", exposure_pct: 76, contributing_tickers: ["NVDA","MSFT","META","GOOG","AMZN"], is_concentration_risk: true },
+      { theme: "利率回落 / 低折现率", exposure_pct: 58, contributing_tickers: ["全部成长股"], is_concentration_risk: false },
+      { theme: "消费韧性", exposure_pct: 34, contributing_tickers: ["AAPL","COST","AMZN","TSLA"], is_concentration_risk: false },
+      { theme: "中国市场敞口", exposure_pct: 16, contributing_tickers: ["AAPL","TSLA"], is_concentration_risk: false }
+    ]
+  }
+};
 
-  TSLA: {"short_term":{"ticker":"TSLA","window_days":5,"start_date":"2026-05-22","end_date":"2026-05-27","price_start":415.20,"price_end":432.41,"return_pct":0.0414,"factors":[{"name":"fundamental_update","label":"基本面修正 / Fundamental update","contribution_pct":0.022,"evidence_text":"Sell-side 共识 EPS 预期 5d 内 +3.2%，多家 broker 上调 FY26 交付量预期；Q1 Cybertruck 产能爬坡数据好于预期。","raw_data":{}},{"name":"flow_positioning","label":"持仓变动 / Flow & positioning","contribution_pct":0.015,"evidence_text":"Sector ETF (XLY) 5d 净流入 +$420M，TSLA 占成分 ~22%；options put/call ratio 由 0.92 降至 0.71，机构 covering shorts。","raw_data":{}},{"name":"macro_rates","label":"宏观利率 / Macro & rates","contribution_pct":-0.008,"evidence_text":"10Y UST 收益率 5d +14bp 至 4.42%，growth/duration 资产承压；DXY 走强 0.8%，对 TSLA 海外收入折算构成弱风险。","raw_data":{}},{"name":"news_narrative","label":"叙事/新闻 / News & narrative","contribution_pct":0.012,"evidence_text":"5/24 Musk 在股东会上重申 Robotaxi 2026 Q3 试运营时间表；FSD v12.5 OTA 推送至全部 N. America 用户，社媒情绪指数环比 +18%。","raw_data":{}},{"name":"unexplained","label":"不可解释残差 / Unexplained residual","contribution_pct":0.004,"evidence_text":"以上四项之外残差约 +0.4%，归因为流动性微观结构、收盘集合竞价行为及未识别因子。","raw_data":{}}]},"ticker":"TSLA","company_name":"Tesla, Inc.","generated_at":"2026-05-26T17:13:54.809303+00:00","mode":"boundary","reverse_dcf":{"ticker":"TSLA","current_price":432.41,"baseline_dcf_price":23.613461959174817,"consensus_assumptions":{"revenue_cagr_5y":0.15,"terminal_growth":0.025,"terminal_fcf_margin":0.06559313275754795,"wacc":0.143615},"implied_intervals":{},"company_inputs":{"revenue_ttm":94827000000.0,"fcf_ttm":6220000000.0,"shares_outstanding":3755723871.0,"net_debt":-1794000000.0,"beta":1.793}},"decoder_output":{"ticker":"TSLA","mode":"boundary","current_price":432.41,"baseline_dcf_price":23.61,"implied_assumptions":[],"boundary_explanation":{"mathematical_facts":"在共识假设下(5 年收入 CAGR=15%、终值 FCF margin≈6.6%、WACC≈14.4%)，常规模型给出的基准 DCF 价格只有约 $23.6，远低于当前 $432.4。Reverse DCF 尝试通过 Monte Carlo 去反推“能撑住 $432.4 的参数组合”，结果是: (1) 收入 5 年 CAGR 维度完全无法收敛，任何合理区间内放大增速都不足以把估值拉到当前股价；(2) 终值 FCF margin 的反推唯一可行点落在约 58% 左右，而且只在极少数样本中出现(success_rate≈0.2%)，远高于 TSLA 历史 FCF margin ~3%-9% 区间，也显著高于大部分整车或半导体硬件公司的终值水平，数学上近似要求 TSLA 成为“类软件公司+极低再投资”的结构；(3) WACC 维度要想接近现价，需要把 TSLA 的 WACC 压到约 4.1% 中位数(区间约 4.1%-4.36%，success_rate≈15%)，这相当于把 TSLA 当成接近优质公用事业或超低风险国企的风险定价。综合来看，要用单一、平滑的企业级 DCF 解出 $432.4，需要同时假设“长期 FCF margin≈58% 且风险贴现率≈4% 且收入仍维持高增速”，三者组合在历史对标和财务结构上都不具可比参考，所以 Monte Carlo 解会整体退化为边界态，传统 DCF 在这里失去解释力。","framework_hypotheses":[{"framework_name":"Robotaxi / FSD Real Options(类期权定价框架)","rationale":"现价相对基准 DCF 溢价巨大，且反向 DCF 只有在极端高盈利和极低 WACC 假设下才勉强靠近，说明市场可能并不是在给现有整车业务贴现，而是在给 Robotaxi 车队和 FSD 订阅视角下的“成功/失败二元跳跃结果”付钱。这个框架下，现价可以看成: 当前汽车+能源业务的基础价值(接近甚至略高于基准 DCF) + 若干个关于 Robotaxi/FSD 大规模商业化的长期期权，其期望值来自极少数“FSD 完全放开、车队高利用率、单车年净利润很高”的远端场景。","evidence_query_hint":"TSLA robotaxi 商业化时间表 + FSD 订阅/一次性买断渗透率预测 + 单车 robotaxi 年净利润测算 + 主要市场监管放行节奏"},{"framework_name":"AI 超算平台 / Dojo 平台化框架","rationale":"反向 DCF 指向的 58% 终值 FCF margin 更接近高毛利软件/SaaS 或云服务平台，而不是传统汽车制造。市场可能在把 TSLA 的 AI 训练基础设施(如 Dojo)、内部算力和软件堆栈，看成潜在的对外商业化云平台或“训练即服务”(Training-as-a-Service)。在这个思路下，现价包含了未来 AI 基础设施和模型服务作为独立、高利润业务线的潜在价值，而这些现金流几乎不会出现在传统车企 DCF 的显性预测期里。","evidence_query_hint":"Tesla Dojo / AI 超算 对外商业化计划 + 管理层关于AI平台或训练服务收入占比目标 + 类比 AI 云厂商长期 FCF margin 区间"},{"framework_name":"Energy / 储能平台 Sum-of-Parts(分部加总框架)","rationale":"单一 DCF 会把汽车、储能、光伏等业务混在一起，用统一的增长率、利润率和 WACC 处理，容易在某一两个高增长高利润业务刚起量时出现“整体估值远超现金流”的错位。市场可能在用分部加总(Sum-of-Parts)来看 TSLA，把 Energy Generation & Storage 业务(如 Megapack 等储能项目)视为接近基础设施或公用事业类资产，给予不同于整车业务的更低 WACC 和更高稳态 FCF margin。","evidence_query_hint":"Tesla Energy 储能业务收入与毛利拆分 + Megapack 与电力公用事业签署的长期合同情况 + 卖方对 Energy 分部的独立估值/目标倍数"},{"framework_name":"High-growth Comparable Multiples(高成长可比公司市销率/市盈率框架)","rationale":"由于收入增速阶段性放缓、盈利受价格战与高 capex 拖累，基于当前盈利或自由现金流的 DCF 很难映射到 $432.4 附近的价格，但如果采用高增速科技股常用的 PS(市销率)、PEG(市盈率相对增长)、EV/EBITDA 等倍数，对标的是新能源车、AI 硬件和高端半导体公司而非整车传统 peers，则可以通过“更高的合理倍数”来解释一部分估值溢价。","evidence_query_hint":"TSLA 与高成长科技/半导体/新能源车公司的市销率、市盈率、EV/EBITDA 对比 + 卖方报告对 TSLA 使用的主要估值倍数和可比公司篮子"},{"framework_name":"Mission-driven / 长期愿景溢价 + 叙事折现框架","rationale":"TSLA 的公司叙事覆盖“全球能源转型、自动驾驶、AI、机器人”等多个长期主题，部分投资者可能并不严格通过十几年现金流去定价，而是通过“终局市占率 × 行业天花板 × 相信管理层愿景的程度”来拍一个折扣率很低的长期市值锚点，再反推当前合理价格。这种叙事折现框架下，短期现金流与盈利波动被认为只是通往终局的过渡期。","evidence_query_hint":"TSLA 长期市值/目标价叙事中提到的“终局市占率/盈利池规模”的假设 + 投资者/机构对 Musk 团队执行力的定性评价 + 针对 TSLA 的长期主题型基金持仓结构"}],"recommended_alternative":"在 TSLA 这类强叙事+多业务赛道公司上，建议将传统单一企业级 DCF 降级为“基础情景参考”，核心估值框架改用: (1) Sum-of-Parts(汽车/储能/软件&服务分部单独估值); (2) Robotaxi/FSD 等关键项目的 Real Options 定价; (3) 结合高成长科技/半导体/新能源车的 Market Comparables 倍数体系，三者交叉校验，而不是试图用一套平滑现金流的 DCF 把全部溢价解释干净。"},"overall_summary":"对于 TSLA，单一、平滑现金流的传统 DCF 在 $432.4 附近已经进入数学失效区间，要解出现价需要同时假设极高终值盈利能力和极低风险贴现率，与历史和同业对标均不匹配。","generated_at":"2026-05-26T17:12:42.445536+00:00"},"evidence_briefs":[]}
+const FIXTURE_SYNTH = {
+  headline_insight: {
+    text: "你的组合和 NVDA 的市场定价 <strong>押的是同一个赌注</strong>:hyperscaler AI capex 持续高位。",
+    relation_id: "r1"
+  },
+  relations: [
+    { id: "r1", type: "same-source", card_a: "fix_nvda", card_b: "fix_pf", strength: "strong",
+      shared_assumption: "hyperscaler AI capex 持续高位", detail: "NVDA 单股 bet 与组合 76% 仓位共享同一前提", comparable: true },
+    { id: "r2", type: "consensus", card_a: "fix_nvda", card_b: "fix_cost", strength: "medium",
+      shared_assumption: "低折现率环境", detail: "两者隐含 WACC 都低于各自 CAPM 基线", comparable: true }
+  ],
+  narrative: "你以为持有多家不同公司分散了风险,实际上 NVDA 的市场 bet 和你组合的 76% 仓位依赖同一件事 (r1)。同时两张单股卡都隐含偏低的折现率假设 (r2),意味着一旦利率上行,它们会同步承压。",
+  generated_at: "2026-05-29T00:00:00Z"
 };
 
 /* ============================================================
    STATE
    ============================================================ */
 const state = {
-  data: null,
-  ticker: 'NVDA',
-  openAssumption: null,    // assumption id currently open
-  sliderValues: {},        // assumption id -> current slider value (raw, e.g. 0.63);
-                           // auto-initialised to interval.p50 on render so the slider
-                           // visually starts at p50. Use sliderTouched to know whether
-                           // the user actually moved it.
-  sliderTouched: {},       // assumption id -> true iff user actually dragged the slider
+  cards: [],            // array of card objects (card_to_json shape, optional _display)
+  selected: new Set(),  // selected card_ids for synthesis
   lang: 'zh',
-  offline: false,          // OFFLINE_MODE — when true, streamEvidence() is short-circuited
-  streamingFor: null,      // assumption id currently being streamed (race-guard)
-  streamStartAt: 0,        // ms timestamp for "Done in Xs" status
-  priceHistory: null,      // {ticker, period, interval, points:[{date,close}]}
-  priceChartGeom: null     // cached chart geometry for slider->y mapping
+  offline: false,
+  busy: false,          // a decode/synthesize is in flight
+  expanded: {}          // card_id -> { chain:bool } expand toggles
 };
 
+let _activityStream = null;   // active EventSource for the agent feed
+
 /* ============================================================
-   FETCH WITH FIXTURE FALLBACK
+   TOAST
    ============================================================ */
 let _toastTimer = null;
 function showToast(html, durationMs = 4500) {
@@ -1944,165 +2357,6 @@ function showToast(html, durationMs = 4500) {
   _toastTimer = setTimeout(() => el.classList.remove('show'), durationMs);
 }
 
-/* ============================================================
-   G4-D · SSE EVIDENCE STREAM (mock-backed during phase B)
-   ============================================================ */
-let _activeStream = null;
-
-function streamEvidence(ticker, assumptionId, assumptionText) {
-  if (state.offline) {
-    showToast('<strong>Offline mode</strong> live evidence stream disabled');
-    return;
-  }
-  // cancel any in-flight stream first
-  if (_activeStream) { try { _activeStream.close(); } catch (_) {} _activeStream = null; }
-
-  const url = '/api/stream/evidence/' + encodeURIComponent(ticker)
-            + '/' + encodeURIComponent(assumptionId)
-            + '?text=' + encodeURIComponent(assumptionText || '')
-            + '&mock=true';
-
-  let es;
-  try {
-    es = new EventSource(url);
-  } catch (err) {
-    showToast('<strong>SSE error</strong> EventSource unavailable');
-    return;
-  }
-  _activeStream = es;
-  state.streamingFor = assumptionId;
-  state.streamStartAt = Date.now();
-
-  agentLogReset(assumptionId);
-  evidenceDrawerStreamStart(assumptionId);
-
-  let contentBuffer = '';
-  let completed = false;
-
-  es.addEventListener('agent_step', (e) => {
-    let d; try { d = JSON.parse(e.data); } catch (_) { return; }
-    agentLogAppend(d);
-  });
-
-  es.addEventListener('content_delta', (e) => {
-    let d; try { d = JSON.parse(e.data); } catch (_) { return; }
-    contentBuffer += (d.text || '');
-    evidenceDrawerAppendContent(assumptionId, contentBuffer);
-  });
-
-  es.addEventListener('usage', (e) => {
-    let d; try { d = JSON.parse(e.data); } catch (_) { return; }
-    agentLogAppendUsage(d);
-  });
-
-  es.addEventListener('complete', (e) => {
-    let d; try { d = JSON.parse(e.data); } catch (_) { d = {}; }
-    completed = true;
-    evidenceDrawerComplete(assumptionId, d.brief || null);
-    agentLogMarkDone();
-    try { es.close(); } catch (_) {}
-    if (_activeStream === es) _activeStream = null;
-    state.streamingFor = null;
-  });
-
-  es.addEventListener('error', (e) => {
-    // Suppress only when we already completed normally (browsers may fire a
-    // generic error on the post-complete close). Any other failure — including
-    // 404 (endpoint missing), 503 (server in offline mode), or connection drop
-    // mid-stream — should surface a toast and restore the drawer.
-    if (completed) {
-      try { es.close(); } catch (_) {}
-      if (_activeStream === es) _activeStream = null;
-      state.streamingFor = null;
-      return;
-    }
-    let msg = 'Stream error';
-    try { if (e && e.data) msg = (JSON.parse(e.data).message) || msg; } catch (_) {}
-    showToast('<strong>SSE error</strong> ' + msg + ' (endpoint may not be ready)');
-    // Restore drawer to "pending" skeleton so user sees a clear empty state.
-    const briefRoot = document.querySelector(
-      `tr.ev-drawer-row[data-drawer-for="${cssEscape(assumptionId)}"] [data-brief-root]`
-    );
-    if (briefRoot) briefRoot.innerHTML = renderEvidenceBrief(assumptionId);
-    // Mark agent log as halted (red dot kept, label updated)
-    const st = document.getElementById('al-status');
-    if (st) {
-      st.innerHTML = '<span class="dot"></span><span>Halted</span>'
-                   + '<span class="ts mono">stream interrupted</span>';
-    }
-    try { es.close(); } catch (_) {}
-    if (_activeStream === es) _activeStream = null;
-    state.streamingFor = null;
-  });
-}
-
-/* ============================================================
-   AGENT ACTIVITY LOG · stream sink
-   ============================================================ */
-function agentLogReset(assumptionId) {
-  const ph = document.querySelector('.agent-log .placeholder');
-  if (ph) ph.style.display = 'none';
-  const stream = document.getElementById('agent-stream');
-  if (!stream) return;
-  stream.innerHTML = '';
-  // remove prior status/usage blocks
-  document.querySelectorAll('.agent-log .al-status, .agent-log .al-usage').forEach(n => n.remove());
-  const status = document.createElement('div');
-  status.className = 'al-status streaming';
-  status.id = 'al-status';
-  status.innerHTML = '<span class="dot"></span><span>Streaming</span>'
-                   + '<span class="ts mono" id="al-status-ts">' + (assumptionId || '') + '</span>';
-  stream.parentNode.insertBefore(status, stream);
-}
-
-function agentLogAppend(step) {
-  const stream = document.getElementById('agent-stream');
-  if (!stream) return;
-  const t = (step.type || 'thinking').toLowerCase();
-  const ts = step.ts || '';
-  const txt = step.text || '';
-  const ln = document.createElement('div');
-  ln.className = 'ln mono t-' + t;
-  ln.innerHTML = '<span class="ts">[' + escapeHTML(ts) + ']</span>'
-               + '<span class="tp">' + escapeHTML(typeShort(t)) + '</span>'
-               + '<span class="txt">' + escapeHTML(txt) + '</span>';
-  stream.appendChild(ln);
-  stream.scrollTop = stream.scrollHeight;
-}
-
-function agentLogAppendUsage(u) {
-  // Drop a single usage line (replace prior if exists)
-  document.querySelectorAll('.agent-log .al-usage').forEach(n => n.remove());
-  const box = document.createElement('div');
-  box.className = 'al-usage';
-  const pin = (u.prompt_tokens != null) ? u.prompt_tokens.toLocaleString('en-US') : '—';
-  const pout = (u.completion_tokens != null) ? u.completion_tokens.toLocaleString('en-US') : '—';
-  const cost = (u.cost_usd != null) ? ('$' + Number(u.cost_usd).toFixed(2)) : '—';
-  box.innerHTML = 'tokens <strong>' + pin + '</strong> in + <strong>'
-                + pout + '</strong> out &middot; <strong>' + cost + '</strong>';
-  const stream = document.getElementById('agent-stream');
-  if (stream) stream.parentNode.appendChild(box);
-}
-
-function agentLogMarkDone() {
-  const st = document.getElementById('al-status');
-  if (!st) return;
-  st.classList.remove('streaming');
-  st.classList.add('done');
-  const elapsedMs = Math.max(0, Date.now() - state.streamStartAt);
-  const secs = (elapsedMs / 1000).toFixed(1);
-  st.innerHTML = '<span class="dot"></span><span>Done</span>'
-               + '<span class="ts mono">' + secs + 's elapsed</span>';
-}
-
-function typeShort(t) {
-  if (t === 'thinking') return 'think';
-  if (t === 'search') return 'search';
-  if (t === 'read') return 'read';
-  if (t === 'synthesize') return 'synth';
-  return (t || '').slice(0, 6);
-}
-
 function escapeHTML(s) {
   return String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -2110,1195 +2364,512 @@ function escapeHTML(s) {
 }
 
 /* ============================================================
-   EVIDENCE DRAWER · streaming reveal
-   ============================================================ */
-function evidenceDrawerStreamStart(assumptionId) {
-  const drawer = document.querySelector(`tr.ev-drawer-row[data-drawer-for="${cssEscape(assumptionId)}"] .ev-drawer`);
-  if (!drawer) return;
-  // preserve the banner; replace the brief body only
-  const briefRoot = drawer.querySelector('[data-brief-root]');
-  if (!briefRoot) return;
-  briefRoot.innerHTML = `
-    <div class="ev-streaming" data-streaming="${escapeHTML(assumptionId)}">
-      <div class="head"><span class="dot"></span><span>Receiving stream</span></div>
-      <div class="progress"></div>
-      <div class="buf" data-buf></div>
-    </div>
-  `;
-}
-
-function evidenceDrawerAppendContent(assumptionId, accumulatedText) {
-  const buf = document.querySelector(
-    `tr.ev-drawer-row[data-drawer-for="${cssEscape(assumptionId)}"] .ev-streaming .buf`
-  );
-  if (!buf) return;
-  // Phase B: render as plain text (no markdown parser) + blinking cursor.
-  buf.innerHTML = escapeHTML(accumulatedText) + '<span class="cursor"></span>';
-}
-
-function evidenceDrawerComplete(assumptionId, brief) {
-  const drawer = document.querySelector(
-    `tr.ev-drawer-row[data-drawer-for="${cssEscape(assumptionId)}"] .ev-drawer`
-  );
-  if (!drawer) return;
-  const briefRoot = drawer.querySelector('[data-brief-root]');
-  if (!briefRoot) return;
-
-  if (brief) {
-    // cache the brief so subsequent opens don't re-stream
-    if (!state.data.evidence_briefs) state.data.evidence_briefs = [];
-    const existingIx = state.data.evidence_briefs.findIndex(b => b.assumption_id === assumptionId);
-    if (existingIx >= 0) state.data.evidence_briefs[existingIx] = brief;
-    else state.data.evidence_briefs.push(brief);
-  }
-  briefRoot.innerHTML = renderEvidenceBrief(assumptionId);
-}
-
-/* CSS.escape polyfill for older browsers when building selectors with IDs that
-   contain underscores / dots like "NVDA_revenue_cagr_5y". The naive fallback
-   is enough — all our ids are [A-Z0-9_]+. */
-function cssEscape(s) {
-  if (window.CSS && CSS.escape) return CSS.escape(s);
-  return String(s).replace(/([^\w-])/g, '\\$1');
-}
-
-/* ============================================================
-   OFFLINE MODE TOGGLE
+   OFFLINE TOGGLE (preserved from the single-stock build)
    ============================================================ */
 async function initOfflineToggle() {
-  const stored = localStorage.getItem('pricelens_offline');
+  const stored = localStorage.getItem('betdecoder_offline');
   let offline = stored === '1';
-  // Try to sync with server; if server says offline, force on.
   try {
     const r = await fetch('/api/offline-mode');
     if (r.ok) {
       const d = await r.json();
-      if (typeof d.offline === 'boolean') {
-        // server is authoritative when true; preserves user choice when false
-        if (d.offline) offline = true;
-      }
+      if (typeof d.offline === 'boolean' && d.offline) offline = true;
     }
   } catch (_) { /* server unreachable — keep localStorage value */ }
-
   applyOffline(offline);
-
   const toggle = document.getElementById('offline-toggle');
   if (toggle) {
     toggle.addEventListener('click', () => {
       applyOffline(!state.offline);
-      localStorage.setItem('pricelens_offline', state.offline ? '1' : '0');
+      localStorage.setItem('betdecoder_offline', state.offline ? '1' : '0');
     });
   }
 }
-
 function applyOffline(on) {
   state.offline = !!on;
   document.body.classList.toggle('is-offline', state.offline);
   const tog = document.getElementById('offline-toggle');
   if (tog) tog.classList.toggle('on', state.offline);
-  if (state.offline && _activeStream) {
-    try { _activeStream.close(); } catch (_) {}
-    _activeStream = null;
-    state.streamingFor = null;
-  }
 }
 
-async function loadTicker(ticker) {
-  // Cancel any in-flight evidence stream from the previous ticker
-  if (_activeStream) { try { _activeStream.close(); } catch (_) {} _activeStream = null; }
-  state.streamingFor = null;
-  // Reset agent log to placeholder state
-  const ph = document.querySelector('.agent-log .placeholder');
-  if (ph) ph.style.display = '';
-  const stream = document.getElementById('agent-stream');
+/* ============================================================
+   ACTIVITY FEED — EventSource consumer for the M5 SSE stream.
+   Endpoint: GET /api/stream/activity/{job_id}  (live-persisted or replay).
+   Each frame is one ActivityEvent JSON. Render by `kind` tag.
+   ============================================================ */
+function closeActivityStream() {
+  if (_activityStream) { try { _activityStream.close(); } catch (_) {} _activityStream = null; }
+}
+
+function feedReset(subjectLabel) {
+  closeActivityStream();
+  const ph = document.getElementById('af-placeholder');
+  if (ph) ph.style.display = 'none';
+  const stream = document.getElementById('af-stream');
   if (stream) stream.innerHTML = '';
-  document.querySelectorAll('.agent-log .al-status, .agent-log .al-usage').forEach(n => n.remove());
-  // Reset per-ticker UI state so sliders from a previous ticker don't leak
-  state.sliderValues = {};
-  state.sliderTouched = {};
-  state.openAssumption = null;
-  ticker = ticker.toUpperCase().trim();
-  const statusText = document.getElementById('status-text');
-  statusText.textContent = 'Loading ' + ticker + '...';
-  document.querySelectorAll('.picker .preset').forEach(b => b.classList.toggle('active', b.dataset.t === ticker));
+  feedStatus('running', subjectLabel ? ('解码中 · ' + subjectLabel) : '运行中');
+}
 
-  let data = null;
+function feedStatus(kind, text) {
+  const stream = document.getElementById('af-stream');
+  if (!stream) return;
+  let st = stream.querySelector('.af-status');
+  if (!st) {
+    st = document.createElement('div');
+    st.className = 'af-status';
+    stream.appendChild(st);
+  }
+  st.className = 'af-status' + (kind === 'done' ? ' done' : '');
+  st.innerHTML = '<span class="dot"></span><span>' + escapeHTML(text) + '</span>';
+  stream.appendChild(st);  // keep status pinned at the bottom
+}
+
+function feedAppend(ev) {
+  const stream = document.getElementById('af-stream');
+  if (!stream) return;
+  const kind = (ev && ev.kind) || 'decision';
+  const subj = (ev && ev.source && ev.source.subject) || '?';
+  const ts = (ev && typeof ev.t_offset_ms === 'number') ? (ev.t_offset_ms / 1000).toFixed(1) + 's' : '';
+  const term = ev && ev.terminal;
+  const row = document.createElement('div');
+  row.className = 'af-event k-' + kind + (term ? (' terminal-' + term) : '');
+  row.innerHTML =
+    '<div class="meta">' +
+      '<span class="kind">' + escapeHTML(kind) + '</span>' +
+      '<span class="subj">' + escapeHTML(subj) + '</span>' +
+      '<span class="ts">' + escapeHTML(ts) + '</span>' +
+    '</div>' +
+    '<div class="txt">' + escapeHTML((ev && ev.text) || '') + '</div>';
+  // insert before the status row so status stays last
+  const st = stream.querySelector('.af-status');
+  if (st) stream.insertBefore(row, st); else stream.appendChild(row);
+}
+
+function streamActivity(jobId, subjectLabel) {
+  feedReset(subjectLabel);
+  if (!jobId) { feedStatus('done', '无可回放事件'); return; }
+  let es;
   try {
-    const r = await fetch('/api/decode/' + ticker);
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    data = await r.json();
-    statusText.textContent = 'Loaded via API';
+    es = new EventSource('/api/stream/activity/' + encodeURIComponent(jobId));
   } catch (e) {
-    // fallback to embedded fixture
-    if (FIXTURE_DATA[ticker]) {
-      data = FIXTURE_DATA[ticker];
-      statusText.textContent = 'Loaded (dev fixture)';
-    } else {
-      statusText.textContent = 'No data for ' + ticker;
-      showToast(`<strong>${ticker}</strong> not cached. Run <em style="font-style:normal;text-decoration:underline">python pipeline.py ${ticker} --no-evidence --no-synthesis</em> first.`);
-      return;
+    feedStatus('done', '活动流连接失败');
+    return;
+  }
+  _activityStream = es;
+  es.onmessage = (m) => {
+    let ev;
+    try { ev = JSON.parse(m.data); } catch (_) { return; }
+    feedAppend(ev);
+    if (ev && ev.terminal) {
+      feedStatus(ev.terminal === 'done' ? 'done' : 'error',
+                 ev.terminal === 'done' ? '完成' : '失败');
+      closeActivityStream();
     }
-  }
-
-  state.data = data;
-  state.ticker = ticker;
-  state.openAssumption = null;
-  state.sliderValues = {};
-  state.priceHistory = null;
-  state.priceChartGeom = null;
-  render();
-
-  // Fetch price history in the background — chart renders when it arrives.
-  fetchPriceHistory(ticker);
-}
-
-async function fetchPriceHistory(ticker) {
-  try {
-    const r = await fetch('/api/price-history/' + ticker + '?period=5y');
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const ph = await r.json();
-    // Race guard — if user switched ticker mid-fetch, abandon.
-    if (state.ticker !== ticker) return;
-    state.priceHistory = ph;
-    renderPriceChart();
-  } catch (e) {
-    if (state.ticker !== ticker) return;
-    const host = document.getElementById('pc-svg-host');
-    if (host) host.innerHTML = '<div class="pc-empty">Price history unavailable for ' + ticker + '.</div>';
-  }
-}
-
-/* ============================================================
-   FORMATTERS
-   ============================================================ */
-const fmtUSD = v => '$' + Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-function isPctMetric(metric) {
-  // metrics expressed as decimals that should be rendered as %
-  const pctMetrics = ['revenue_cagr_5y', 'terminal_growth', 'terminal_fcf_margin', 'wacc', 'growth_premium_vs_industry'];
-  return pctMetrics.includes(metric);
-}
-function isYearsMetric(metric) {
-  return ['high_growth_duration', 'value_realization_horizon', 'explicit_forecast_horizon_years'].includes(metric);
-}
-
-function fmtInterval(metric, p25, p50, p75) {
-  if (isPctMetric(metric)) {
-    return `${(p25*100).toFixed(1)}% · <span class="p50">${(p50*100).toFixed(1)}%</span> · ${(p75*100).toFixed(1)}%`;
-  }
-  if (isYearsMetric(metric)) {
-    return `${p25.toFixed(0)}y · <span class="p50">${p50.toFixed(0)}y</span> · ${p75.toFixed(0)}y`;
-  }
-  return `${p25.toFixed(2)} · <span class="p50">${p50.toFixed(2)}</span> · ${p75.toFixed(2)}`;
-}
-
-function fmtSliderValue(metric, v) {
-  if (isPctMetric(metric)) return (v*100).toFixed(2) + '%';
-  if (isYearsMetric(metric)) return v.toFixed(1) + ' yrs';
-  return v.toFixed(3);
-}
-
-function metricDisplayName(metric) {
-  const names = {
-    revenue_cagr_5y: '5Y revenue CAGR',
-    terminal_growth: 'Terminal growth',
-    terminal_fcf_margin: 'Terminal FCF margin',
-    wacc: 'WACC · discount rate',
-    high_growth_duration: 'High-growth duration',
-    value_realization_horizon: 'Value realization horizon',
-    explicit_forecast_horizon_years: 'Explicit forecast horizon',
-    growth_premium_vs_industry: 'Growth premium vs industry'
   };
-  return names[metric] || metric;
+  es.onerror = () => {
+    // Stream ended or errored. EventSource auto-reconnects; we close to avoid loops.
+    closeActivityStream();
+    feedStatus('done', '活动流结束');
+  };
 }
 
 /* ============================================================
-   ADJUSTED PRICE STUB
-   Simple linear model: deviation from p50 of any load-bearing
-   assumption swings fair value proportionally.
+   DECODE — POST /api/decode → {job_id, card}; then watch the feed.
+   Falls back to a fixture card (no network) so the UI is testable offline.
    ============================================================ */
-// Metrics that actually feed into the 4-param DCF formula. Other implied
-// assumptions (high_growth_duration, value_realization_horizon, etc.) are
-// shown as sliders for context but don't move the recompute.
-const DCF_METRICS = ['revenue_cagr_5y', 'terminal_growth', 'terminal_fcf_margin', 'wacc'];
+async function decodeBet(sourceType, sourceInput) {
+  if (state.busy) { showToast('A decode/synthesis is already running.'); return; }
+  sourceInput = (sourceInput || '').trim();
+  if (!sourceInput) { showToast('Enter a ticker, target, opinion, or basket first.'); return; }
+  state.busy = true;
+  setStatus('Decoding ' + sourceInput + '…', sourceType);
+  setBusy(true);
 
-// Port of reverse_dcf.dcf_equity_value_per_share. Keep in sync with Python.
-function dcfEquityValuePerShare(assumptions, inputs) {
-  const { revenue_cagr_5y, terminal_growth, terminal_fcf_margin, wacc } = assumptions;
-  const { revenue_ttm, shares_outstanding, net_debt } = inputs;
-  if (!revenue_ttm || !shares_outstanding) return null;
-  if (wacc <= terminal_growth) return null;  // Gordon model breaks
-
-  let revenue = revenue_ttm;
-  let pv = 0;
-  for (let year = 1; year <= 5; year++) {
-    revenue *= 1 + revenue_cagr_5y;
-    pv += (revenue * terminal_fcf_margin) / Math.pow(1 + wacc, year);
-  }
-  const terminalFcf = revenue * terminal_fcf_margin * (1 + terminal_growth);
-  const terminalValue = terminalFcf / (wacc - terminal_growth);
-  pv += terminalValue / Math.pow(1 + wacc, 5);
-
-  const equity = pv - (net_debt || 0);
-  return equity / shares_outstanding;
-}
-
-function computeAdjustedPrice() {
-  if (!state.data || state.data.mode !== 'standard') return null;
-  const rdcf = state.data.reverse_dcf;
-
-  // Backwards-compat: older outputs without company_inputs use the legacy stub
-  if (!rdcf || !rdcf.company_inputs || !rdcf.consensus_assumptions) {
-    return computeAdjustedPriceStub();
-  }
-
-  // effective = consensus baseline; only override when user has actually moved the slider
-  // (sliderValues is pre-filled with p50 on render for visual position, but a non-null
-  //  value alone doesn't mean the user touched it).
-  const effective = { ...rdcf.consensus_assumptions };
-  state.data.decoder_output.implied_assumptions.forEach(a => {
-    if (!DCF_METRICS.includes(a.metric)) return;
-    if (!state.sliderTouched[a.id]) return;
-    const sliderVal = state.sliderValues[a.id];
-    if (sliderVal != null) effective[a.metric] = sliderVal;
-  });
-
-  const price = dcfEquityValuePerShare(effective, rdcf.company_inputs);
-  return (price != null && isFinite(price) && price > 0) ? price : null;
-}
-
-function computeAdjustedPriceStub() {
-  const current = state.data.decoder_output.current_price;
-  let multiplier = 1.0;
-  state.data.decoder_output.implied_assumptions.forEach(a => {
-    const cur = state.sliderValues[a.id];
-    if (cur == null) return;
-    const p50 = a.interval.p50;
-    if (p50 === 0) return;
-    const dev = (cur - p50) / Math.abs(p50);
-    const weight = a.load_bearing ? 0.5 : 0.15;
-    multiplier *= (1 + dev * weight);
-  });
-  return current * multiplier;
-}
-
-/* ============================================================
-   RENDER
-   ============================================================ */
-function render() {
-  if (!state.data) return;
-  const d = state.data;
-  const dec = d.decoder_output;
-
-  // cover
-  document.getElementById('cover-ticker').textContent = d.ticker;
-  document.getElementById('cover-company').textContent = d.company_name;
-  document.getElementById('cover-headline').textContent = dec.mode === 'boundary'
-    ? 'DCF framework cannot explain the current quote.'
-    : `The assumptions implied by ${fmtUSD(dec.current_price)}.`;
-  document.getElementById('cover-subtitle').innerHTML = dec.mode === 'boundary'
-    ? `<strong>${d.ticker}</strong> hits the boundary of single-DCF explainability. Below: the mathematical facts, candidate alternative frameworks the market may be using, and a recommended valuation approach.`
-    : `<strong>${d.ticker}</strong>'s current quote of <strong>${fmtUSD(dec.current_price)}</strong> requires the market to believe a specific set of things. This report decomposes those implicit beliefs into interval estimates and surfaces the comparison against historical and consensus baselines.`;
-  document.getElementById('cover-industry').textContent = dec.mode === 'boundary' ? 'Boundary mode · Multi-framework analysis' : 'Standard mode · Reverse-DCF decomposition';
-  document.getElementById('cover-gen-date').textContent = (d.generated_at || '').slice(0, 10);
-  document.getElementById('cover-mode').textContent = dec.mode.toUpperCase();
-  document.getElementById('cover-runid').textContent = d.ticker.toLowerCase() + '-' + (d.generated_at || '').slice(11, 19).replace(/:/g, '');
-  document.getElementById('cover-ref').textContent = 'REF · PL-26-' + d.ticker;
-
-  // snapshot box
-  document.getElementById('reco-rev').textContent = 'gen ' + (d.generated_at || '').slice(0, 10);
-  document.getElementById('reco-price').textContent = fmtUSD(dec.current_price);
-  document.getElementById('reco-baseline').textContent = fmtUSD(dec.baseline_dcf_price);
-  const gap = ((dec.current_price - dec.baseline_dcf_price) / dec.baseline_dcf_price) * 100;
-  const gapEl = document.getElementById('reco-gap');
-  gapEl.textContent = (gap >= 0 ? '+' : '') + gap.toFixed(1) + '%';
-  gapEl.className = 'v ' + (gap >= 0 ? 'up' : 'down');
-  document.getElementById('reco-count').textContent = dec.mode === 'boundary'
-    ? 'n/a · boundary'
-    : (dec.implied_assumptions.length + ' assumptions');
-
-  const badge = document.getElementById('reco-badge');
-  const note = document.getElementById('reco-note');
-  if (dec.mode === 'boundary') {
-    badge.textContent = 'DCF BOUNDARY';
-    badge.className = 'badge boundary';
-    note.textContent = 'beyond single-DCF explainability';
-  } else {
-    if (Math.abs(gap) < 5) {
-      badge.textContent = 'FAIRLY PRICED'; badge.className = 'badge fair';
-      note.textContent = 'within 5% of baseline DCF';
-    } else if (gap > 0) {
-      badge.textContent = 'PREMIUM TO DCF'; badge.className = 'badge over';
-      note.textContent = 'market above baseline DCF';
+  let card = null, jobId = null;
+  try {
+    const r = await fetch('/api/decode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source_type: sourceType, source_input: sourceInput, lang: state.lang })
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    card = d.card; jobId = d.job_id;
+    setStatus('Decoded via API', sourceType);
+  } catch (e) {
+    // Fixture fallback — keyed by uppercase input (single) or PORTFOLIO.
+    const key = sourceType === 'portfolio' ? 'PORTFOLIO' : sourceInput.toUpperCase();
+    if (FIXTURE_CARDS[key]) {
+      card = JSON.parse(JSON.stringify(FIXTURE_CARDS[key]));
+      card.card_id = card.card_id + '_' + Date.now();   // unique per add
+      setStatus('Decoded (dev fixture)', sourceType);
     } else {
-      badge.textContent = 'DISCOUNT TO DCF'; badge.className = 'badge under';
-      note.textContent = 'market below baseline DCF';
-    }
-  }
-
-  // mode tag in picker
-  const modeTag = document.getElementById('mode-tag');
-  modeTag.textContent = dec.mode === 'boundary' ? 'BOUNDARY' : 'STANDARD';
-  modeTag.className = 'mode-tag ' + dec.mode;
-
-  // body
-  const main = document.getElementById('main-col');
-  const shortTermBlock = renderShortTerm(d.short_term, d.ticker);
-  if (dec.mode === 'boundary') {
-    main.innerHTML = renderBoundary(dec) + shortTermBlock;
-    document.getElementById('reco-adjusted').textContent = 'n/a';
-  } else {
-    main.innerHTML = renderStandard(dec) + shortTermBlock;
-    bindAssumptionRows();
-    updateAdjustedPrice();
-  }
-  // If price history is already cached for this ticker, paint immediately.
-  if (state.priceHistory && state.priceHistory.ticker === state.ticker) {
-    renderPriceChart();
-  }
-}
-
-/* ============================================================
-   STANDARD MODE BODY
-   ============================================================ */
-function renderStandard(dec) {
-  const rows = dec.implied_assumptions.map((a, i) => {
-    const ix = String(i + 1).padStart(2, '0');
-    const lbBadge = a.load_bearing ? '<span class="lb-tag">LOAD-BEARING</span>' : '';
-    const lbClass = a.load_bearing ? 'lb' : '';
-    const sliderRange = computeSliderRange(a.interval);
-
-    // init slider value
-    if (state.sliderValues[a.id] == null) state.sliderValues[a.id] = a.interval.p50;
-    const curV = state.sliderValues[a.id];
-
-    return `
-      <tr class="row-main ${lbClass} ${state.openAssumption === a.id ? 'active' : ''}" data-id="${a.id}">
-        <td class="ix">${ix}</td>
-        <td class="metric">${metricDisplayName(a.metric)}${lbBadge}</td>
-        <td class="interval">${fmtInterval(a.metric, a.interval.p25, a.interval.p50, a.interval.p75)}</td>
-        <td class="human">${a.human_text}</td>
-        <td class="comparison">${a.comparison}</td>
-        <td class="badge-cell"><span class="ev-badge ${a.load_bearing ? 'lb' : 'sec'}">${a.load_bearing ? 'Primary' : 'Secondary'}</span></td>
-      </tr>
-      <tr class="ass-slider-row ${state.openAssumption === a.id ? 'open' : ''}" data-slider-for="${a.id}">
-        <td colspan="6">
-          <div class="ass-slider-grid">
-            <div class="slider-block">
-              <div class="slider-head">
-                <span class="lbl">Sensitivity slider · approx p10–p90</span>
-                <span class="cur" data-cur="${a.id}">${fmtSliderValue(a.metric, curV)}</span>
-              </div>
-              <div class="slider-wrap">
-                <div class="track"></div>
-                <input type="range" min="${sliderRange.min}" max="${sliderRange.max}" step="${sliderRange.step}" value="${curV}" data-slider="${a.id}" data-metric="${a.metric}">
-                <div class="slider-range">
-                  <span>${fmtSliderValue(a.metric, sliderRange.min)}</span>
-                  <span>${fmtSliderValue(a.metric, sliderRange.max)}</span>
-                </div>
-              </div>
-            </div>
-            <div class="slider-summary">
-              <div class="lbl">G3-C · Evidence binding</div>
-              <div class="row"><span class="k">P50 (market)</span><span class="v">${fmtSliderValue(a.metric, a.interval.p50)}</span></div>
-              <div class="row"><span class="k">Your value</span><span class="v" data-summary-cur="${a.id}">${fmtSliderValue(a.metric, curV)}</span></div>
-              <div class="row"><span class="k">Deviation</span><span class="v" data-summary-dev="${a.id}">0.0%</span></div>
-            </div>
-          </div>
-        </td>
-      </tr>
-      <tr class="ev-drawer-row ${state.openAssumption === a.id ? 'open' : ''}" data-drawer-for="${a.id}">
-        <td colspan="6">
-          <div class="ev-drawer">
-            <div class="ev-drawer-banner">G3-C · Evidence brief 基于市场原始假设 (<strong>p50 = ${fmtSliderValue(a.metric, a.interval.p50)}</strong>) 抓取${fmtEvidenceCapturedAt(a.id)}，滑块调整不会触发重跑。</div>
-            <h4>Evidence brief · ${a.id}</h4>
-            <div data-brief-root>${renderEvidenceBrief(a.id)}</div>
-          </div>
-        </td>
-      </tr>
-    `;
-  }).join('');
-
-  return `
-    <section class="section">
-      <div class="sec-h">
-        <span class="ix">1.0</span>
-        <h2>Implied assumption table — what the market must believe.</h2>
-        <span class="meta">EXHIBIT 1.1<br>${dec.implied_assumptions.length} assumptions</span>
-      </div>
-
-      ${renderPriceChartContainer(dec.ticker, 'standard')}
-
-      <p class="sec-lede">
-        Each row below is one variable the standard DCF would otherwise take as input. PriceLens holds the current quote as the target output and solves for the assumption interval (p25 · p50 · p75) under Monte Carlo perturbation of the remaining inputs.
-        <strong>Click any row</strong> to open the sensitivity slider and the evidence brief for that assumption.
-      </p>
-
-      <div class="exhibit">
-        <span class="lbl">Exhibit 1.1</span>
-        <span class="title">${dec.ticker} · implied assumptions ranked by importance</span>
-        <span class="src">PriceLens · Monte Carlo reverse-DCF</span>
-      </div>
-
-      <table class="ass-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Metric</th>
-            <th class="right">p25 · p50 · p75</th>
-            <th>Human reading</th>
-            <th>Comparison vs baseline</th>
-            <th class="center">Tier
-              <span class="tip-wrap"><span class="tip-trigger">i</span><span class="tip-body">Load-bearing assumptions drive >50% of the price gap. Evidence ranking based on source quality / recency / relevance — scores do not endorse the underlying claim's truthfulness.</span></span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows}
-        </tbody>
-      </table>
-
-      <div class="exhibit-foot">
-        Note: Intervals come from Monte Carlo perturbation of the consensus assumptions (~500 samples per variable; success-rate noted in raw data). Load-bearing rows are those whose change most directly moves the implied price. The adjusted fair value in the snapshot box reflects a simplified linear sensitivity model.
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="sec-h">
-        <span class="ix">2.0</span>
-        <h2>Overall reading.</h2>
-        <span class="meta">SUMMARY</span>
-      </div>
-      <p class="sec-lede">${dec.overall_summary || ''}</p>
-    </section>
-  `;
-}
-
-function computeSliderRange(interval) {
-  // approx p10-p90 by extending each side by 30%
-  const span = interval.p75 - interval.p25;
-  const min = Math.max(interval.p25 - span * 0.3, 0);
-  const max = interval.p75 + span * 0.3;
-  // pick a step granular enough
-  const step = (max - min) > 1 ? 0.1 : 0.001;
-  return { min: +min.toFixed(6), max: +max.toFixed(6), step };
-}
-
-function fmtEvidenceCapturedAt(assumptionId) {
-  // G3-C: show source-capture timestamp inside the drawer banner when a brief exists.
-  // Returns empty string when no brief is cached so the banner reads cleanly.
-  const briefs = (state.data && state.data.evidence_briefs) || [];
-  const match = briefs.find(b => b.assumption_id === assumptionId);
-  const ts = match?.generated_at;
-  if (!ts) return '';
-  const date = ts.slice(0, 10);
-  const time = ts.slice(11, 16);
-  return ` · 抓取于 <strong>${date} ${time} UTC</strong>`;
-}
-
-function renderEvidenceBrief(assumptionId) {
-  const briefs = (state.data && state.data.evidence_briefs) || [];
-  const match = briefs.find(b => b.assumption_id === assumptionId);
-  if (!match) {
-    return `
-      <div class="ev-skeleton">
-        <strong>Evidence brief pending.</strong><br><br>
-        No cached brief was found for <code>${assumptionId}</code>. Click the row above to trigger a live agent run — search queries, source reads, and synthesis steps will stream into the <strong>Agent Activity Log</strong> on the right while the structured brief renders here.
-      </div>
-    `;
-  }
-  // Structured render when brief carries Appendix-A schema (items grouped by direction).
-  // Strict PRD §15 Appendix A read path. Field names = direction / claim / body_md
-  // / sources[]{url,title,date,publisher} / scores{recency,source_quality,relevance}.
-  const items = Array.isArray(match.evidence_items) ? match.evidence_items : [];
-  if (items.length) {
-    const groups = { support: [], refute: [], neutral: [] };
-    items.forEach(it => {
-      const d = (it.direction || 'neutral').toLowerCase();
-      (groups[d] || groups.neutral).push(it);
-    });
-    const renderGroup = (key, label) => {
-      const arr = groups[key];
-      if (!arr.length) return '';
-      const rows = arr.map(it => {
-        const claim = escapeHTML(it.claim || '');
-        const src0 = Array.isArray(it.sources) && it.sources.length ? it.sources[0] : {};
-        const url = src0.url || '';
-        const host = url ? safeHost(url) : (src0.publisher || '');
-        const srcLink = url
-          ? `<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(host)}</a>`
-          : escapeHTML(host || '—');
-        const sc = it.scores || {};
-        const sq = sc.source_quality != null ? Number(sc.source_quality) : null;
-        const sr = sc.relevance != null ? Number(sc.relevance) : null;
-        const rc = sc.recency != null ? Number(sc.recency) : null;
-        const scoreParts = [];
-        if (sq != null) scoreParts.push(`<span class="sc">Q <strong>${sq}</strong>/5</span>`);
-        if (sr != null) scoreParts.push(`<span class="sc">R <strong>${sr}</strong>/5</span>`);
-        if (rc != null) scoreParts.push(`<span class="sc">T <strong>${rc}</strong>/5</span>`);
-        const scores = scoreParts.length ? `<div class="scores">${scoreParts.join('')}</div>` : '';
-        return `<div class="it">
-          <div class="claim">${claim}</div>
-          <div class="src">${srcLink}</div>
-          ${scores}
-        </div>`;
-      }).join('');
-      return `<div class="grp">
-        <div class="grp-h"><span class="dir-${key}">${escapeHTML(label)}</span><span class="cnt">${arr.length} sources</span></div>
-        ${rows}
-      </div>`;
-    };
-    return `<div class="ev-brief">
-      ${renderGroup('support', 'Support')}
-      ${renderGroup('refute', 'Refute')}
-      ${renderGroup('neutral', 'Neutral')}
-    </div>`;
-  }
-  // Legacy / minimal payload — keep prior one-liner.
-  return `<div class="ev-skeleton">Evidence brief loaded · ${match.evidence_count?.support || 0} support · ${match.evidence_count?.refute || 0} refute · ${match.overall_balance || '—'}.</div>`;
-}
-
-function safeHost(url) {
-  try { return new URL(url).host; } catch (_) { return url; }
-}
-
-function bindAssumptionRows() {
-  document.querySelectorAll('.ass-table tr.row-main').forEach(row => {
-    row.addEventListener('click', e => {
-      // ignore clicks on tooltip trigger
-      if (e.target.closest('.tip-trigger') || e.target.closest('.tip-body')) return;
-      const id = row.dataset.id;
-      const wasOpen = state.openAssumption === id;
-      state.openAssumption = wasOpen ? null : id;
-      render();
-      if (!wasOpen) {
-        // Phase B: auto-trigger stream when no cached brief exists (mock-only, cheap).
-        // Phase C/D will gate this behind an explicit button + cost modal.
-        const briefs = (state.data && state.data.evidence_briefs) || [];
-        const hasBrief = briefs.some(b => b.assumption_id === id);
-        if (!hasBrief && !state.offline) {
-          const a = state.data.decoder_output.implied_assumptions.find(x => x.id === id);
-          const text = a ? a.human_text : '';
-          streamEvidence(state.ticker, id, text);
-        } else if (state.offline) {
-          showToast('<strong>Offline mode</strong> live evidence stream disabled');
-        }
-      }
-    });
-  });
-  document.querySelectorAll('input[data-slider]').forEach(input => {
-    input.addEventListener('click', e => e.stopPropagation());
-    input.addEventListener('input', e => {
-      e.stopPropagation();
-      const id = input.dataset.slider;
-      const metric = input.dataset.metric;
-      const v = parseFloat(input.value);
-      state.sliderValues[id] = v;
-      state.sliderTouched[id] = true;  // mark as user-modified so computeAdjustedPrice overrides consensus
-      const curEl = document.querySelector(`[data-cur="${id}"]`);
-      if (curEl) {
-        curEl.textContent = fmtSliderValue(metric, v);
-        curEl.classList.add('flash');
-        setTimeout(() => curEl.classList.remove('flash'), 220);
-      }
-      const sumCur = document.querySelector(`[data-summary-cur="${id}"]`);
-      if (sumCur) sumCur.textContent = fmtSliderValue(metric, v);
-      const sumDev = document.querySelector(`[data-summary-dev="${id}"]`);
-      if (sumDev) {
-        const a = state.data.decoder_output.implied_assumptions.find(x => x.id === id);
-        if (a && a.interval.p50) {
-          const dev = ((v - a.interval.p50) / Math.abs(a.interval.p50)) * 100;
-          sumDev.textContent = (dev >= 0 ? '+' : '') + dev.toFixed(1) + '% vs p50';
-          sumDev.className = 'v ' + (Math.abs(dev) < 0.5 ? '' : (dev > 0 ? 'up' : 'down'));
-        }
-      }
-      updateAdjustedPrice();
-    });
-  });
-  // prevent slider/drawer rows from collapsing when clicked
-  document.querySelectorAll('.ass-slider-row, .ev-drawer-row').forEach(row => {
-    row.addEventListener('click', e => e.stopPropagation());
-  });
-}
-
-function updateAdjustedPrice() {
-  const el = document.getElementById('reco-adjusted');
-  const adj = computeAdjustedPrice();
-  if (adj == null) { el.textContent = 'n/a'; }
-  else el.textContent = fmtUSD(adj);
-  if (typeof updateChartAdjustedLine === 'function') updateChartAdjustedLine();
-}
-
-/* ============================================================
-   PRICE HISTORY CHART (Section 1 hero)
-   - Hand-rolled SVG, no chart libs.
-   - viewBox 0 0 800 320, responsive width via CSS.
-   - Three reference lines: BASELINE DCF (dashed), ADJUSTED (oxblood,
-     redrawn on slider drag), ACTUAL (black).
-   ============================================================ */
-const PC_VB_W = 800;
-const PC_VB_H_BASE = 320;       // height when no volume sub-chart
-const PC_VB_H_WITH_VOL = 400;   // height when volume sub-chart present
-const PC_PAD = { top: 18, right: 130, bottom: 26, left: 12 };
-const PC_VOL_GAP = 10;          // gap between price plot and volume plot
-const PC_VOL_H = 60;            // volume plot height
-const PC_OVERLAP_PX = 12;       // pixel threshold for ADJ/BASELINE label merge
-
-function renderPriceChartContainer(ticker, mode) {
-  return `
-    <div class="price-chart-wrap" id="price-chart-wrap" data-mode="${mode}">
-      <div class="pc-head">
-        <span class="lbl">Exhibit 1.0</span>
-        <span class="title">${ticker} · 5-year monthly close vs DCF reference levels</span>
-        <span class="src">yfinance · monthly</span>
-      </div>
-      <div id="pc-svg-host">
-        <div class="pc-empty">Loading 5y price history...</div>
-      </div>
-      <div class="pc-foot">
-        <span>Note: monthly close, last 5 years. Reference lines: BASELINE DCF (consensus), ADJUSTED (your slider), ACTUAL (current quote).</span>
-        <span class="hint">Drag any assumption slider below to move ADJUSTED in real time.</span>
-      </div>
-    </div>
-  `;
-}
-
-function _pcGetReferencePrices() {
-  if (!state.data) return null;
-  const dec = state.data.decoder_output;
-  const actual = dec.current_price;
-  const baseline = dec.baseline_dcf_price;
-  let adjusted;
-  if (dec.mode === 'boundary') {
-    adjusted = null;
-  } else {
-    const adj = computeAdjustedPrice();
-    adjusted = (adj == null) ? baseline : adj;
-  }
-  return { actual, baseline, adjusted };
-}
-
-function _pcHasVolume(points) {
-  return points.some(p => typeof p.volume === 'number' && p.volume > 0);
-}
-
-function _pcComputeGeometry(points, refs) {
-  const hasVol = _pcHasVolume(points);
-  const vbH = hasVol ? PC_VB_H_WITH_VOL : PC_VB_H_BASE;
-  const innerW = PC_VB_W - PC_PAD.left - PC_PAD.right;
-  // Price plot keeps its original 320-base height; volume plot is appended below.
-  const innerH = PC_VB_H_BASE - PC_PAD.top - PC_PAD.bottom;
-  const closes = points.map(p => p.close);
-  const maxData = Math.max(...closes, refs.actual, refs.baseline, refs.adjusted != null ? refs.adjusted : refs.baseline);
-  const yMax = maxData * 1.1;
-  const yMin = 0;
-  const x0 = PC_PAD.left;
-  const y0 = PC_PAD.top;
-  const n = points.length;
-  const xForIndex = (i) => x0 + (n <= 1 ? innerW / 2 : (i * innerW) / (n - 1));
-  const yForPrice = (p) => y0 + innerH - ((p - yMin) / (yMax - yMin)) * innerH;
-
-  let vol = null;
-  if (hasVol) {
-    const volTop = y0 + innerH + PC_VOL_GAP;
-    const volMax = Math.max(...points.map(p => Number(p.volume) || 0));
-    const volForIndex = (i) => {
-      const v = Number(points[i].volume) || 0;
-      const ratio = volMax > 0 ? v / volMax : 0;
-      const h = ratio * PC_VOL_H;
-      return { y: volTop + (PC_VOL_H - h), h };
-    };
-    // Monthly bar width: derive from spacing between months, then 0.4x for breathing.
-    const monthSpacing = n > 1 ? innerW / (n - 1) : innerW;
-    const barW = Math.max(1.2, monthSpacing * 0.4);
-    vol = { top: volTop, height: PC_VOL_H, max: volMax, barW, volForIndex };
-  }
-  return { innerW, innerH, x0, y0, yMin, yMax, xForIndex, yForPrice, n, hasVol, vbH, vol };
-}
-
-function renderPriceChart() {
-  const host = document.getElementById('pc-svg-host');
-  if (!host) return;
-  const ph = state.priceHistory;
-  const refs = _pcGetReferencePrices();
-  if (!ph || !ph.points || ph.points.length < 2 || !refs) {
-    host.innerHTML = '<div class="pc-empty">No price history available.</div>';
-    return;
-  }
-  const points = ph.points;
-  const geom = _pcComputeGeometry(points, refs);
-  state.priceChartGeom = geom;
-
-  // Path data for history polyline
-  let d = '';
-  for (let i = 0; i < points.length; i++) {
-    const cmd = i === 0 ? 'M' : 'L';
-    d += cmd + geom.xForIndex(i).toFixed(2) + ' ' + geom.yForPrice(points[i].close).toFixed(2) + ' ';
-  }
-
-  // Y axis ticks: choose 5 ticks across [0, yMax]
-  const yTicks = _pcChooseTicks(geom.yMin, geom.yMax, 5);
-  const gridLines = yTicks.map(v => {
-    const y = geom.yForPrice(v).toFixed(2);
-    return `<line class="pc-grid" x1="${geom.x0}" y1="${y}" x2="${geom.x0 + geom.innerW}" y2="${y}"/>`;
-  }).join('');
-  const yLabels = yTicks.map(v => {
-    const y = geom.yForPrice(v).toFixed(2);
-    return `<text class="pc-axis-label" x="${geom.x0 + geom.innerW + 4}" y="${(parseFloat(y) + 3).toFixed(2)}" text-anchor="start">$${_pcFmtTick(v)}</text>`;
-  }).join('');
-
-  // X axis ticks: one per year boundary
-  const yearTicks = _pcYearTicks(points, geom);
-  const xGrid = yearTicks.map(t =>
-    `<line class="pc-grid" x1="${t.x.toFixed(2)}" y1="${geom.y0}" x2="${t.x.toFixed(2)}" y2="${geom.y0 + geom.innerH}"/>`
-  ).join('');
-  const xLabels = yearTicks.map(t =>
-    `<text class="pc-axis-label" x="${t.x.toFixed(2)}" y="${(geom.y0 + geom.innerH + 14).toFixed(2)}" text-anchor="middle">${t.year}</text>`
-  ).join('');
-
-  // Reference lines
-  const yActual = geom.yForPrice(refs.actual).toFixed(2);
-  const yBaseline = geom.yForPrice(refs.baseline).toFixed(2);
-  const yAdjusted = refs.adjusted != null ? geom.yForPrice(refs.adjusted).toFixed(2) : null;
-  const xLineEnd = geom.x0 + geom.innerW;
-  const labelX = (xLineEnd + 6).toFixed(2);
-
-  const adjustedLineSvg = yAdjusted != null
-    ? `<line id="pc-line-adjusted" class="pc-line-adjusted" x1="${geom.x0}" y1="${yAdjusted}" x2="${xLineEnd}" y2="${yAdjusted}"/>
-       <text id="pc-label-adjusted" class="pc-line-label adjusted" x="${labelX}" y="${(parseFloat(yAdjusted) + 3).toFixed(2)}">ADJ · $${refs.adjusted.toFixed(2)}</text>`
-    : '';
-
-  // Volume sub-chart (if data available)
-  let volSvg = '';
-  if (geom.hasVol && geom.vol) {
-    const bars = [];
-    for (let i = 0; i < points.length; i++) {
-      const meta = geom.vol.volForIndex(i);
-      if (meta.h <= 0) continue;
-      const cx = geom.xForIndex(i);
-      const x = cx - geom.vol.barW / 2;
-      bars.push(`<rect class="pc-vol-bar" x="${x.toFixed(2)}" y="${meta.y.toFixed(2)}" width="${geom.vol.barW.toFixed(2)}" height="${meta.h.toFixed(2)}"/>`);
-    }
-    const volBaselineY = (geom.vol.top + geom.vol.height).toFixed(2);
-    volSvg = `
-      <g class="pc-vol">
-        ${bars.join('')}
-        <line class="pc-vol-axis" x1="${geom.x0}" y1="${volBaselineY}" x2="${geom.x0 + geom.innerW}" y2="${volBaselineY}"/>
-        <text class="pc-vol-label" x="${geom.x0}" y="${(geom.vol.top + geom.vol.height - 4).toFixed(2)}">VOL</text>
-      </g>
-    `;
-  }
-
-  // Invisible hover capture rect over price plot area for crosshair + tooltip
-  const hoverRect = `<rect class="pc-hover-rect" id="pc-hover-rect" x="${geom.x0}" y="${geom.y0}" width="${geom.innerW}" height="${geom.innerH}"/>`;
-  // Placeholders for crosshair + tooltip (positioned by JS on mousemove)
-  const overlay = `
-    <g id="pc-overlay" style="display:none">
-      <line id="pc-crosshair" class="pc-crosshair" x1="0" y1="${geom.y0}" x2="0" y2="${geom.y0 + geom.innerH}"/>
-      <g id="pc-tooltip" transform="translate(0,0)">
-        <rect class="pc-tooltip-box" id="pc-tooltip-box" x="0" y="0" width="90" height="38"/>
-        <text class="pc-tooltip-date" id="pc-tooltip-date" x="8" y="14">2024-01</text>
-        <text class="pc-tooltip-price" id="pc-tooltip-price" x="8" y="30">$0.00</text>
-      </g>
-    </g>
-  `;
-
-  const svg = `
-    <svg class="pc-svg" viewBox="0 0 ${PC_VB_W} ${geom.vbH}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      ${gridLines}
-      ${xGrid}
-      <line class="pc-axis" x1="${geom.x0}" y1="${geom.y0 + geom.innerH}" x2="${geom.x0 + geom.innerW}" y2="${geom.y0 + geom.innerH}"/>
-      <path class="pc-history" d="${d.trim()}"/>
-      <line class="pc-line-baseline" x1="${geom.x0}" y1="${yBaseline}" x2="${xLineEnd}" y2="${yBaseline}"/>
-      ${adjustedLineSvg}
-      <line class="pc-line-actual" x1="${geom.x0}" y1="${yActual}" x2="${xLineEnd}" y2="${yActual}"/>
-      <text class="pc-line-label baseline" x="${labelX}" y="${(parseFloat(yBaseline) + 3).toFixed(2)}">DCF · $${refs.baseline.toFixed(2)}</text>
-      <text class="pc-line-label actual" x="${labelX}" y="${(parseFloat(yActual) + 3).toFixed(2)}">MKT · $${refs.actual.toFixed(2)}</text>
-      ${yLabels}
-      ${xLabels}
-      ${volSvg}
-      ${overlay}
-      ${hoverRect}
-    </svg>
-  `;
-  host.innerHTML = svg;
-  _pcApplyLabelOverlap(refs);
-  _pcBindHover(points, geom);
-}
-
-/* Detect ADJ vs BASELINE label collision and merge into a single accent label */
-function _pcApplyLabelOverlap(refs) {
-  const baselineLabel = document.querySelector('.pc-line-label.baseline');
-  const adjLabel = document.getElementById('pc-label-adjusted');
-  if (!baselineLabel || !adjLabel || refs == null || refs.adjusted == null) {
-    if (baselineLabel) baselineLabel.classList.remove('hidden');
-    if (adjLabel) {
-      adjLabel.classList.remove('merged');
-      if (refs && refs.adjusted != null) adjLabel.textContent = 'ADJ · $' + refs.adjusted.toFixed(2);
-    }
-    return;
-  }
-  const yBaseline = parseFloat(baselineLabel.getAttribute('y'));
-  const yAdj = parseFloat(adjLabel.getAttribute('y'));
-  if (Math.abs(yAdj - yBaseline) < PC_OVERLAP_PX) {
-    baselineLabel.classList.add('hidden');
-    adjLabel.classList.add('merged');
-    adjLabel.textContent = 'ADJ = DCF · $' + refs.adjusted.toFixed(2);
-  } else {
-    baselineLabel.classList.remove('hidden');
-    adjLabel.classList.remove('merged');
-    adjLabel.textContent = 'ADJ · $' + refs.adjusted.toFixed(2);
-  }
-}
-
-/* Bind crosshair + tooltip to the price plot */
-function _pcBindHover(points, geom) {
-  const svg = document.querySelector('#pc-svg-host .pc-svg');
-  const hoverRect = document.getElementById('pc-hover-rect');
-  const overlay = document.getElementById('pc-overlay');
-  const crosshair = document.getElementById('pc-crosshair');
-  const tooltipG = document.getElementById('pc-tooltip');
-  const dateEl = document.getElementById('pc-tooltip-date');
-  const priceEl = document.getElementById('pc-tooltip-price');
-  const boxEl = document.getElementById('pc-tooltip-box');
-  if (!svg || !hoverRect || !overlay || !crosshair || !tooltipG) return;
-
-  function clientToSvgX(clientX) {
-    const rect = svg.getBoundingClientRect();
-    const ratio = (clientX - rect.left) / rect.width;
-    return ratio * PC_VB_W;
-  }
-  function nearestIndex(svgX) {
-    if (geom.n <= 1) return 0;
-    const innerWStep = geom.innerW / (geom.n - 1);
-    const rawIdx = Math.round((svgX - geom.x0) / innerWStep);
-    return Math.max(0, Math.min(geom.n - 1, rawIdx));
-  }
-  function move(ev) {
-    const svgX = clientToSvgX(ev.clientX);
-    if (svgX < geom.x0 || svgX > geom.x0 + geom.innerW) {
-      overlay.style.display = 'none';
+      setStatus('No data for ' + sourceInput, sourceType);
+      showToast('<strong>' + escapeHTML(sourceInput) + '</strong> not available. Start the backend or use a preset (COST / NVDA / TSLA / Portfolio).');
+      state.busy = false; setBusy(false);
       return;
     }
-    const idx = nearestIndex(svgX);
-    const p = points[idx];
-    if (!p) return;
-    const cx = geom.xForIndex(idx);
-    overlay.style.display = '';
-    crosshair.setAttribute('x1', cx.toFixed(2));
-    crosshair.setAttribute('x2', cx.toFixed(2));
-    const yyyymm = p.date.slice(0, 7);
-    const priceStr = '$' + Number(p.close).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    dateEl.textContent = yyyymm;
-    priceEl.textContent = priceStr;
-    // Size box to content (rough: char width ~7px for 13px mono, ~5.5px for 9px)
-    const wDate = yyyymm.length * 6 + 16;
-    const wPrice = priceStr.length * 7 + 16;
-    const boxW = Math.max(72, wDate, wPrice);
-    boxEl.setAttribute('width', boxW);
-    // Position tooltip: right of cursor +12, top-aligned to plot top +8.
-    // Flip to left if it would overrun the plot right edge.
-    let tx = cx + 12;
-    const plotRight = geom.x0 + geom.innerW;
-    if (tx + boxW > plotRight) tx = cx - 12 - boxW;
-    const ty = geom.y0 + 8;
-    tooltipG.setAttribute('transform', `translate(${tx.toFixed(2)},${ty.toFixed(2)})`);
   }
-  function leave() {
-    overlay.style.display = 'none';
+
+  addCard(card);
+  if (jobId) streamActivity(jobId, card.subject);
+  else { feedReset(card.subject); feedStatus('done', '缓存卡 · 无 live 流(可回放)'); }
+
+  state.busy = false; setBusy(false);
+}
+
+function addCard(card) {
+  // avoid duplicate card_id
+  if (state.cards.some(c => c.card_id === card.card_id)) {
+    state.cards = state.cards.filter(c => c.card_id !== card.card_id);
   }
-  hoverRect.addEventListener('mousemove', move);
-  hoverRect.addEventListener('mouseleave', leave);
+  state.cards.unshift(card);
+  renderCanvas();
 }
 
-function updateChartAdjustedLine() {
-  if (!state.priceChartGeom || !state.data) return;
-  if (state.data.decoder_output.mode === 'boundary') return;
-  const line = document.getElementById('pc-line-adjusted');
-  const label = document.getElementById('pc-label-adjusted');
-  if (!line || !label) return;
-  const refs = _pcGetReferencePrices();
-  if (!refs || refs.adjusted == null) return;
-  // Clamp to chart bounds in case slider drove price beyond yMax (rare but possible)
-  const geom = state.priceChartGeom;
-  const yMax = geom.yMax;
-  const clamped = Math.max(0, Math.min(refs.adjusted, yMax));
-  const y = geom.yForPrice(clamped).toFixed(2);
-  line.setAttribute('y1', y);
-  line.setAttribute('y2', y);
-  label.setAttribute('y', (parseFloat(y) + 3).toFixed(2));
-  label.textContent = 'ADJ · $' + refs.adjusted.toFixed(2);
-  _pcApplyLabelOverlap(refs);
+function removeCard(cardId) {
+  state.cards = state.cards.filter(c => c.card_id !== cardId);
+  state.selected.delete(cardId);
+  // best-effort server delete (ignore failure / fixture ids)
+  fetch('/api/cards/' + encodeURIComponent(cardId), { method: 'DELETE' }).catch(() => {});
+  renderCanvas();
+  renderSelectionUI();
 }
 
-function _pcChooseTicks(min, max, n) {
-  const step = (max - min) / (n - 1);
-  const ticks = [];
-  for (let i = 0; i < n; i++) ticks.push(min + step * i);
-  return ticks;
+/* ============================================================
+   CANVAS RENDER — multiple Bet Cards side-by-side.
+   single  → compact bet card ; portfolio → expanded dashboard.
+   ============================================================ */
+function renderCanvas() {
+  const grid = document.getElementById('card-grid');
+  const empty = document.getElementById('canvas-empty');
+  if (!grid) return;
+  if (!state.cards.length) {
+    grid.innerHTML = '';
+    if (empty) empty.style.display = '';
+  } else {
+    if (empty) empty.style.display = 'none';
+    grid.innerHTML = state.cards.map(c =>
+      c.card_kind === 'portfolio' ? renderPortfolioCard(c) : renderSingleCard(c)
+    ).join('');
+  }
+  const count = document.getElementById('card-count');
+  if (count) count.textContent = state.cards.length + (state.cards.length === 1 ? ' card' : ' cards');
+  bindCardEvents();
+  renderSelectionUI();
 }
 
-function _pcFmtTick(v) {
-  if (v >= 1000) return (v / 1000).toFixed(1) + 'k';
-  if (v >= 100) return v.toFixed(0);
-  if (v >= 10) return v.toFixed(0);
-  return v.toFixed(1);
+function renderSingleCard(c) {
+  const sel = state.selected.has(c.card_id);
+  const d = c._display || {};
+  const dcf = d.baseline_dcf != null ? ('$' + Number(d.baseline_dcf).toLocaleString('en-US', { maximumFractionDigits: 2 })) : '—';
+  const stale = c.trade_date && c.trade_date < todayISO();
+  const bets = (d.bets || []).map((b, i) =>
+    '<div class="bet-row' + (b.nosol ? ' nosol' : '') + '">' +
+      '<span class="idx">' + circled(i + 1) + '</span>' +
+      '<span class="claim">' + escapeHTML(b.metric) +
+        (b.iv ? '<span class="iv">' + escapeHTML(b.iv) + '</span>' : '') +
+      '</span>' +
+      '<span class="nums"><span class="impl">' + escapeHTML(b.impl) + '</span>' +
+        (b.base ? '<span class="base">' + escapeHTML(b.base) + '</span>' : '') +
+      '</span>' +
+    '</div>'
+  ).join('');
+  const chain = (d.chain || []).map(s =>
+    '<div class="chain-step ' + s.t + '"><span class="m">' + escapeHTML(s.m) + '</span><span class="c">' + escapeHTML(s.c) + '</span></div>'
+  ).join('');
+  const exp = state.expanded[c.card_id] || {};
+
+  return '<div class="bet-card' + (sel ? ' selected' : '') + '" data-card="' + escapeHTML(c.card_id) + '">' +
+    '<div class="bc-head">' +
+      '<label class="bc-sel"><input type="checkbox" data-sel="' + escapeHTML(c.card_id) + '"' + (sel ? ' checked' : '') + '></label>' +
+      '<div class="bc-id">' +
+        '<div class="bc-subj">' + escapeHTML(c.subject) + '<span class="bc-badge">' + escapeHTML(badgeLabel(c.source_type)) + '</span></div>' +
+        '<div class="bc-source">' + escapeHTML(c.source_ref || '') + '</div>' +
+      '</div>' +
+      '<div class="bc-dcf">' + (d.baseline_dcf != null ? '<span class="lab">基线 DCF</span><span class="val">' + dcf + '</span>' : '') + '</div>' +
+      '<button class="bc-del" data-del="' + escapeHTML(c.card_id) + '" title="Remove">✕</button>' +
+    '</div>' +
+    (stale ? '<div class="bc-stale"><span class="dot"></span>基于 ' + escapeHTML(c.trade_date) + ' 收盘 · 历史快照</div>' : '') +
+    '<div class="bc-body">' +
+      (bets ? '<div class="bc-intro">要让 <strong>' + escapeHTML(c.subject) + '</strong> 站得住, 市场必须 <strong>同时</strong> 相信:</div>' + bets : '<div class="bc-intro">数据不足 / 暂无隐含假设。</div>') +
+      (d.risks ? '<div class="bc-risks"><span class="lab">关键风险</span>' + escapeHTML(d.risks) + '</div>' : '') +
+    '</div>' +
+    (chain ? '<div class="bc-foot"><button class="tlink" data-chain="' + escapeHTML(c.card_id) + '">▾ 详细决策链</button></div>' +
+      '<div class="bc-expand' + (exp.chain ? ' open' : '') + '" data-chainbody="' + escapeHTML(c.card_id) + '"><h4>决策链</h4>' + chain + '</div>' : '') +
+  '</div>';
 }
 
-function _pcYearTicks(points, geom) {
-  const seen = new Set();
-  const ticks = [];
-  for (let i = 0; i < points.length; i++) {
-    const yr = points[i].date.slice(0, 4);
-    if (!seen.has(yr)) {
-      seen.add(yr);
-      ticks.push({ year: yr, x: geom.xForIndex(i) });
+function renderPortfolioCard(c) {
+  const sel = state.selected.has(c.card_id);
+  const themes = (c.theme_exposures || []).map((t, i) => {
+    const pct = Number(t.exposure_pct || 0);
+    return '<div class="pf-theme t' + (i + 1) + '">' +
+      '<div class="pf-theme-top">' +
+        '<span class="pf-theme-name">' + escapeHTML(t.theme) +
+          (t.is_concentration_risk ? '<span class="risk-tag">集中风险</span>' : '') + '</span>' +
+        '<span class="pf-theme-pct">' + pct + '%</span>' +
+      '</div>' +
+      '<div class="pf-bar"><div class="fill" style="width:' + Math.max(0, Math.min(100, pct)) + '%"></div></div>' +
+      '<div class="pf-contrib">贡献: ' + escapeHTML((t.contributing_tickers || []).join(' · ')) + '</div>' +
+    '</div>';
+  }).join('');
+  const conc = (c.theme_exposures || []).find(t => t.is_concentration_risk);
+  const concHtml = conc ? '<div class="pf-conc"><span class="lab">⚠ 集中风险 (Aha)</span>' +
+    '你的仓位高度集中在 <strong>' + escapeHTML(conc.theme) + '</strong> (' + Number(conc.exposure_pct || 0) + '%) — ' +
+    '看似分散持有 ' + (conc.contributing_tickers || []).length + ' 只票, 实际在<strong>押同一个赌注</strong>。</div>' : '';
+  const holdings = (c.holdings || []).map(h =>
+    '<tr><td class="tk">' + escapeHTML(h.ticker) + '</td><td class="wt r">' + (h.weight_pct != null ? h.weight_pct + '%' : '—') + '</td>' +
+    '<td class="r" style="font-family:var(--mono);color:var(--ink-4);font-size:10px">' + (h.run_id != null ? '→ run ' + h.run_id : '') + '</td></tr>'
+  ).join('');
+  const exp = state.expanded[c.card_id] || {};
+
+  return '<div class="bet-card portfolio' + (sel ? ' selected' : '') + '" data-card="' + escapeHTML(c.card_id) + '">' +
+    '<div class="bc-head">' +
+      '<label class="bc-sel"><input type="checkbox" data-sel="' + escapeHTML(c.card_id) + '"' + (sel ? ' checked' : '') + '></label>' +
+      '<div class="bc-id">' +
+        '<div class="bc-subj">' + escapeHTML(c.subject) + '<span class="bc-badge">Portfolio · ' + (c.holdings || []).length + ' 持仓</span></div>' +
+        '<div class="bc-source">' + escapeHTML(c.source_ref || '') + '</div>' +
+      '</div>' +
+      '<button class="bc-del" data-del="' + escapeHTML(c.card_id) + '" title="Remove">✕</button>' +
+    '</div>' +
+    '<div class="pf-body">' +
+      '<div class="pf-seclab">你的钱实际在 BET 什么</div>' +
+      '<div class="pf-secsub">把各持仓的隐含假设, 按权重聚合到主题级</div>' +
+      (themes || '<div class="bc-intro">无主题暴露数据。</div>') +
+      concHtml +
+    '</div>' +
+    (holdings ? '<div class="bc-foot"><button class="tlink" data-chain="' + escapeHTML(c.card_id) + '">▾ 按持仓展开</button></div>' +
+      '<div class="bc-expand' + (exp.chain ? ' open' : '') + '" data-chainbody="' + escapeHTML(c.card_id) + '"><h4>持仓明细</h4>' +
+      '<table class="pf-holdings"><thead><tr><th>标的</th><th class="r">权重</th><th class="r">单股卡</th></tr></thead><tbody>' + holdings + '</tbody></table></div>' : '') +
+  '</div>';
+}
+
+function bindCardEvents() {
+  document.querySelectorAll('[data-sel]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const id = cb.getAttribute('data-sel');
+      if (cb.checked) state.selected.add(id); else state.selected.delete(id);
+      // reflect selected ring without a full re-render
+      const card = document.querySelector('.bet-card[data-card="' + cssAttr(id) + '"]');
+      if (card) card.classList.toggle('selected', cb.checked);
+      renderSelectionUI();
+    });
+  });
+  document.querySelectorAll('[data-del]').forEach(b => {
+    b.addEventListener('click', () => removeCard(b.getAttribute('data-del')));
+  });
+  document.querySelectorAll('[data-chain]').forEach(b => {
+    b.addEventListener('click', () => {
+      const id = b.getAttribute('data-chain');
+      state.expanded[id] = state.expanded[id] || {};
+      state.expanded[id].chain = !state.expanded[id].chain;
+      const body = document.querySelector('[data-chainbody="' + cssAttr(id) + '"]');
+      if (body) body.classList.toggle('open', state.expanded[id].chain);
+    });
+  });
+}
+
+/* ============================================================
+   SELECTION + SYNTHESIZE TRIGGER
+   ============================================================ */
+function renderSelectionUI() {
+  const n = state.selected.size;
+  const cnt = document.getElementById('synth-sel-count');
+  if (cnt) cnt.textContent = n;
+  const btn = document.getElementById('synth-btn');
+  if (btn) btn.disabled = n < 2 || state.busy;
+}
+
+async function synthesize() {
+  if (state.busy) { showToast('A decode/synthesis is already running.'); return; }
+  const ids = [...state.selected];
+  if (ids.length < 2) { showToast('Select at least 2 cards to synthesize.'); return; }
+  state.busy = true;
+  setStatus('Synthesizing ' + ids.length + ' cards…', 'synthesis');
+  setBusy(true);
+  openSynthPanel(true);
+
+  let result = null;
+  try {
+    const r = await fetch('/api/synthesize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ card_ids: ids, lang: state.lang })
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    result = await r.json();
+    setStatus('Synthesized via API', 'synthesis');
+  } catch (e) {
+    result = JSON.parse(JSON.stringify(FIXTURE_SYNTH));   // dev fixture
+    result.card_ids = ids;
+    setStatus('Synthesized (dev fixture)', 'synthesis');
+  }
+
+  renderSynthesis(result);
+  state.busy = false; setBusy(false);
+  renderSelectionUI();
+}
+
+/* ============================================================
+   SYNTHESIS PANEL RENDER — headline + relation graph + narrative.
+   headline_insight === null → honest empty state (M3 no-relation).
+   ============================================================ */
+function renderSynthesis(res) {
+  const empty = document.getElementById('synth-empty');
+  const wrap = document.getElementById('synth-result');
+  const rels = (res && res.relations) || [];
+  const hasHeadline = res && res.headline_insight && res.headline_insight.text;
+
+  if (!hasHeadline && rels.length === 0) {
+    // graceful empty state — no significant relation
+    if (wrap) wrap.style.display = 'none';
+    if (empty) {
+      empty.style.display = '';
+      empty.innerHTML = '<strong>未发现显著跨卡关系。</strong>' +
+        '这些 bet 之间没有强到值得标注的共识 / 分歧 / 矛盾 / 同源 / 漂移。换两张更相关的卡再试。';
+    }
+    return;
+  }
+
+  if (empty) empty.style.display = 'none';
+  if (wrap) wrap.style.display = '';
+
+  const hl = document.getElementById('synth-headline');
+  if (hl) {
+    if (hasHeadline) {
+      hl.style.display = '';
+      hl.innerHTML = '<span class="lab">Headline insight</span><span class="text">' +
+        (res.headline_insight.text) + '</span>';   // text may carry sanctioned <strong>
+    } else {
+      hl.style.display = 'none';
     }
   }
-  return ticks;
-}
 
-/* ============================================================
-   SHORT-TERM ATTRIBUTION (Section 2.0)
-   Renders a 5-day waterfall consuming response.short_term.
-   If the field is null/missing, renders a placeholder so users
-   can see the section exists but no data has been computed yet.
-   ============================================================ */
-function fmtPctSigned(p) {
-  // p is a fraction (e.g. 0.022 -> "+2.2%")
-  const v = p * 100;
-  const sign = v > 0 ? '+' : (v < 0 ? '' : '±');
-  return sign + v.toFixed(1) + '%';
-}
-
-function renderShortTerm(st, ticker) {
-  // Empty state — keep the section visible so users know the feature exists.
-  if (!st || !Array.isArray(st.factors) || st.factors.length === 0) {
-    return `
-      <section class="section">
-        <div class="sec-h">
-          <span class="ix">2.0</span>
-          <h2>5-day Attribution Waterfall · what moved ${ticker} over the last week.</h2>
-          <span class="meta">EXHIBIT 2.1<br>Short-term factors</span>
-        </div>
-        <p class="sec-lede">
-          Beyond the long-term implied assumptions above, PriceLens decomposes the most recent 5-day price move into mutually exclusive factor contributions: fundamental updates, flow &amp; positioning, macro/rates, news/narrative, and an unexplained residual. The reconciliation row below the table makes the decomposition gap explicit rather than hiding it.
-        </p>
-        <div class="exhibit">
-          <span class="lbl">Exhibit 2.1</span>
-          <span class="title">${ticker} · 5-day attribution waterfall</span>
-          <span class="src">PriceLens · Short-term Attribution Agent</span>
-        </div>
-        <div class="wf-empty">
-          <strong>Short-term attribution not yet computed.</strong><br><br>
-          Run <code>python pipeline.py ${ticker} --short-term</code> to populate this section. The agent will pull 5-day price action, decompose it across factors, and surface the supporting evidence for each contribution.
-        </div>
-      </section>
-    `;
+  const relHost = document.getElementById('synth-relations');
+  if (relHost) {
+    if (rels.length) {
+      relHost.innerHTML =
+        '<table class="rel-table"><thead><tr>' +
+          '<th>Relation</th><th>Pair</th><th class="c">Strength</th><th>Shared assumption / detail</th>' +
+        '</tr></thead><tbody>' +
+        rels.map(rl =>
+          '<tr>' +
+            '<td><span class="rtype ' + escapeHTML(rl.type) + '">' + escapeHTML(rl.type) + '</span></td>' +
+            '<td class="pair">' + escapeHTML(shortId(rl.card_a)) + ' ↔ ' + escapeHTML(shortId(rl.card_b)) + '</td>' +
+            '<td class="c"><span class="strength ' + escapeHTML(rl.strength) + '">' + escapeHTML(rl.strength) + '</span></td>' +
+            '<td>' + escapeHTML(rl.shared_assumption || '') +
+              (rl.detail ? '<br><span style="color:var(--ink-4);font-size:11px">' + escapeHTML(rl.detail) + '</span>' : '') +
+            '</td>' +
+          '</tr>'
+        ).join('') +
+        '</tbody></table>';
+    } else {
+      relHost.innerHTML = '<div class="synth-empty" style="display:block">无可下钻关系明细。</div>';
+    }
   }
 
-  // Active state — render waterfall table.
-  const factors = st.factors;
-  const maxAbs = Math.max(...factors.map(f => Math.abs(f.contribution_pct))) || 1e-9;
+  const narr = document.getElementById('synth-narrative');
+  if (narr) {
+    narr.style.display = res && res.narrative ? '' : 'none';
+    narr.textContent = (res && res.narrative) || '';
+  }
+}
 
-  const rows = factors.map((f, i) => {
-    const ix = String(i + 1).padStart(2, '0');
-    const c = f.contribution_pct;
-    const isUnx = f.name === 'unexplained';
-    const kind = isUnx ? 'unx' : (c >= 0 ? 'pos' : 'neg');
-    const labelParts = (f.label || f.name).split('/');
-    const zh = (labelParts[0] || '').trim();
-    const en = (labelParts[1] || '').trim();
-
-    // Bar: half-width track centered on zero. Width proportional to |c| / maxAbs.
-    const widthPct = (Math.abs(c) / maxAbs) * 50; // up to 50% of track (one half)
-    const barStyle = c >= 0
-      ? `left: 50%; width: ${widthPct.toFixed(2)}%;`
-      : `right: 50%; width: ${widthPct.toFixed(2)}%;`;
-
-    return `
-      <tr>
-        <td class="wf-ix">${ix}</td>
-        <td class="wf-factor">
-          <span class="wf-zh">${zh}</span>
-          ${en ? `<span class="wf-en">${en}</span>` : ''}
-        </td>
-        <td class="wf-contrib ${kind}">${fmtPctSigned(c)}</td>
-        <td class="wf-evidence">${f.evidence_text || ''}</td>
-        <td class="wf-bar-cell">
-          <div class="wf-bar-track">
-            <div class="wf-bar-axis"></div>
-            <div class="wf-bar-fill ${kind}" style="${barStyle}"></div>
-          </div>
-        </td>
-      </tr>
-    `;
-  }).join('');
-
-  const sumFactors = factors.reduce((acc, f) => acc + f.contribution_pct, 0);
-  const actual = st.return_pct;
-  const gap = actual - sumFactors;
-  const actualKind = actual >= 0 ? 'up' : 'down';
-  const sumKind = sumFactors >= 0 ? 'up' : 'down';
-  const gapKind = Math.abs(gap) < 0.0005 ? '' : (gap > 0 ? 'up' : 'down');
-
-  return `
-    <section class="section">
-      <div class="sec-h">
-        <span class="ix">2.0</span>
-        <h2>5-day Attribution Waterfall · what moved ${st.ticker} ${st.start_date} → ${st.end_date}.</h2>
-        <span class="meta">EXHIBIT 2.1<br>${factors.length} factors</span>
-      </div>
-
-      <p class="sec-lede">
-        Beyond the long-term implied assumptions above, PriceLens decomposes the most recent ${st.window_days}-day price move into mutually exclusive factor contributions. The reconciliation row below the table makes the decomposition gap (Σ factors vs actual return) explicit rather than hiding it.
-      </p>
-
-      <div class="st-summary">
-        <span><span class="k">Window</span><span class="v">${st.start_date}</span><span class="sep">→</span><span class="v">${st.end_date}</span></span>
-        <span><span class="k">Price</span><span class="v">${fmtUSD(st.price_start)}</span><span class="sep">→</span><span class="v">${fmtUSD(st.price_end)}</span></span>
-        <span><span class="k">Return</span><span class="v ${actualKind}">${fmtPctSigned(actual)}</span></span>
-      </div>
-
-      <div class="exhibit">
-        <span class="lbl">Exhibit 2.1</span>
-        <span class="title">${st.ticker} · ${st.window_days}-day attribution waterfall</span>
-        <span class="src">PriceLens · Short-term Attribution Agent</span>
-      </div>
-
-      <table class="wf-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Factor</th>
-            <th class="right">Contribution</th>
-            <th>Evidence</th>
-            <th>Visual</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows}
-        </tbody>
-      </table>
-
-      <div class="wf-recon">
-        <span><span class="k">Σ factors</span><span class="v ${sumKind}">${fmtPctSigned(sumFactors)}</span></span>
-        <span class="sep">·</span>
-        <span><span class="k">Actual return</span><span class="v ${actualKind}">${fmtPctSigned(actual)}</span></span>
-        <span class="sep">·</span>
-        <span><span class="k">Gap</span><span class="v ${gapKind}">${fmtPctSigned(gap)}</span></span>
-      </div>
-
-      <div class="exhibit-foot">
-        Note: Contributions are computed by the Short-term Attribution Agent and sum to the actual return up to a residual gap; the gap is reported transparently rather than absorbed into the unexplained bucket. Visual bars are scaled to the largest absolute contribution in the window; the vertical axis marks the zero line.
-      </div>
-    </section>
-  `;
+function openSynthPanel(open) {
+  const content = document.getElementById('synth-content');
+  const chev = document.getElementById('synth-chev');
+  if (content) content.classList.toggle('open', open);
+  if (chev) chev.textContent = open ? '▾' : '▸';
 }
 
 /* ============================================================
-   BOUNDARY MODE BODY
+   SMALL HELPERS
    ============================================================ */
-function renderBoundary(dec) {
-  const b = dec.boundary_explanation || {};
-  const hyps = (b.framework_hypotheses || []).map((h, i) => `
-    <div class="framework-card">
-      <div class="fc-head">
-        <span class="ix">F.${String(i+1).padStart(2,'0')}</span>
-        <span class="name">${h.framework_name}</span>
-      </div>
-      <div class="rationale">${h.rationale}</div>
-      <div class="hint"><span class="h-lbl">Evidence query hint</span>${h.evidence_query_hint}</div>
-    </div>
-  `).join('');
+function setStatus(text, mode) {
+  const t = document.getElementById('status-text');
+  if (t) t.textContent = text;
+  const m = document.getElementById('mode-tag');
+  if (m && mode) m.textContent = mode;
+}
+function setBusy(on) {
+  const btn = document.getElementById('decode-btn');
+  if (btn) btn.disabled = !!on;
+  renderSelectionUI();
+}
+function badgeLabel(src) {
+  return ({ market: 'Market', analyst_pt: 'Analyst PT', opinion: 'Opinion', portfolio: 'Portfolio' })[src] || src;
+}
+function circled(n) {
+  return ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'][n - 1] || ('(' + n + ')');
+}
+function todayISO() { return new Date().toISOString().slice(0, 10); }
+function shortId(id) {
+  const c = state.cards.find(x => x.card_id === id);
+  if (c) return c.subject;
+  return String(id || '').slice(0, 6);
+}
+function cssAttr(s) { return String(s).replace(/"/g, '\\"'); }
 
-  return `
-    <section class="section">
-      <div class="sec-h">
-        <span class="ix">B.0</span>
-        <h2>DCF boundary mode — single-framework explanation has failed.</h2>
-        <span class="meta">B4 · BOUNDARY<br>Multi-framework</span>
-      </div>
-
-      ${renderPriceChartContainer(dec.ticker, 'boundary')}
-
-      <div class="boundary-banner">
-        <span class="icon">⚠</span>
-        <div class="txt">
-          <strong>The current price cannot be explained by a standard single-DCF framework.</strong>
-          <span class="sub">PriceLens has switched into boundary mode. Below: the mathematical facts, candidate alternative frameworks, and a recommended valuation approach.</span>
-        </div>
-      </div>
-
-      <div class="math-facts">
-        <div class="lbl">B.1 · Mathematical facts</div>
-        <p>${b.mathematical_facts || ''}</p>
-      </div>
-
-      <div class="exhibit">
-        <span class="lbl">Exhibit B.1</span>
-        <span class="title">Framework hypotheses — alternative pricing frameworks the market may be using</span>
-        <span class="src">Evidence Hunter · boundary mode</span>
-      </div>
-
-      <div class="framework-list">
-        ${hyps}
-      </div>
-
-      <div class="recommended-alt">
-        <div class="lbl">B.2 · Recommended alternative</div>
-        <p>${b.recommended_alternative || ''}</p>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="sec-h">
-        <span class="ix">B.3</span>
-        <h2>Overall reading.</h2>
-        <span class="meta">SUMMARY</span>
-      </div>
-      <p class="sec-lede">${dec.overall_summary || ''}</p>
-    </section>
-  `;
+/* ============================================================
+   LOAD EXISTING CARDS — GET /api/cards (best effort on boot)
+   ============================================================ */
+async function loadExistingCards() {
+  try {
+    const r = await fetch('/api/cards');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    if (d && Array.isArray(d.cards) && d.cards.length) {
+      state.cards = d.cards;
+      renderCanvas();
+      setStatus('Loaded ' + d.cards.length + ' stored cards', '—');
+    }
+  } catch (_) { /* backend offline — start with an empty canvas */ }
 }
 
 /* ============================================================
-   LANGUAGE TOGGLE
+   LANGUAGE TOGGLE (preserved)
    ============================================================ */
 const disclaimers = {
-  zh: '<strong>Disclaimer.</strong> PriceLens 是研究性工具，展示市场价格背后的隐含假设。所有数值不构成投资建议，使用者需自行判断。',
-  en: '<strong>Disclaimer.</strong> PriceLens is a research tool that decodes implied assumptions behind market prices. Outputs are not investment advice. Use at your own discretion.'
+  zh: '<strong>Disclaimer.</strong> Bet Decoder 是研究性工具，展示价格 / 目标价 / 组合背后的隐含假设。所有数值不构成投资建议，使用者需自行判断。',
+  en: '<strong>Disclaimer.</strong> Bet Decoder is a research tool that decodes implied assumptions behind prices, targets, and portfolios. Outputs are not investment advice. Use at your own discretion.'
 };
-const tips = {
-  baseline: {
-    zh: '基于 DCF 框架的数学解。DCF 框架对成长股 / 早期公司适用性有限。',
-    en: 'Mathematical solution under the DCF framework. DCF has limited applicability for growth / early-stage companies.'
-  }
-};
-
 function setLang(lang) {
   state.lang = lang;
-  document.getElementById('disclaimer-text').innerHTML = disclaimers[lang];
-  document.getElementById('tip-baseline').textContent = tips.baseline[lang];
-  document.getElementById('lang-zh').classList.toggle('active', lang === 'zh');
-  document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+  const d = document.getElementById('disclaimer-text');
+  if (d) d.innerHTML = disclaimers[lang];
+  const z = document.getElementById('lang-zh'), e = document.getElementById('lang-en');
+  if (z) z.classList.toggle('active', lang === 'zh');
+  if (e) e.classList.toggle('active', lang === 'en');
 }
 
 /* ============================================================
-   BIND PICKER & LANG TOGGLE
+   BINDINGS + BOOT
    ============================================================ */
-document.querySelectorAll('.picker .preset').forEach(b => {
-  b.addEventListener('click', () => loadTicker(b.dataset.t));
+function currentSource() {
+  const s = document.getElementById('source-type');
+  return s ? s.value : 'market';
+}
+document.getElementById('decode-btn').addEventListener('click', () => {
+  decodeBet(currentSource(), document.getElementById('bet-input').value);
 });
-document.getElementById('go-btn').addEventListener('click', () => {
-  const v = document.getElementById('ticker-input').value.trim();
-  if (v) loadTicker(v);
+document.getElementById('bet-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') decodeBet(currentSource(), e.target.value);
 });
-document.getElementById('ticker-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    const v = e.target.value.trim();
-    if (v) loadTicker(v);
-  }
+document.querySelectorAll('.composer .preset').forEach(b => {
+  b.addEventListener('click', () => {
+    const src = b.getAttribute('data-src'), inp = b.getAttribute('data-input');
+    const sel = document.getElementById('source-type');
+    if (sel) sel.value = src;
+    const field = document.getElementById('bet-input');
+    if (field) field.value = inp;
+    decodeBet(src, inp);
+  });
+});
+document.getElementById('synth-btn').addEventListener('click', synthesize);
+document.getElementById('synth-bar').addEventListener('click', () => {
+  const open = !document.getElementById('synth-content').classList.contains('open');
+  openSynthPanel(open);
 });
 document.getElementById('lang-zh').addEventListener('click', () => setLang('zh'));
 document.getElementById('lang-en').addEventListener('click', () => setLang('en'));
@@ -3306,7 +2877,8 @@ document.getElementById('lang-en').addEventListener('click', () => setLang('en')
 /* boot */
 setLang('zh');
 initOfflineToggle();
-loadTicker('NVDA');
+renderCanvas();
+loadExistingCards();
 </script>
 
 </body>
