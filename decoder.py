@@ -28,6 +28,7 @@ from dataclasses import dataclass, field, replace
 from typing import Any, Callable, Optional
 
 import db
+import evidence
 import reverse_dcf
 
 # ---------------------------------------------------------------------------
@@ -867,6 +868,35 @@ def _theme_exposures_from_anchor(f: Fundamentals, anchor: float, base: float,
 
 
 # ===========================================================================
+# Step 3 — evidence (Issue #4): non-skippable hook into the decode flow
+# ===========================================================================
+
+def _attach_evidence(card, f: Fundamentals, anchor: float | None,
+                     emit, lang: str, conn, hunter) -> None:
+    """Run Step 3 for a freshly-assembled single card and attach the evidence
+    section to card.decode_detail['evidence'].  Always invoked (no skip flag);
+    evidence.gather_evidence_for_card honestly leaves briefs empty when nothing
+    is found and never raises, so this is safe on every decode path."""
+    detail = getattr(card, "decode_detail", None)
+    if detail is None:
+        return
+    company = getattr(f, "industry", None) or card.subject
+    try:
+        section = evidence.gather_evidence_for_card(
+            card, conn=conn, hunter=hunter, lang=lang,
+            company_name=company, current_price=anchor, emit=emit,
+        )
+    except Exception:
+        # Step 3 must never crash decode; degrade to an honest-empty section.
+        section = {
+            "briefs": [], "assumption_count": 0, "found_count": 0,
+            "empty_count": 0, "cache_hits": 0, "new_hunter_calls": 0,
+            "cost": {"estimated_first_decode_usd": 0.0, "actual_new_call_usd": 0.0},
+        }
+    detail["evidence"] = section
+
+
+# ===========================================================================
 # Public API — decode_bet
 # ===========================================================================
 
@@ -876,9 +906,17 @@ def decode_bet(source_type: str,
                emit=None,
                *,
                llm=None,
-               fundamentals_fn: Callable[[str], Fundamentals] = fetch_fundamentals
+               fundamentals_fn: Callable[[str], Fundamentals] = fetch_fundamentals,
+               conn=None,
+               hunter=None
                ) -> db.BetCard:
     """Decode any bet source into a full BetCard (passive — does NOT store it).
+
+    Three stages (PRD 模块 2 决策 3): Step 1 adapter → Step 2 reverse-solve →
+    Step 3 evidence (Issue #4, evidence.py).  Step 3 is **non-skippable** — it
+    always runs for any decoded single card; there is no flag to disable it.
+    An insufficient card or an empty implied-assumption list simply yields an
+    empty evidence section (honest留空, never fabricated, never raises).
 
     Parameters
     ----------
@@ -894,14 +932,22 @@ def decode_bet(source_type: str,
         cost nothing.
     fundamentals_fn : injectable fundamentals fetcher (default = yfinance).
         Tests pass a stub returning hardcoded Fundamentals.
+    conn : optional SQLite connection for the evidence cache (db.llm_cache,
+        category="evidence").  None ⇒ Step 3 uses a process-local memory cache,
+        so evidence is still hunted+cached, never skipped.
+    hunter : optional injectable evidence hunter callable.  None ⇒ Step 3 uses
+        the real Deep Research client (live path).  Tests inject a stub that
+        returns a written-down brief, so the verify suite costs $0.
 
     Returns a db.BetCard. Never raises on bad / empty input — degrades to a
     "数据不足" card instead.
     """
     if source_type == SOURCE_PORTFOLIO:
-        return _decode_portfolio(source_input, lang, emit, fundamentals_fn, llm=llm)
+        return _decode_portfolio(source_input, lang, emit, fundamentals_fn,
+                                 llm=llm, conn=conn, hunter=hunter)
     if source_type == SOURCE_MARKET:
-        return _decode_market(source_input, lang, emit, fundamentals_fn, llm=llm)
+        return _decode_market(source_input, lang, emit, fundamentals_fn,
+                              llm=llm, conn=conn, hunter=hunter)
 
     # Out-of-scope source types (analyst_pt / opinion = V2, or unknown): return a
     # graceful insufficient card rather than raising — keeps callers crash-free.
@@ -919,7 +965,7 @@ def decode_bet(source_type: str,
 # --- Market single-card path -----------------------------------------------
 
 def _decode_market(source_input, lang, emit,
-                   fundamentals_fn, *, llm=None) -> db.BetCard:
+                   fundamentals_fn, *, llm=None, conn=None, hunter=None) -> db.BetCard:
     ticker = _coerce_subject(source_input)
     if not ticker:
         return _insufficient_card(
@@ -973,7 +1019,7 @@ def _decode_market(source_input, lang, emit,
             ticker, src_ref, anchor, f, emit, lang,
             cross_refs, mode="anchor_primary",
             reason=f"AI 复合体叙事/主题定价 → anchor mode primary(主题={ai_theme})",
-            llm=llm,
+            llm=llm, conn=conn, hunter=hunter,
         )
 
     # Stage 2b — shared core: pick lenses (deterministic) + reverse-solve.
@@ -1000,7 +1046,7 @@ def _decode_market(source_input, lang, emit,
             ticker, src_ref, anchor, f, emit, lang,
             cross_refs=[], mode="anchor_fallback",
             reason="传统估值无法解释该价格,切 anchor mode 对账拆解",
-            llm=llm,
+            llm=llm, conn=conn, hunter=hunter,
         )
 
     _safe_emit(emit, phase="solve", kind="computation",
@@ -1034,6 +1080,9 @@ def _decode_market(source_input, lang, emit,
     _safe_emit(emit, phase="assemble", kind="decision",
                text=f"组装 BetCard 完成({1 + len(cross_results)} 个 lens 视角)",
                subject=ticker, payload=None)
+    # Step 3 — evidence (non-skippable, Issue #4). Hunts every implied
+    # assumption (primary + cross lenses); honest-empty if none found.
+    _attach_evidence(card, f, anchor, emit, lang, conn, hunter)
     return card
 
 
@@ -1041,7 +1090,7 @@ def _decode_market(source_input, lang, emit,
 
 def _assemble_anchor_card(ticker, src_ref, anchor, f, emit, lang,
                           cross_refs: list[dict], *, mode: str, reason: str,
-                          llm=None) -> db.BetCard:
+                          llm=None, conn=None, hunter=None) -> db.BetCard:
     """Build a single BetCard via anchor mode (primary or fallback).
 
     Anchor mode output = base business value + narrative/option components,
@@ -1088,13 +1137,16 @@ def _assemble_anchor_card(ticker, src_ref, anchor, f, emit, lang,
                     f"({len(anchor_detail['components'])} 个叙事/期权成分,"
                     f"{len(anchor_detail['theme_exposures'])} 个主题暴露)",
                subject=ticker, payload=None)
+    # Step 3 — evidence (non-skippable, Issue #4). Each priced narrative/option
+    # component is an implied assumption to research; honest-empty if none found.
+    _attach_evidence(card, f, anchor, emit, lang, conn, hunter)
     return card
 
 
 # --- Portfolio aggregate-card path -----------------------------------------
 
 def _decode_portfolio(source_input, lang, emit,
-                      fundamentals_fn, *, llm=None) -> db.BetCard:
+                      fundamentals_fn, *, llm=None, conn=None, hunter=None) -> db.BetCard:
     holdings_spec = _parse_portfolio(source_input)
     subject = "Portfolio"
 
@@ -1117,7 +1169,8 @@ def _decode_portfolio(source_input, lang, emit,
         holdings.append(db.Holding(ticker=tk, weight_pct=weight))
         # Best-effort decode of each leg (never let one bad ticker sink the card).
         try:
-            leg = _decode_market(tk, lang, None, fundamentals_fn, llm=llm)
+            leg = _decode_market(tk, lang, None, fundamentals_fn,
+                                 llm=llm, conn=conn, hunter=hunter)
             detail = getattr(leg, "decode_detail", None)
             if detail and detail.get("primary_lens"):
                 per_ticker[tk] = detail["primary_lens"]
@@ -1223,6 +1276,14 @@ def _insufficient_card(*, subject: str, source_type: str,
         "status": "insufficient",
         "reason": reason,
         "anchor_price": anchor,
+        # Step 3 still "ran" — there are simply no implied assumptions to research
+        # on a 数据不足 card, so the evidence section is honestly empty (boundary:
+        # source missing → 留空, not error / not skipped).
+        "evidence": {
+            "briefs": [], "assumption_count": 0, "found_count": 0,
+            "empty_count": 0, "cache_hits": 0, "new_hunter_calls": 0,
+            "cost": {"estimated_first_decode_usd": 0.0, "actual_new_call_usd": 0.0},
+        },
     }
     return card
 
