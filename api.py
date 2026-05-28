@@ -14,8 +14,19 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
+import activity
 import db
 from sse import stream_evidence_mock
+
+# Common SSE response headers. X-Accel-Buffering:no defeats nginx proxy
+# buffering; Cache-Control:no-cache + Connection:keep-alive keep the stream
+# open and unbuffered. These (plus per-frame yields in the generator) are the
+# server side of the bug #34 fix — the stream must never be buffered.
+SSE_HEADERS = {
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no",
+}
 
 
 def _offline_mode_enabled() -> bool:
@@ -118,6 +129,108 @@ async def stream_evidence(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# ===========================================================================
+# Module 5 — Agent activity stream (SSE).
+#
+# Three surfaces:
+#   GET  /api/stream/activity/{job_id}     replay a persisted job (timed)
+#   POST /api/stream/decode                live: decode_bet → activity SSE
+#   POST /api/stream/synthesize            live: synthesize_cards → activity SSE
+#
+# The live endpoints run the engine through a single serial JobQueue so the feed
+# only ever plays ONE coherent sequence at a time (a concurrent request waits).
+# Every job ends with a terminal event (done|error). All events are persisted to
+# activity_logs for replay. NO real LLM is required — decode/synthesize fall back
+# to their deterministic / cached paths.
+# ===========================================================================
+
+
+@app.get("/api/stream/activity/{job_id}")
+async def stream_activity_replay(job_id: str, speed: float = 1.0):
+    """Replay a persisted activity job as a timed SSE stream.
+
+    Honors the original inter-event timing (scaled by ``speed``). Unknown /
+    empty job ⇒ a single synthetic error-terminal frame so the client never
+    hangs (bug #34 class: a stream that opens but never closes)."""
+    events = activity.get_activity_log(_db(), job_id)
+    stream = activity.replay_activity_stream(events, speed=speed)
+    return StreamingResponse(stream, media_type="text/event-stream", headers=SSE_HEADERS)
+
+
+@app.post("/api/stream/decode")
+async def stream_decode(body: dict):
+    """Live-decode a single/portfolio bet, streaming the agent's reasoning as an
+    activity SSE. Body: {source_type, source_input, lang?}. The decoded card is
+    persisted by the front-end's /api/decode path; this endpoint streams the
+    *process* and persists the event log. Serialized via the default JobQueue."""
+    if _offline_mode_enabled():
+        return JSONResponse(
+            status_code=503,
+            content={"error_code": "offline_mode", "message": "OFFLINE_MODE active; live decode refused."},
+        )
+    source_type = (body or {}).get("source_type")
+    source_input = (body or {}).get("source_input")
+    lang = (body or {}).get("lang", "zh")
+    if not source_type or source_input is None:
+        return JSONResponse(
+            status_code=400,
+            content={"error_code": "bad_request", "message": "source_type and source_input are required."},
+        )
+
+    import decoder
+
+    job_id = (body or {}).get("job_id") or _new_job_id()
+    subject = source_input if isinstance(source_input, str) else "portfolio"
+    conn = _db()
+
+    def work(emit):
+        return decoder.decode_bet(source_type, source_input, lang, emit=emit, conn=conn)
+
+    stream = activity.live_activity_stream(
+        work, job_id=job_id, source_ref=str(subject), conn=conn,
+        done_text="解码完成",
+    )
+    return StreamingResponse(stream, media_type="text/event-stream", headers=SSE_HEADERS)
+
+
+@app.post("/api/stream/synthesize")
+async def stream_synthesize(body: dict):
+    """Live cross-card synthesis, streaming the relation-engine's steps as an
+    activity SSE. Body: {card_ids: [...], lang?}. Serialized via the default
+    JobQueue. Persists the event log to activity_logs."""
+    if _offline_mode_enabled():
+        return JSONResponse(
+            status_code=503,
+            content={"error_code": "offline_mode", "message": "OFFLINE_MODE active; live synthesis refused."},
+        )
+    card_ids = (body or {}).get("card_ids")
+    lang = (body or {}).get("lang", "zh")
+    if not isinstance(card_ids, list) or len(card_ids) < 1:
+        return JSONResponse(
+            status_code=400,
+            content={"error_code": "bad_request", "message": "card_ids (list) is required."},
+        )
+
+    import synthesizer
+
+    job_id = (body or {}).get("job_id") or _new_job_id()
+    conn = _db()
+
+    def work(emit):
+        return synthesizer.synthesize_cards(card_ids, lang, emit=emit, conn=conn)
+
+    stream = activity.live_activity_stream(
+        work, job_id=job_id, source_ref="+".join(str(c)[:6] for c in card_ids),
+        conn=conn, done_text="综合完成",
+    )
+    return StreamingResponse(stream, media_type="text/event-stream", headers=SSE_HEADERS)
+
+
+def _new_job_id() -> str:
+    import uuid
+    return uuid.uuid4().hex
 
 
 @app.get("/api/price-history/{ticker}")
