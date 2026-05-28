@@ -247,53 +247,6 @@ def run_evidence(ticker: str, assumption: dict, mode: str, company_name: str,
     return parsed, False
 
 
-# ----- Synthesizer -----
-
-def run_synthesizer(rdcf: dict, mode: str, company_name: str,
-                    decoder: dict, evidence_briefs: list, critic_reports: list,
-                    use_cache: bool, offline: bool):
-    cache_key = f"{rdcf['ticker']}_{_hash(rdcf['ticker'], rdcf['current_price'], mode, len(evidence_briefs), len(critic_reports))}"
-    if use_cache:
-        cached = cache_get("synthesizer", cache_key)
-        if cached:
-            print(f"  [cache hit] synthesizer")
-            return cached, True
-
-    if offline:
-        raise RuntimeError(f"Offline mode but no synthesizer cache for {rdcf['ticker']}")
-
-    # Strip _meta from inputs to keep prompt size manageable
-    decoder_lean = {k: v for k, v in decoder.items() if k != "_meta"}
-    briefs_lean = [{k: v for k, v in b.items() if k != "_meta"} for b in evidence_briefs]
-
-    prompt = load_prompt(
-        "prompts/synthesizer.md",
-        LANG="zh",
-        MODE=mode,
-        TICKER=rdcf["ticker"],
-        COMPANY_NAME=company_name,
-        CURRENT_PRICE=f"{rdcf['current_price']}",
-        BASELINE_PRICE=f"{rdcf['baseline_dcf_price']:.2f}",
-        DECODER_OUTPUT_JSON=json.dumps(decoder_lean, ensure_ascii=False, indent=2),
-        EVIDENCE_BRIEFS_JSON=json.dumps(briefs_lean, ensure_ascii=False, indent=2),
-        CRITIC_REPORTS_JSON=json.dumps(critic_reports, ensure_ascii=False, indent=2),
-        ISO_TIMESTAMP=datetime.now(timezone.utc).isoformat(),
-    )
-    print(f"  [api call] synthesizer (chat, ~$0.05-0.20)")
-    raw = call_chat(prompt, model=MODEL_MINI, verbose=False)
-    try:
-        parsed = parse_loose_json(raw["content"])
-    except json.JSONDecodeError as e:
-        parsed = {"error": str(e), "raw_content": raw["content"]}
-    parsed["_meta"] = {
-        "usage": raw["usage"],
-        "cost_usd": raw["cost_usd"],
-        "reasoning_chars": raw["reasoning_chars"],
-    }
-    cache_put("synthesizer", cache_key, parsed, ticker=rdcf["ticker"])
-    return parsed, False
-
-
 # ----- Main -----
 
 def main():
@@ -406,18 +359,16 @@ def main():
             print(f"  {brief.get('assumption_id', '?'):30s}: {report['verdict']:8s} "
                   f"(errors={report['counts']['errors']}, warnings={report['counts']['warnings']})")
 
-    # 6. Synthesizer (chat mode)
+    # 6. Synthesizer — REMOVED.
+    # The legacy single-stock cross-assumption synthesizer was generalized into
+    # Module 3's cross-CARD synthesizer (`synthesizer.synthesize_cards`), which
+    # operates over a *set of BetCards* rather than one ticker's assumptions.
+    # This single-ticker pipeline no longer produces a synthesis blob; the
+    # `synthesis` field stays None (db.save_pipeline_run handles None fine).
+    # `--no-synthesis` is kept as an accepted no-op flag for backward compat.
     synthesis = None
-    if args.no_synthesis:
-        print(f"\n[6/6] SKIPPED synthesizer (--no-synthesis flag)")
-    else:
-        print(f"\n[6/6] Synthesizer (chat mode, MODE={mode})...")
-        synthesis, _cached = run_synthesizer(
-            rdcf, mode, company_name, decoder, evidence_briefs, critic_reports,
-            use_cache, args.offline,
-        )
-        if "headline" in synthesis:
-            print(f"  headline: {synthesis['headline']}")
+    print(f"\n[6/6] Synthesizer step removed (now Module 3 cross-card "
+          f"`synthesize_cards`; this single-ticker run emits no synthesis)")
 
     # 7. Short-term attribution (optional, free — no LLM)
     short_term = None
