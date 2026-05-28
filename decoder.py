@@ -66,6 +66,12 @@ class Fundamentals:
     net_debt: float | None = None            # total debt - cash (EV bridge)
     beta: float | None = None
     growth_rate: float | None = None         # fwd/consensus growth (drives PEG)
+    # --- classification hints (Issue #3, anchor mode gate) ---
+    # `industry` (yfinance sector/industry string) and `tags` (free-form labels)
+    # feed the deterministic AI-composite detector. Both optional / injectable so
+    # tests pin the classification without any network.
+    industry: str | None = None
+    tags: list[str] = field(default_factory=list)
 
     # --- derived predicates the decision tree reads ---
     @property
@@ -145,6 +151,10 @@ def fetch_fundamentals(ticker: str) -> Fundamentals:
         except (TypeError, ValueError):
             return None
 
+    industry = " / ".join(
+        str(info.get(k)) for k in ("sector", "industry") if info.get(k)
+    ) or None
+
     return Fundamentals(
         ticker=ticker,
         current_price=_f("currentPrice") or _f("regularMarketPrice"),
@@ -158,6 +168,8 @@ def fetch_fundamentals(ticker: str) -> Fundamentals:
         net_debt=net_debt,
         beta=_f("beta") or 1.0,
         growth_rate=_f("earningsGrowth") or _f("revenueGrowth"),
+        industry=industry,
+        tags=[],
     )
 
 
@@ -335,6 +347,234 @@ def _lens_dcf(anchor: float, f: Fundamentals) -> dict | None:
 
 
 # ===========================================================================
+# AI-composite detector (anchor-mode front gate — Issue #3 decision 9)
+# ===========================================================================
+#
+# PRD 模块 2 决策 9: when the subject is an "AI 复合体" (GPU / 存储 / 光模块 /
+# AI 应用), narrative/theme pricing dominates and anchor mode is the *primary*
+# decode — NOT a fallback.  The gate is a deterministic keyword/tag rule so the
+# same subject always classifies the same way (no LLM, reproducible, free).
+#
+# We match against: explicit `tags`, the `industry` string, and a small ticker
+# whitelist for the canonical AI-complex names used in the demo.  Keep this
+# conservative — a *normal* stock must never be mis-gated into anchor mode.
+
+# Theme buckets → the keywords that imply membership in the AI complex.
+AI_COMPOSITE_THEMES: dict[str, tuple[str, ...]] = {
+    "AI 基础设施": (
+        "gpu", "accelerator", "ai chip", "ai 芯片", "datacenter",
+        "data center", "数据中心", "ai infrastructure", "ai 基础设施",
+    ),
+    "存储": ("hbm", "memory", "dram", "nand", "存储", "storage"),
+    "光模块": ("optical", "transceiver", "光模块", "光通信", "silicon photonics"),
+    "AI 应用": ("ai application", "ai 应用", "generative ai", "llm", "copilot"),
+}
+
+def _ai_theme_for(text: str) -> str | None:
+    """Return the AI-complex theme a lowercased text matches, or None."""
+    low = text.lower()
+    for theme, kws in AI_COMPOSITE_THEMES.items():
+        if any(kw in low for kw in kws):
+            return theme
+    return None
+
+
+def is_ai_composite(f: Fundamentals) -> tuple[bool, str | None]:
+    """Deterministic AI-complex classification (PRD 决策 9).
+
+    Returns (is_composite, theme).  Decision order:
+      1. any explicit tag matches an AI theme keyword
+      2. the industry string matches an AI theme keyword
+    Otherwise (False, None).
+
+    The gate keys off *classification signals* (industry / tags) that
+    `fetch_fundamentals` populates from yfinance — NOT a bare ticker whitelist.
+    This keeps it conservative (a normal ticker with no AI signal never trips
+    the gate) and reproducible, and it does not collide with the traditional
+    decision tree's ticker-agnostic lens selection.
+    """
+    for tag in (f.tags or []):
+        theme = _ai_theme_for(str(tag))
+        if theme:
+            return True, theme
+    if f.industry:
+        theme = _ai_theme_for(f.industry)
+        if theme:
+            return True, theme
+    return False, None
+
+
+# ===========================================================================
+# Anchor-lens registry (2nd tier — TAM / 期权 / 类比 / 叙事)
+# ===========================================================================
+#
+# Anchor lenses decode the *psychological anchor* a trader prices off when
+# traditional valuation breaks (or when narrative dominates).  Each one turns
+# the gap between the anchor price and a base business value into a priced
+# narrative/option component.
+#
+# Cost discipline (Issue #3): every anchor lens takes an optional `llm` hook
+# that defaults to None.  With llm=None the lens emits a deterministic stub
+# component (no Deep Research call, zero API cost) so tests are pinned + free.
+# A real MiroMind Deep Research client can be injected later to ground the
+# claim/probability/evidence in live research.
+
+# An anchor lens solve takes (gap_value, anchor, base_value, f, llm) and returns
+# a *component* dict in the generalized Bet schema, or None to abstain.
+AnchorSolve = Callable[[float, float, float, Fundamentals, Any], Optional[dict]]
+
+
+@dataclass
+class AnchorLens:
+    key: str
+    label: str
+    solve: AnchorSolve
+
+
+ANCHOR_LENS_REGISTRY: dict[str, AnchorLens] = {}
+
+
+def anchor_lens(key: str, label: str) -> Callable[[AnchorSolve], AnchorSolve]:
+    """Register a 2nd-tier anchor lens by `key`."""
+    def _register(fn: AnchorSolve) -> AnchorSolve:
+        ANCHOR_LENS_REGISTRY[key] = AnchorLens(key=key, label=label, solve=fn)
+        return fn
+    return _register
+
+
+def register_anchor_lens(lens_obj: AnchorLens) -> None:
+    """Imperative anchor-lens registration."""
+    ANCHOR_LENS_REGISTRY[lens_obj.key] = lens_obj
+
+
+def _anchor_component(*, lens_key: str, lens_label: str, claim: str,
+                      implied_amount: float, implied_assumption: str,
+                      probability: float | None = None,
+                      theme: str | None = None,
+                      evidence: list | None = None) -> dict:
+    """Uniform anchor-component envelope — a generalized Bet (M1 schema), NOT a
+    new top-level structure.  `evidence` defaults to an honest empty placeholder
+    (Issue #4 fills it; we never fabricate)."""
+    return {
+        "lens": lens_key,
+        "lens_label": lens_label,
+        "claim": claim,
+        "implied_amount": float(implied_amount),     # $/share this component prices
+        "implied_assumption": implied_assumption,    # what you must believe
+        "probability": probability,                  # implied prob (None if n/a)
+        "theme": theme,                              # AI-complex theme tag (R1)
+        "evidence": list(evidence or []),            # placeholder until #4
+    }
+
+
+@anchor_lens("narrative", "叙事锚")
+def _anchor_narrative(gap: float, anchor: float, base_value: float,
+                      f: Fundamentals, llm) -> dict | None:
+    """Narrative anchor: the slice of price the growth/AI story carries beyond
+    the base business value.  Deterministic stub when llm is None."""
+    if gap <= 0:
+        return None
+    if llm is not None:  # pragma: no cover - real Deep Research path (not in tests)
+        return _anchor_via_llm("narrative", "叙事锚", gap, anchor, base_value, f, llm)
+    is_ai, theme = is_ai_composite(f)
+    return _anchor_component(
+        lens_key="narrative", lens_label="叙事锚",
+        claim="市场为 AI 增长叙事支付的溢价" if is_ai else "市场为增长叙事支付的溢价",
+        implied_amount=gap,
+        implied_assumption="叙事兑现:增长曲线显著超过传统估值锚定的水平",
+        probability=None,
+        theme=theme or "增长叙事",
+    )
+
+
+@anchor_lens("option", "期权锚")
+def _anchor_option(gap: float, anchor: float, base_value: float,
+                   f: Fundamentals, llm) -> dict | None:
+    """Option anchor: price the call-option-like upside on a low-probability,
+    high-payoff outcome.  Stub splits a slice of the gap as option value."""
+    if gap <= 0:
+        return None
+    if llm is not None:  # pragma: no cover - real Deep Research path
+        return _anchor_via_llm("option", "期权锚", gap, anchor, base_value, f, llm)
+    return _anchor_component(
+        lens_key="option", lens_label="期权锚",
+        claim="对小概率、高赔付结局的看涨期权式定价",
+        implied_amount=gap,
+        implied_assumption="存在尾部上行情景(新市场/平台级突破)被市场以期权方式计价",
+        probability=0.25,   # stub implied probability — replaced by #4 evidence
+    )
+
+
+@anchor_lens("tam", "TAM 锚")
+def _anchor_tam(gap: float, anchor: float, base_value: float,
+                f: Fundamentals, llm) -> dict | None:
+    """TAM anchor: price implies capturing a slice of a large addressable market.
+    Stub expresses the gap as an implied incremental-TAM-capture component."""
+    if gap <= 0:
+        return None
+    if llm is not None:  # pragma: no cover - real Deep Research path
+        return _anchor_via_llm("tam", "TAM 锚", gap, anchor, base_value, f, llm)
+    return _anchor_component(
+        lens_key="tam", lens_label="TAM 锚",
+        claim="价格隐含对一个远大于当前营收的可寻址市场的份额捕获",
+        implied_amount=gap,
+        implied_assumption="目标 TAM 在预测期内大幅扩张且公司维持/扩大份额",
+    )
+
+
+@anchor_lens("analogy", "类比锚")
+def _anchor_analogy(gap: float, anchor: float, base_value: float,
+                    f: Fundamentals, llm) -> dict | None:
+    """Analogy anchor: price anchored to a comparable historical winner's
+    trajectory.  Stub frames the gap as a comparable-path premium."""
+    if gap <= 0:
+        return None
+    if llm is not None:  # pragma: no cover - real Deep Research path
+        return _anchor_via_llm("analogy", "类比锚", gap, anchor, base_value, f, llm)
+    return _anchor_component(
+        lens_key="analogy", lens_label="类比锚",
+        claim="价格类比于某个历史赢家的成长轨迹",
+        implied_amount=gap,
+        implied_assumption="本标的将复制对标公司的份额/利润轨迹",
+    )
+
+
+def _anchor_via_llm(key, label, gap, anchor, base_value, f, llm):  # pragma: no cover
+    """Deep Research grounded anchor component (live path, not exercised by the
+    zero-cost test suite).  Kept thin + isolated so the deterministic path above
+    never accidentally hits the network/API.  The injected `llm` is expected to
+    expose a `call_deepresearch(prompt)->dict` interface (see client.py)."""
+    prompt = (
+        f"Decode the ${gap:,.2f}/share gap between {f.ticker}'s anchor price "
+        f"${anchor:,.2f} and its base business value ${base_value:,.2f} under "
+        f"the '{label}' frame. Return claim, implied_amount, implied_assumption, "
+        f"probability, evidence."
+    )
+    try:
+        res = llm.call_deepresearch(prompt)
+    except Exception:
+        # Live failure must not crash decode — degrade to the deterministic stub.
+        return _anchor_component(
+            lens_key=key, lens_label=label,
+            claim=f"{label}成分(Deep Research 失败,留空)",
+            implied_amount=gap,
+            implied_assumption="(证据查询失败,诚实留空)",
+        )
+    return _anchor_component(
+        lens_key=key, lens_label=label,
+        claim=res.get("claim", f"{label}成分"),
+        implied_amount=res.get("implied_amount", gap),
+        implied_assumption=res.get("implied_assumption", ""),
+        probability=res.get("probability"),
+        evidence=res.get("evidence") or [],
+    )
+
+
+# Deterministic priority order in which anchor lenses are tried for the gap.
+_ANCHOR_PRIORITY = ["narrative", "option", "tam", "analogy"]
+
+
+# ===========================================================================
 # Frame-adaptive lens selection (deterministic decision tree)
 # ===========================================================================
 
@@ -480,6 +720,153 @@ def _run_plan(plan: LensPlan, anchor: float, f: Fundamentals,
 
 
 # ===========================================================================
+# Anchor mode (Issue #3) — base value + narrative/option components + 对账
+# ===========================================================================
+
+# How close Σ(components) + base must land to the anchor to call it reconciled.
+_RECON_TOL_PCT = 0.01  # 1% of anchor
+
+
+def _base_business_value(anchor: float, f: Fundamentals,
+                         cross_results: list[dict]) -> tuple[float, str]:
+    """Conservative *base business value* the traditional lenses can defend.
+
+    Preference order:
+      1. DCF consensus baseline price (the business-value floor, R2-bearing)
+      2. a conservative multiple-implied value (rare fallback)
+      3. 0 (no defensible base → the whole price is narrative/option)
+
+    Returns (base_value, source_label).  The base is clamped to [0, anchor] so
+    the residual gap that anchor lenses decompose is always non-negative.
+    """
+    base = 0.0
+    src = "none"
+    # Look for a DCF view among already-solved cross lenses first.
+    dcf_view = next((r for r in cross_results if r.get("lens") == "dcf"), None)
+    if dcf_view is None:
+        # Run DCF explicitly to obtain its consensus baseline (business value).
+        dcf_view = _run_lens("dcf", anchor, f)
+    if dcf_view is not None and dcf_view.get("baseline_dcf_price") is not None:
+        base = float(dcf_view["baseline_dcf_price"])
+        src = "dcf_baseline"
+    # Clamp: a base above the anchor (DCF says undervalued) means anchor mode has
+    # no narrative gap to decompose; clamp to anchor so the gap floors at 0.
+    base = max(0.0, min(base, anchor))
+    return base, src
+
+
+def _run_anchor_mode(anchor: float, f: Fundamentals, emit, subject: str,
+                     cross_results: list[dict], *, llm=None) -> dict:
+    """Decode an anchor-priced bet into base business value + priced
+    narrative/option components, reconciled to the anchor price.
+
+    Returns an anchor-mode detail dict:
+        {
+          "anchor_price", "base_business_value", "base_source",
+          "components": [generalized-Bet component, ...],
+          "reconciliation": {"sum": .., "anchor": .., "residual": ..,
+                             "reconciled": bool, "tolerance": ..},
+          "theme_exposures": [db.ThemeExposure, ...],   # R1
+        }
+    Each component reuses the generalized Bet schema (claim / implied_amount /
+    implied_assumption / probability / evidence) — no new top-level structure.
+    """
+    base, base_src = _base_business_value(anchor, f, cross_results)
+    gap = max(0.0, anchor - base)
+
+    _safe_emit(emit, phase="anchor_base", kind="computation",
+               text=f"基础业务价值={base:.2f}({base_src}),叙事/期权待对账缺口={gap:.2f}",
+               subject=subject, payload={"base": base, "gap": gap})
+
+    components: list[dict] = []
+    if gap > 0:
+        # Run anchor lenses in priority order; first applicable component takes
+        # the residual gap (so Σ reconciles exactly).  Each lens may abstain.
+        for key in _ANCHOR_PRIORITY:
+            lens_obj = ANCHOR_LENS_REGISTRY.get(key)
+            if lens_obj is None:
+                continue
+            try:
+                comp = lens_obj.solve(gap, anchor, base, f, llm)
+            except Exception:
+                comp = None
+            if comp is not None:
+                components.append(comp)
+                _safe_emit(emit, phase="anchor_component", kind="decision",
+                           text=f"{comp['lens_label']} → 隐含 ${comp['implied_amount']:.2f}",
+                           subject=subject, payload=comp)
+                break  # one component carries the residual (keeps Σ exact)
+
+    # 加总对账: base + Σ(component implied_amount) ≈ anchor.
+    comp_sum = sum(c["implied_amount"] for c in components)
+    total = base + comp_sum
+    residual = anchor - total
+    reconciled = abs(residual) <= max(_RECON_TOL_PCT * anchor, 1e-6)
+
+    _safe_emit(emit, phase="anchor_reconcile", kind="computation",
+               text=f"对账:基础 {base:.2f} + 成分 {comp_sum:.2f} = {total:.2f} "
+                    f"≈ 锚价 {anchor:.2f}(残差 {residual:.2f},{'通过' if reconciled else '超容差'})",
+               subject=subject,
+               payload={"sum": total, "anchor": anchor, "residual": residual,
+                        "reconciled": reconciled})
+
+    # R1 — theme exposures off the priced narrative/anchor components.
+    theme_exposures = _theme_exposures_from_anchor(f, anchor, base, components)
+
+    return {
+        "base_business_value": base,
+        "base_source": base_src,
+        "components": components,
+        "reconciliation": {
+            "sum": total,
+            "anchor": anchor,
+            "residual": residual,
+            "reconciled": reconciled,
+            "tolerance": max(_RECON_TOL_PCT * anchor, 1e-6),
+        },
+        "theme_exposures": theme_exposures,
+    }
+
+
+def _theme_exposures_from_anchor(f: Fundamentals, anchor: float, base: float,
+                                 components: list[dict]) -> list[db.ThemeExposure]:
+    """R1: turn priced anchor components into card-level ThemeExposure rows.
+
+    Exposure % = component implied_amount / anchor (the share of price the theme
+    carries).  An AI-composite subject always gets at least one row tagged with
+    its AI theme so M3 同源比对 has a comparable handle.
+    """
+    rows: list[db.ThemeExposure] = []
+    is_ai, ai_theme = is_ai_composite(f)
+    for c in components:
+        amt = c.get("implied_amount") or 0.0
+        if amt <= 0:
+            continue
+        theme = c.get("theme") or (ai_theme if is_ai else c.get("lens_label"))
+        if not theme:
+            continue
+        pct = (amt / anchor * 100.0) if anchor else None
+        rows.append(db.ThemeExposure(
+            theme=theme,
+            exposure_pct=round(pct, 2) if pct is not None else None,
+            contributing_tickers=[f.ticker],
+            is_concentration_risk=bool(pct is not None and pct >= 50.0),
+        ))
+    # Guarantee an AI-infra theme row for AI composites even if components used a
+    # narrower theme label (so NVDA-style cards always expose "AI 基础设施").
+    if is_ai and ai_theme and not any(r.theme == ai_theme for r in rows):
+        narrative_amt = sum(c.get("implied_amount") or 0.0 for c in components)
+        pct = (narrative_amt / anchor * 100.0) if anchor else None
+        rows.append(db.ThemeExposure(
+            theme=ai_theme,
+            exposure_pct=round(pct, 2) if pct is not None else None,
+            contributing_tickers=[f.ticker],
+            is_concentration_risk=bool(pct is not None and pct >= 50.0),
+        ))
+    return rows
+
+
+# ===========================================================================
 # Public API — decode_bet
 # ===========================================================================
 
@@ -512,9 +899,9 @@ def decode_bet(source_type: str,
     "数据不足" card instead.
     """
     if source_type == SOURCE_PORTFOLIO:
-        return _decode_portfolio(source_input, lang, emit, fundamentals_fn)
+        return _decode_portfolio(source_input, lang, emit, fundamentals_fn, llm=llm)
     if source_type == SOURCE_MARKET:
-        return _decode_market(source_input, lang, emit, fundamentals_fn)
+        return _decode_market(source_input, lang, emit, fundamentals_fn, llm=llm)
 
     # Out-of-scope source types (analyst_pt / opinion = V2, or unknown): return a
     # graceful insufficient card rather than raising — keeps callers crash-free.
@@ -532,7 +919,7 @@ def decode_bet(source_type: str,
 # --- Market single-card path -----------------------------------------------
 
 def _decode_market(source_input, lang, emit,
-                   fundamentals_fn) -> db.BetCard:
+                   fundamentals_fn, *, llm=None) -> db.BetCard:
     ticker = _coerce_subject(source_input)
     if not ticker:
         return _insufficient_card(
@@ -566,7 +953,30 @@ def _decode_market(source_input, lang, emit,
             reason="无有效现价(锚价)", emit=emit,
         )
 
-    # Stage 2 — shared core: pick lenses (deterministic) + reverse-solve.
+    src_ref = str(source_input) if not isinstance(source_input, dict) else ticker
+
+    # Stage 2a — front gate (Issue #3 决策 9): narrative/theme-priced subjects
+    # (AI 复合体: GPU/存储/光模块/AI 应用) → anchor mode is PRIMARY, traditional
+    # lenses demote to cross-reference.  Deterministic classification, no LLM.
+    is_ai, ai_theme = is_ai_composite(f)
+    if is_ai:
+        _safe_emit(emit, phase="frame_gate", kind="decision",
+                   text=f"识别为 AI 复合体(主题={ai_theme})→ anchor mode 作 primary,"
+                        f"传统 lens 降为交叉参考",
+                   subject=ticker, payload={"ai_theme": ai_theme})
+        # Still run traditional lenses for cross-reference (their divergence is
+        # part of the story), but they don't drive the bet.
+        plan = select_lenses(f)
+        cross_primary, cross_extra = _run_plan(plan, anchor, f, None, ticker)
+        cross_refs = [c for c in ([cross_primary] + cross_extra) if c]
+        return _assemble_anchor_card(
+            ticker, src_ref, anchor, f, emit, lang,
+            cross_refs, mode="anchor_primary",
+            reason=f"AI 复合体叙事/主题定价 → anchor mode primary(主题={ai_theme})",
+            llm=llm,
+        )
+
+    # Stage 2b — shared core: pick lenses (deterministic) + reverse-solve.
     plan = select_lenses(f)
     _safe_emit(emit, phase="lens_select", kind="decision",
                text=f"选 lens:{plan.reason}", subject=ticker,
@@ -581,12 +991,16 @@ def _decode_market(source_input, lang, emit,
     primary_result, cross_results = _run_plan(plan, anchor, f, emit, ticker)
 
     if primary_result is None:
-        # Every applicable lens returned no solution → this is the DCF-boundary
-        # / anchor-mode trigger (Issue #3).  Here we degrade honestly.
-        return _insufficient_card(
-            subject=ticker, source_type=SOURCE_MARKET, source_ref=ticker,
-            reason="所有适用 lens 反解无解(传统估值无法解释该价格,候选 anchor mode)",
-            emit=emit, anchor=anchor,
+        # Every applicable traditional lens returned no solution (TSLA-style:
+        # DCF/multiples can't explain the price) → anchor mode as FALLBACK.
+        _safe_emit(emit, phase="anchor_fallback", kind="decision",
+                   text="所有适用传统 lens 反解无解 → 切 anchor mode(对账拆解)",
+                   subject=ticker)
+        return _assemble_anchor_card(
+            ticker, src_ref, anchor, f, emit, lang,
+            cross_refs=[], mode="anchor_fallback",
+            reason="传统估值无法解释该价格,切 anchor mode 对账拆解",
+            llm=llm,
         )
 
     _safe_emit(emit, phase="solve", kind="computation",
@@ -602,12 +1016,13 @@ def _decode_market(source_input, lang, emit,
         subject=ticker,
         source_type=SOURCE_MARKET,
         card_kind=db.SINGLE,
-        source_ref=str(source_input) if not isinstance(source_input, dict) else ticker,
+        source_ref=src_ref,
         bet=float(primary_result["implied_value"]),
     )
     # Attach decode detail as a plain attribute (not persisted by save_card, but
     # available to the caller / M4 in-process).  Keeps decode_bet self-contained.
     card.decode_detail = {                       # type: ignore[attr-defined]
+        "mode": "traditional",
         "anchor_price": anchor,
         "anchor_type": "market",
         "primary_lens": primary_result,
@@ -622,10 +1037,64 @@ def _decode_market(source_input, lang, emit,
     return card
 
 
+# --- Anchor-mode single-card assembler -------------------------------------
+
+def _assemble_anchor_card(ticker, src_ref, anchor, f, emit, lang,
+                          cross_refs: list[dict], *, mode: str, reason: str,
+                          llm=None) -> db.BetCard:
+    """Build a single BetCard via anchor mode (primary or fallback).
+
+    Anchor mode output = base business value + narrative/option components,
+    reconciled to the anchor (PRD 决策 10).  The card's `bet` carries the share
+    of price the narrative/anchor components explain (a single comparable scalar
+    for M3); R1 theme_exposures are attached to the card; R2 DCF band rides on
+    decode_detail (and is persistable through runs.rdcf_intervals which already
+    has p25/p75 columns)."""
+    anchor_detail = _run_anchor_mode(anchor, f, emit, ticker, cross_refs, llm=llm)
+
+    # `bet` = narrative/anchor share of price (the comparable scalar). Falls back
+    # to the anchor itself if no components (degenerate: whole price is base).
+    comp_sum = sum(c["implied_amount"] for c in anchor_detail["components"])
+    bet_value = float(comp_sum) if anchor_detail["components"] else None
+
+    card = db.BetCard(
+        subject=ticker,
+        source_type=SOURCE_MARKET,
+        card_kind=db.SINGLE,
+        source_ref=src_ref,
+        bet=bet_value,
+        # R1: anchor-mode theme exposures attached so save_card persists them.
+        theme_exposures=anchor_detail["theme_exposures"],
+    )
+
+    # R2: surface the DCF Monte-Carlo band from any DCF cross-reference so M3 can
+    # read it.  Lives on decode_detail; the band's p25/p75 persist via the
+    # existing runs.rdcf_intervals columns when the caller wires a run.
+    dcf_view = next((c for c in cross_refs if c.get("lens") == "dcf"), None)
+    r2_band = dcf_view.get("band") if dcf_view else None
+
+    card.decode_detail = {                       # type: ignore[attr-defined]
+        "mode": mode,                            # anchor_primary | anchor_fallback
+        "anchor_price": anchor,
+        "anchor_type": "market",
+        "reason": reason,
+        "anchor_mode": anchor_detail,            # base + components + 对账
+        "cross_lenses": cross_refs,              # traditional lenses (reference)
+        "r2_band": r2_band,                      # R2 (p25/p50/p75) | None
+        "lang": lang,
+    }
+    _safe_emit(emit, phase="assemble", kind="decision",
+               text=f"组装 anchor-mode BetCard 完成"
+                    f"({len(anchor_detail['components'])} 个叙事/期权成分,"
+                    f"{len(anchor_detail['theme_exposures'])} 个主题暴露)",
+               subject=ticker, payload=None)
+    return card
+
+
 # --- Portfolio aggregate-card path -----------------------------------------
 
 def _decode_portfolio(source_input, lang, emit,
-                      fundamentals_fn) -> db.BetCard:
+                      fundamentals_fn, *, llm=None) -> db.BetCard:
     holdings_spec = _parse_portfolio(source_input)
     subject = "Portfolio"
 
@@ -648,10 +1117,13 @@ def _decode_portfolio(source_input, lang, emit,
         holdings.append(db.Holding(ticker=tk, weight_pct=weight))
         # Best-effort decode of each leg (never let one bad ticker sink the card).
         try:
-            leg = _decode_market(tk, lang, None, fundamentals_fn)
+            leg = _decode_market(tk, lang, None, fundamentals_fn, llm=llm)
             detail = getattr(leg, "decode_detail", None)
             if detail and detail.get("primary_lens"):
                 per_ticker[tk] = detail["primary_lens"]
+            elif detail and detail.get("anchor_mode"):
+                # Anchor-mode leg: surface its anchor detail for R1 aggregation.
+                per_ticker[tk] = {"lens": "anchor", "anchor_mode": detail["anchor_mode"]}
         except Exception:
             pass
 
