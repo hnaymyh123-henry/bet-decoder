@@ -14,6 +14,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
+import db
 from sse import stream_evidence_mock
 
 
@@ -26,6 +27,17 @@ PRICE_HISTORY_CACHE_DIR = Path(__file__).parent / "cache" / "price_history"
 PRICE_HISTORY_TTL_SECONDS = 24 * 60 * 60  # 1 day
 
 app = FastAPI(title="PriceLens API")
+
+# SQLite-backed storage (v0.6). FastAPI runs sync endpoints in a threadpool,
+# and sqlite3 connections are bound to the thread that created them, so we
+# open a fresh connection per request via _db(). The ensure-schema work in
+# init_db is idempotent (CREATE TABLE IF NOT EXISTS), so the cost is small.
+DB_PATH = "pricelens.db"
+
+
+def _db():
+    return db.init_db(DB_PATH)
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,60 +55,26 @@ def health():
 
 @app.get("/api/tickers")
 def list_tickers():
-    if not OUTPUTS_DIR.exists():
-        return {"tickers": []}
-    tickers = set()
-    for p in OUTPUTS_DIR.glob("*.json"):
-        name = p.stem
-        if "_" in name:
-            tickers.add(name.split("_", 1)[0])
-    return {"tickers": sorted(tickers)}
+    return {"tickers": db.list_tickers(_db())}
 
 
 @app.get("/api/decode/{ticker}")
 def get_decode(ticker: str):
     ticker_upper = ticker.upper()
-    if not OUTPUTS_DIR.exists():
+    data = db.get_latest_run(_db(), ticker_upper)
+    if data is None:
         raise HTTPException(
             status_code=404,
             detail=f"No cached decode for {ticker_upper}. Run python pipeline.py {ticker_upper} --no-evidence first.",
         )
-    matches = sorted(OUTPUTS_DIR.glob(f"{ticker_upper}_*.json"))
-    if not matches:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No cached decode for {ticker_upper}. Run python pipeline.py {ticker_upper} --no-evidence first.",
-        )
-    latest = matches[-1]
-    data = json.loads(latest.read_text(encoding="utf-8"))
     return JSONResponse(content=data)
-
-
-def _find_latest_short_term(ticker_upper: str):
-    """Scan newest-first to find a cached output that has a non-null short_term.
-
-    Fixes QA-A W1: a fresh pipeline run without --short-term would otherwise
-    shadow earlier runs that had it. The window is variable, so we don't filter
-    by window here — caller can read short_term['window_days'].
-    """
-    if not OUTPUTS_DIR.exists():
-        return None
-    matches = sorted(OUTPUTS_DIR.glob(f"{ticker_upper}_*.json"), reverse=True)
-    for p in matches:
-        try:
-            data = json.loads(p.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            continue
-        if data.get("short_term") is not None:
-            return data["short_term"]
-    return None
 
 
 @app.get("/api/decode/{ticker}/short-term")
 def get_short_term(ticker: str):
     """Latest non-null short-term attribution for {ticker}. Window-agnostic."""
     ticker_upper = ticker.upper()
-    st = _find_latest_short_term(ticker_upper)
+    st = db.get_latest_run_with_short_term(_db(), ticker_upper)
     if st is None:
         raise HTTPException(
             status_code=404,

@@ -31,6 +31,7 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+import db
 from client import (
     MODEL_FLAGSHIP,
     MODEL_MINI,
@@ -57,24 +58,25 @@ CACHE_DIR = Path("cache")
 OUTPUTS_DIR = Path("outputs")
 
 
-# ----- Cache layer (G5 foundation) -----
+# ----- Cache layer (SQLite-backed via db.py, v0.6) -----
 
-def _cache_path(category: str, key: str) -> Path:
-    p = CACHE_DIR / category
-    p.mkdir(parents=True, exist_ok=True)
-    return p / f"{key}.json"
+_DB_CONN = None
+
+
+def _conn():
+    """Lazy module-level SQLite connection so importing pipeline doesn't create the DB."""
+    global _DB_CONN
+    if _DB_CONN is None:
+        _DB_CONN = db.init_db("pricelens.db")
+    return _DB_CONN
 
 
 def cache_get(category: str, key: str):
-    p = _cache_path(category, key)
-    if p.exists():
-        return json.loads(p.read_text(encoding="utf-8"))
-    return None
+    return db.cache_get(_conn(), category, key)
 
 
-def cache_put(category: str, key: str, data: dict):
-    p = _cache_path(category, key)
-    p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+def cache_put(category: str, key: str, data: dict, ticker: str | None = None):
+    db.cache_put(_conn(), category, key, data, ticker=ticker)
 
 
 def _hash(*args) -> str:
@@ -188,7 +190,7 @@ def run_decoder(data: CompanyData, rdcf: dict, mode: str, company_name: str,
         "cost_usd": raw["cost_usd"],
         "reasoning_chars": raw["reasoning_chars"],
     }
-    cache_put("decoder", cache_key, parsed)
+    cache_put("decoder", cache_key, parsed, ticker=rdcf["ticker"])
     return parsed, False
 
 
@@ -241,7 +243,7 @@ def run_evidence(ticker: str, assumption: dict, mode: str, company_name: str,
         "tool_call_count": raw["tool_call_count"],
         "search_results_count": len(raw["search_results"]),
     }
-    cache_put("evidence", cache_key, parsed)
+    cache_put("evidence", cache_key, parsed, ticker=ticker)
     return parsed, False
 
 
@@ -288,7 +290,7 @@ def run_synthesizer(rdcf: dict, mode: str, company_name: str,
         "cost_usd": raw["cost_usd"],
         "reasoning_chars": raw["reasoning_chars"],
     }
-    cache_put("synthesizer", cache_key, parsed)
+    cache_put("synthesizer", cache_key, parsed, ticker=rdcf["ticker"])
     return parsed, False
 
 
@@ -443,8 +445,13 @@ def main():
         "synthesis": synthesis,
         "short_term": short_term,
     }
+    # Primary persistence: SQLite via db.py (v0.6).
+    run_id = db.save_pipeline_run(_conn(), output)
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_path = OUTPUTS_DIR / f"{args.ticker}_{timestamp}.json"
+    # Legacy on-disk write retained as safety net during SQLite migration (v0.6).
+    # Remove after 2026-06-03 if SQLite has been stable in production runs.
     out_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
 
     # Summary
@@ -463,7 +470,7 @@ def main():
     print(f"Decoder cost:   ${decoder_cost:.4f}  ({'cache' if decoder_cached else 'fresh'})")
     print(f"Evidence cost:  ${evidence_cost:.4f}  ({sum(1 for b in evidence_briefs if b.get('_meta', {}).get('cost_usd', 0) == 0)} cached / {sum(1 for b in evidence_briefs if b.get('_meta', {}).get('cost_usd', 0) > 0)} fresh)")
     print(f"Total cost:     ${total_cost:.4f}")
-    print(f"Saved to:       {out_path}")
+    print(f"Saved to:       pricelens.db (run_id={run_id}) + {out_path} (legacy)")
 
 
 if __name__ == "__main__":

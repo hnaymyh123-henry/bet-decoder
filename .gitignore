@@ -15,9 +15,19 @@ venv/
 test_a_output.json
 test_b_output.json
 
-# Data caches
+# Data caches (regenerable; data lives local, not in repo)
 data/
 .cache/
+cache/
+
+# Legacy per-run JSON outputs (v0.5 and earlier; superseded by SQLite, regenerable)
+outputs/
+
+# SQLite databases (v0.6+) — local, regenerable via `python migrate_to_sqlite.py`
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 
 # OS / editor
 .DS_Store
