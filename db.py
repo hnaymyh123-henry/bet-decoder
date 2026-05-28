@@ -1,8 +1,20 @@
-"""SQLite storage layer for PriceLens — replaces outputs/*.json + cache/*/*.json."""
+"""SQLite storage layer for PriceLens / Bet Decoder.
+
+Replaces outputs/*.json + cache/*/*.json. As of the Bet Decoder pivot (M1) this
+layer also owns the Bet Card data model: the `bet_cards` envelope plus the
+`portfolio_holdings` / `theme_exposures` / `activity_logs` tables, and a passive
+DAO (`save_card` / `get_card` / `list_cards` / `delete_card` +
+`card_to_json` / `card_from_row`). "Passive" means: M2 pushes cards in, consumers
+pull cards out; this layer never calls upstream (no decode / synthesis / render /
+SSE-emit logic lives here).
+"""
 from __future__ import annotations
 
 import json
 import sqlite3
+import uuid
+from dataclasses import dataclass, field
+from datetime import date, datetime, timezone
 from typing import Any
 
 
@@ -157,6 +169,72 @@ CREATE TABLE IF NOT EXISTS schema_meta (
     key   TEXT PRIMARY KEY,
     value TEXT
 );
+
+-- ===================================================================
+-- Bet Decoder pivot (M1) — Bet Card data model
+-- ===================================================================
+
+-- Card envelope. One row per decoded bet (immutable snapshot).
+--   card_kind   = 'single' | 'portfolio'
+--   source_type = 'market' | 'analyst_pt' | 'opinion' (single) | 'portfolio'
+--   series_key  = "<subject>|<source_type>" — groups snapshots of the same bet
+--   run_id      = FK -> runs (single cards reuse the runs sub-tables);
+--                 NULL for portfolio cards.
+--   trade_date  = trading-day bucket used for Market-card dedup (1 card / day).
+CREATE TABLE IF NOT EXISTS bet_cards (
+    card_id     TEXT PRIMARY KEY,
+    subject     TEXT NOT NULL,
+    source_type TEXT NOT NULL,
+    card_kind   TEXT NOT NULL,
+    source_ref  TEXT,
+    series_key  TEXT NOT NULL,
+    bet         REAL,
+    trade_date  TEXT,
+    created_at  TEXT NOT NULL,
+    run_id      INTEGER,
+    FOREIGN KEY (run_id) REFERENCES runs(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_bet_cards_series ON bet_cards(series_key, created_at DESC);
+-- Dedup guard: at most one card per (series_key, trade_date) when trade_date set.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_bet_cards_series_day
+    ON bet_cards(series_key, trade_date) WHERE trade_date IS NOT NULL;
+
+-- Portfolio-card holdings.
+CREATE TABLE IF NOT EXISTS portfolio_holdings (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    card_id     TEXT    NOT NULL,
+    ticker      TEXT    NOT NULL,
+    weight_pct  REAL,
+    run_id      INTEGER,
+    FOREIGN KEY (card_id) REFERENCES bet_cards(card_id) ON DELETE CASCADE,
+    FOREIGN KEY (run_id)  REFERENCES runs(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_portfolio_holdings_card ON portfolio_holdings(card_id);
+
+-- Theme exposures. Shared by BOTH portfolio cards and single cards
+-- (single cards in anchor mode emit theme rows too — PRD M1 decision 12 / R1).
+--   contributing_tickers = JSON array of ticker strings
+--   is_concentration_risk = 0 | 1
+CREATE TABLE IF NOT EXISTS theme_exposures (
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    card_id               TEXT    NOT NULL,
+    theme                 TEXT    NOT NULL,
+    exposure_pct          REAL,
+    contributing_tickers  TEXT,
+    is_concentration_risk INTEGER DEFAULT 0,
+    FOREIGN KEY (card_id) REFERENCES bet_cards(card_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_theme_exposures_card ON theme_exposures(card_id);
+
+-- Agent activity-stream log (M5). Table only — emit logic lives in M5, not here.
+--   events_json = JSON array of ActivityEvent objects for one job (replay blob)
+CREATE TABLE IF NOT EXISTS activity_logs (
+    job_id      TEXT PRIMARY KEY,
+    source_ref  TEXT,
+    events_json TEXT,
+    created_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_created ON activity_logs(created_at DESC);
 """
 
 
@@ -164,25 +242,62 @@ CREATE TABLE IF NOT EXISTS schema_meta (
 # Connection + bootstrap
 # ---------------------------------------------------------------------------
 
+SCHEMA_VERSION = "2"  # v1 = original 13 tables; v2 = Bet Card model + runs anchor cols
+
+
+def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
+    return {r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+
+
+def _migrate_runs_anchor(conn: sqlite3.Connection) -> None:
+    """Idempotent ALTER: add anchor_price / anchor_type to runs and backfill.
+
+    PRD M1 decision 13: legacy runs backfill anchor_price=current_price,
+    anchor_type='market'. Safe to run on every startup — only ADDs columns that
+    are missing, and the backfill UPDATE is a no-op once rows are populated.
+    """
+    cols = _table_columns(conn, "runs")
+    if "anchor_price" not in cols:
+        conn.execute("ALTER TABLE runs ADD COLUMN anchor_price REAL")
+    if "anchor_type" not in cols:
+        conn.execute("ALTER TABLE runs ADD COLUMN anchor_type TEXT")
+    # Backfill any rows still missing anchor data (legacy rows, or rows inserted
+    # before these columns existed). New rows are written with anchors directly
+    # by save_pipeline_run, so this only touches stragglers.
+    conn.execute(
+        "UPDATE runs SET anchor_price = current_price WHERE anchor_price IS NULL"
+    )
+    conn.execute(
+        "UPDATE runs SET anchor_type = 'market' WHERE anchor_type IS NULL"
+    )
+
+
 def init_db(db_path: str = "pricelens.db") -> sqlite3.Connection:
     """Open (creating if missing) the SQLite DB and ensure schema is present."""
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(SCHEMA_SQL)
-    # Seed schema_meta once.
+    _migrate_runs_anchor(conn)
+    # Seed / bump schema_meta.
     existing = conn.execute(
         "SELECT value FROM schema_meta WHERE key = ?", ("version",)
     ).fetchone()
     if existing is None:
         conn.execute(
-            "INSERT INTO schema_meta(key, value) VALUES (?, ?)", ("version", "1")
+            "INSERT INTO schema_meta(key, value) VALUES (?, ?)",
+            ("version", SCHEMA_VERSION),
         )
         conn.execute(
             "INSERT INTO schema_meta(key, value) VALUES (?, datetime('now'))",
             ("created_at",),
         )
-        conn.commit()
+    elif existing[0] != SCHEMA_VERSION:
+        conn.execute(
+            "UPDATE schema_meta SET value = ? WHERE key = ?",
+            (SCHEMA_VERSION, "version"),
+        )
+    conn.commit()
     return conn
 
 
@@ -234,23 +349,34 @@ def save_pipeline_run(conn: sqlite3.Connection, output: dict) -> int:
     synth_cost = _meta_cost(synthesis) if synthesis else 0.0
     total_cost = decoder_cost + evidence_cost + synth_cost
 
+    current_price = float(rdcf.get("current_price") or 0.0)
+    # Anchor columns (M1). Pipeline output is Market-anchored by construction, so
+    # default anchor_price = current_price, anchor_type = 'market'. Honor explicit
+    # overrides if a future caller sets them on the output dict.
+    anchor_price = output.get("anchor_price")
+    anchor_price = float(anchor_price) if anchor_price is not None else current_price
+    anchor_type = output.get("anchor_type") or "market"
+
     with conn:  # implicit BEGIN/COMMIT, rolls back on exception
         cur = conn.execute(
             """
             INSERT INTO runs (
                 ticker, company_name, generated_at, mode,
-                current_price, baseline_dcf, total_cost_usd, decoder_cached
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                current_price, baseline_dcf, total_cost_usd, decoder_cached,
+                anchor_price, anchor_type
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 output.get("ticker"),
                 output.get("company_name"),
                 output.get("generated_at"),
                 mode,
-                float(rdcf.get("current_price") or 0.0),
+                current_price,
                 float(rdcf.get("baseline_dcf_price") or 0.0) if rdcf.get("baseline_dcf_price") is not None else None,
                 total_cost,
                 0,
+                anchor_price,
+                anchor_type,
             ),
         )
         run_id = cur.lastrowid
@@ -752,3 +878,323 @@ def cache_put(
                 completion_tokens,
             ),
         )
+
+
+# ===========================================================================
+# Bet Card data model (M1) — type + passive DAO
+# ===========================================================================
+#
+# A BetCard is an immutable snapshot of one decoded bet. Two sub-types share one
+# type, distinguished by `card_kind`:
+#   - 'single'    : one subject (a ticker). May carry a `bet` value (NULL for
+#                   Opinion cards with a missing target). Reuses the `runs`
+#                   sub-tables via `run_id`. May also carry `theme_exposures`
+#                   rows when decoded in anchor mode (R1).
+#   - 'portfolio' : a basket. Carries `holdings` + `theme_exposures`; `run_id`
+#                   is NULL.
+#
+# This DAO is PASSIVE: it serializes/persists/reads cards. It never decodes,
+# synthesizes, renders, or emits activity events.
+
+SINGLE = "single"
+PORTFOLIO = "portfolio"
+
+# source_type values. Market/Portfolio are the MVP scope; analyst_pt/opinion
+# are accepted by the schema (V2) so cards round-trip cleanly when they land.
+SOURCE_MARKET = "market"
+SOURCE_ANALYST_PT = "analyst_pt"
+SOURCE_OPINION = "opinion"
+SOURCE_PORTFOLIO = "portfolio"
+
+# source_types whose snapshots are deduped to one card per trading day.
+_DAILY_DEDUP_SOURCES = {SOURCE_MARKET}
+
+
+@dataclass
+class Holding:
+    """One position inside a portfolio card."""
+    ticker: str
+    weight_pct: float | None = None
+    run_id: int | None = None
+
+
+@dataclass
+class ThemeExposure:
+    """A thematic exposure attached to a card. Used by both card kinds."""
+    theme: str
+    exposure_pct: float | None = None
+    contributing_tickers: list[str] = field(default_factory=list)
+    is_concentration_risk: bool = False
+
+
+@dataclass
+class BetCard:
+    """Immutable snapshot of one decoded bet.
+
+    `card_id` and `series_key` are derived in `__post_init__` if not supplied:
+      - card_id    : a fresh UUID4 hex (unique per snapshot)
+      - series_key : "<subject>|<source_type>" (groups snapshots of one bet)
+    `created_at` defaults to now (UTC, ISO-8601). `trade_date` is the trading-day
+    bucket used for Market-card dedup; defaults to the date part of created_at.
+    """
+    subject: str
+    source_type: str
+    card_kind: str = SINGLE
+    source_ref: str | None = None
+    bet: float | None = None          # nullable — Opinion cards may lack a target
+    run_id: int | None = None         # single cards reuse runs; NULL for portfolio
+    card_id: str | None = None
+    series_key: str | None = None
+    trade_date: str | None = None
+    created_at: str | None = None
+    holdings: list[Holding] = field(default_factory=list)
+    theme_exposures: list[ThemeExposure] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if self.card_id is None:
+            self.card_id = uuid.uuid4().hex
+        if self.series_key is None:
+            self.series_key = make_series_key(self.subject, self.source_type)
+        if self.created_at is None:
+            self.created_at = datetime.now(timezone.utc).isoformat()
+        if self.trade_date is None:
+            self.trade_date = self.created_at[:10]  # YYYY-MM-DD
+
+
+def make_series_key(subject: str, source_type: str) -> str:
+    """Canonical grouping key for a bet's snapshot series."""
+    return f"{subject}|{source_type}"
+
+
+# ---------------------------------------------------------------------------
+# Serialization
+# ---------------------------------------------------------------------------
+
+def card_to_json(card: BetCard) -> dict:
+    """Lossless dict form of a BetCard (JSON-safe)."""
+    return {
+        "card_id": card.card_id,
+        "subject": card.subject,
+        "source_type": card.source_type,
+        "card_kind": card.card_kind,
+        "source_ref": card.source_ref,
+        "bet": card.bet,
+        "run_id": card.run_id,
+        "series_key": card.series_key,
+        "trade_date": card.trade_date,
+        "created_at": card.created_at,
+        "holdings": [
+            {"ticker": h.ticker, "weight_pct": h.weight_pct, "run_id": h.run_id}
+            for h in card.holdings
+        ],
+        "theme_exposures": [
+            {
+                "theme": t.theme,
+                "exposure_pct": t.exposure_pct,
+                "contributing_tickers": list(t.contributing_tickers or []),
+                "is_concentration_risk": bool(t.is_concentration_risk),
+            }
+            for t in card.theme_exposures
+        ],
+    }
+
+
+def card_from_json(data: dict) -> BetCard:
+    """Inverse of card_to_json. Tolerates missing optional keys."""
+    return BetCard(
+        card_id=data.get("card_id"),
+        subject=data["subject"],
+        source_type=data["source_type"],
+        card_kind=data.get("card_kind", SINGLE),
+        source_ref=data.get("source_ref"),
+        bet=data.get("bet"),
+        run_id=data.get("run_id"),
+        series_key=data.get("series_key"),
+        trade_date=data.get("trade_date"),
+        created_at=data.get("created_at"),
+        holdings=[
+            Holding(
+                ticker=h["ticker"],
+                weight_pct=h.get("weight_pct"),
+                run_id=h.get("run_id"),
+            )
+            for h in (data.get("holdings") or [])
+        ],
+        theme_exposures=[
+            ThemeExposure(
+                theme=t["theme"],
+                exposure_pct=t.get("exposure_pct"),
+                contributing_tickers=list(t.get("contributing_tickers") or []),
+                is_concentration_risk=bool(t.get("is_concentration_risk")),
+            )
+            for t in (data.get("theme_exposures") or [])
+        ],
+    )
+
+
+def card_from_row(conn: sqlite3.Connection, row: sqlite3.Row) -> BetCard:
+    """Reconstruct a full BetCard from a `bet_cards` row, pulling its child
+    holdings + theme_exposures from their tables."""
+    card_id = row["card_id"]
+    holding_rows = conn.execute(
+        "SELECT * FROM portfolio_holdings WHERE card_id = ? ORDER BY id",
+        (card_id,),
+    ).fetchall()
+    theme_rows = conn.execute(
+        "SELECT * FROM theme_exposures WHERE card_id = ? ORDER BY id",
+        (card_id,),
+    ).fetchall()
+    return BetCard(
+        card_id=card_id,
+        subject=row["subject"],
+        source_type=row["source_type"],
+        card_kind=row["card_kind"],
+        source_ref=row["source_ref"],
+        bet=row["bet"],
+        run_id=row["run_id"],
+        series_key=row["series_key"],
+        trade_date=row["trade_date"],
+        created_at=row["created_at"],
+        holdings=[
+            Holding(
+                ticker=h["ticker"],
+                weight_pct=h["weight_pct"],
+                run_id=h["run_id"],
+            )
+            for h in holding_rows
+        ],
+        theme_exposures=[
+            ThemeExposure(
+                theme=t["theme"],
+                exposure_pct=t["exposure_pct"],
+                contributing_tickers=json.loads(t["contributing_tickers"])
+                if t["contributing_tickers"] else [],
+                is_concentration_risk=bool(t["is_concentration_risk"]),
+            )
+            for t in theme_rows
+        ],
+    )
+
+
+# ---------------------------------------------------------------------------
+# DAO: Bet Cards
+# ---------------------------------------------------------------------------
+
+def save_card(conn: sqlite3.Connection, card: BetCard) -> str:
+    """Persist a BetCard (envelope + child rows) in one transaction.
+
+    Returns the card_id actually stored. Dedup rule (M1 decision 8): Market cards
+    are one-per-trading-day per series. If a Market card already exists for the
+    same (series_key, trade_date), no new card is created and the EXISTING
+    card_id is returned. Other source_types are not deduped.
+    """
+    # Daily dedup for Market cards: hit -> return existing id, do not insert.
+    if card.source_type in _DAILY_DEDUP_SOURCES and card.trade_date is not None:
+        existing = conn.execute(
+            "SELECT card_id FROM bet_cards WHERE series_key = ? AND trade_date = ?",
+            (card.series_key, card.trade_date),
+        ).fetchone()
+        if existing is not None:
+            return existing["card_id"]
+
+    with conn:  # implicit BEGIN/COMMIT, rolls back on exception
+        conn.execute(
+            """
+            INSERT INTO bet_cards (
+                card_id, subject, source_type, card_kind, source_ref,
+                series_key, bet, trade_date, created_at, run_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                card.card_id,
+                card.subject,
+                card.source_type,
+                card.card_kind,
+                card.source_ref,
+                card.series_key,
+                card.bet,
+                card.trade_date,
+                card.created_at,
+                card.run_id,
+            ),
+        )
+
+        if card.holdings:
+            conn.executemany(
+                """
+                INSERT INTO portfolio_holdings (card_id, ticker, weight_pct, run_id)
+                VALUES (?, ?, ?, ?)
+                """,
+                [
+                    (card.card_id, h.ticker, h.weight_pct, h.run_id)
+                    for h in card.holdings
+                ],
+            )
+
+        if card.theme_exposures:
+            conn.executemany(
+                """
+                INSERT INTO theme_exposures (
+                    card_id, theme, exposure_pct, contributing_tickers,
+                    is_concentration_risk
+                ) VALUES (?, ?, ?, ?, ?)
+                """,
+                [
+                    (
+                        card.card_id,
+                        t.theme,
+                        t.exposure_pct,
+                        json.dumps(list(t.contributing_tickers or []),
+                                   ensure_ascii=False),
+                        1 if t.is_concentration_risk else 0,
+                    )
+                    for t in card.theme_exposures
+                ],
+            )
+
+    return card.card_id
+
+
+def get_card(conn: sqlite3.Connection, card_id: str) -> BetCard | None:
+    """Read one card by id (with children). Returns None if not found."""
+    row = conn.execute(
+        "SELECT * FROM bet_cards WHERE card_id = ?", (card_id,)
+    ).fetchone()
+    if row is None:
+        return None
+    return card_from_row(conn, row)
+
+
+def list_cards(
+    conn: sqlite3.Connection,
+    series_key: str | None = None,
+    subject: str | None = None,
+    source_type: str | None = None,
+) -> list[BetCard]:
+    """List cards, newest first.
+
+    Filter by series_key directly, or by (subject, source_type) which are
+    combined into a series_key. With no filter, returns all cards.
+    """
+    if series_key is None and subject is not None and source_type is not None:
+        series_key = make_series_key(subject, source_type)
+
+    if series_key is not None:
+        rows = conn.execute(
+            "SELECT * FROM bet_cards WHERE series_key = ? "
+            "ORDER BY created_at DESC, card_id DESC",
+            (series_key,),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM bet_cards ORDER BY created_at DESC, card_id DESC"
+        ).fetchall()
+    return [card_from_row(conn, r) for r in rows]
+
+
+def delete_card(conn: sqlite3.Connection, card_id: str) -> bool:
+    """Delete a card and its child rows (FK ON DELETE CASCADE). Returns True if a
+    card was removed, False if no such card existed."""
+    with conn:
+        cur = conn.execute("DELETE FROM bet_cards WHERE card_id = ?", (card_id,))
+    return cur.rowcount > 0
