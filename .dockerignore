@@ -1,0 +1,36 @@
+# Secrets — never bake into the image
+.env
+*.key
+
+# Local data / caches (regenerable; mount a volume instead)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+cache/
+outputs/
+data/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# Tooling / VCS / agent worktrees
+.git/
+.gitignore
+.claude/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Dev-only verification scripts and working drafts (not needed at runtime)
+verify_m*.py
+test_a_evidence.py
+test_b_chat.py
+PRD-draft.md
