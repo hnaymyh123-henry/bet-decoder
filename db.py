@@ -12,10 +12,12 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
-from typing import Any
+from typing import Any, Iterator
 
 
 # ---------------------------------------------------------------------------
@@ -195,9 +197,16 @@ CREATE TABLE IF NOT EXISTS bet_cards (
     FOREIGN KEY (run_id) REFERENCES runs(id) ON DELETE SET NULL
 );
 CREATE INDEX IF NOT EXISTS idx_bet_cards_series ON bet_cards(series_key, created_at DESC);
--- Dedup guard: at most one card per (series_key, trade_date) when trade_date set.
-CREATE UNIQUE INDEX IF NOT EXISTS uq_bet_cards_series_day
-    ON bet_cards(series_key, trade_date) WHERE trade_date IS NOT NULL;
+-- Dedup guard: at most one *Market* card per (series_key, trade_date). The
+-- predicate is scoped to source_type='market' so it matches save_card's dedup
+-- semantics exactly (PRD 行为⑦: only Market cards are one-per-trading-day;
+-- analyst_pt / opinion cards are NOT deduped and may share a series+day).
+-- v2 of this index (the v1 form omitted the source_type predicate, which made
+-- a 2nd same-day non-Market card collide and 500). _migrate_dedup_index drops
+-- the v1 index on startup so existing DBs pick up the corrected predicate.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_bet_cards_market_day
+    ON bet_cards(series_key, trade_date)
+    WHERE trade_date IS NOT NULL AND source_type = 'market';
 
 -- Portfolio-card holdings.
 CREATE TABLE IF NOT EXISTS portfolio_holdings (
@@ -272,13 +281,29 @@ def _migrate_runs_anchor(conn: sqlite3.Connection) -> None:
     )
 
 
-def init_db(db_path: str = "pricelens.db") -> sqlite3.Connection:
-    """Open (creating if missing) the SQLite DB and ensure schema is present."""
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
+def _migrate_dedup_index(conn: sqlite3.Connection) -> None:
+    """Drop the v1 ``uq_bet_cards_series_day`` index if present.
+
+    The v1 unique index covered (series_key, trade_date) for ALL source_types,
+    so a second non-Market card on the same subject+day collided and 500'd. The
+    v2 index (``uq_bet_cards_market_day``, created in SCHEMA_SQL) adds a
+    ``source_type='market'`` predicate. ``CREATE INDEX IF NOT EXISTS`` will not
+    replace the old index, so we drop it explicitly. Idempotent.
+    """
+    conn.execute("DROP INDEX IF EXISTS uq_bet_cards_series_day")
+
+
+def _apply_schema(conn: sqlite3.Connection) -> None:
+    """Run the DDL + idempotent migrations + schema_meta seed on ``conn``.
+
+    Split out of ``init_db`` so ``ensure_schema`` (process startup) does the
+    DDL once and ``get_connection`` (per request) can stay a cheap connect with
+    no DDL. Safe to call repeatedly: every statement is ``IF NOT EXISTS`` /
+    guarded ALTER, so re-running is a no-op.
+    """
     conn.executescript(SCHEMA_SQL)
     _migrate_runs_anchor(conn)
+    _migrate_dedup_index(conn)
     # Seed / bump schema_meta.
     existing = conn.execute(
         "SELECT value FROM schema_meta WHERE key = ?", ("version",)
@@ -298,6 +323,94 @@ def init_db(db_path: str = "pricelens.db") -> sqlite3.Connection:
             (SCHEMA_VERSION, "version"),
         )
     conn.commit()
+
+
+# Tracks db_paths whose schema this process has already ensured, so a fresh
+# get_connection() never re-runs the DDL/migration. ":memory:" is never recorded
+# (each :memory: connection is a *separate* private DB, so its schema must be
+# created on the connection that uses it).
+_SCHEMA_READY: set[str] = set()
+_SCHEMA_LOCK = threading.Lock()
+
+
+def get_connection(db_path: str = "pricelens.db") -> sqlite3.Connection:
+    """Open a lightweight per-use connection: connect + row_factory + FK pragma.
+
+    Does NOT run DDL or migrations — call ``ensure_schema(db_path)`` once at
+    process startup for that. SQLite connections are bound to the creating
+    thread, so this is the right primitive for the "one connection per request /
+    per worker thread, always closed" pattern (see ``connection()`` and
+    ``api.py``). Pass the same ``db_path`` from a background thread to share the
+    on-disk database safely across threads.
+    """
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
+
+
+def ensure_schema(db_path: str = "pricelens.db") -> None:
+    """Create/upgrade the schema for ``db_path`` exactly once per process.
+
+    Idempotent and cheap on repeat (a membership check after the first call).
+    Call this once at process startup; per-request code then uses the lighter
+    ``get_connection`` / ``connection`` which skip the DDL. Never caches
+    ``":memory:"`` — those DBs are connection-private and must be schema'd by
+    whoever opens them (that path falls through to a full ``_apply_schema``).
+    """
+    if db_path != ":memory:":
+        with _SCHEMA_LOCK:
+            if db_path in _SCHEMA_READY:
+                return
+    conn = get_connection(db_path)
+    try:
+        _apply_schema(conn)
+    finally:
+        conn.close()
+    if db_path != ":memory:":
+        with _SCHEMA_LOCK:
+            _SCHEMA_READY.add(db_path)
+
+
+@contextmanager
+def connection(db_path: str = "pricelens.db") -> Iterator[sqlite3.Connection]:
+    """Context manager: yield a fresh ``get_connection`` and guarantee close.
+
+    Use per request / per unit of work::
+
+        with db.connection(DB_PATH) as conn:
+            ... use conn ...
+        # conn is closed here, even on exception
+
+    Calls ``ensure_schema(db_path)`` first so callers don't depend on a startup
+    hook having fired (e.g. a TestClient constructed without a ``with`` block, or
+    a fresh temp DB swapped in by a test). ``ensure_schema`` short-circuits on a
+    set-membership check after the first call, so the per-request cost is a lock
+    + lookup — it does NOT re-run the DDL/migration each request (the old
+    ``init_db()``-per-request behavior this replaced). Leak-free: always closes.
+    """
+    ensure_schema(db_path)
+    conn = get_connection(db_path)
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+
+def init_db(db_path: str = "pricelens.db") -> sqlite3.Connection:
+    """Open (creating if missing) the SQLite DB and ensure schema is present.
+
+    Backward-compatible: returns a live connection with the schema applied, just
+    as before. Internally now reuses ``_apply_schema`` (and records the path as
+    schema-ready so a later ``ensure_schema`` is a no-op). New code that wants a
+    per-request connection without re-running DDL should prefer
+    ``ensure_schema`` (once) + ``get_connection`` / ``connection`` instead.
+    """
+    conn = get_connection(db_path)
+    _apply_schema(conn)
+    if db_path != ":memory:":
+        with _SCHEMA_LOCK:
+            _SCHEMA_READY.add(db_path)
     return conn
 
 
@@ -1067,8 +1180,7 @@ def card_from_row(conn: sqlite3.Connection, row: sqlite3.Row) -> BetCard:
             ThemeExposure(
                 theme=t["theme"],
                 exposure_pct=t["exposure_pct"],
-                contributing_tickers=json.loads(t["contributing_tickers"])
-                if t["contributing_tickers"] else [],
+                contributing_tickers=_loads_ticker_list(t["contributing_tickers"]),
                 is_concentration_risk=bool(t["is_concentration_risk"]),
             )
             for t in theme_rows
@@ -1076,81 +1188,121 @@ def card_from_row(conn: sqlite3.Connection, row: sqlite3.Row) -> BetCard:
     )
 
 
+def _loads_ticker_list(raw: Any) -> list[str]:
+    """Parse a contributing_tickers JSON blob defensively. Dirty / non-list /
+    unparseable values degrade to [] instead of raising (bug: a single corrupt
+    row would otherwise 500 the whole list_cards / get_card response)."""
+    if not raw:
+        return []
+    try:
+        data = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return []
+    if not isinstance(data, list):
+        return []
+    return [str(x) for x in data]
+
+
 # ---------------------------------------------------------------------------
 # DAO: Bet Cards
 # ---------------------------------------------------------------------------
 
+def _find_dedup_card_id(conn: sqlite3.Connection, card: BetCard) -> str | None:
+    """Return the existing Market card_id for this (series_key, trade_date), or
+    None. Only Market source_types are deduped (PRD 行为⑦)."""
+    if card.source_type not in _DAILY_DEDUP_SOURCES or card.trade_date is None:
+        return None
+    existing = conn.execute(
+        "SELECT card_id FROM bet_cards WHERE series_key = ? AND trade_date = ? "
+        "AND source_type = ?",
+        (card.series_key, card.trade_date, card.source_type),
+    ).fetchone()
+    return existing["card_id"] if existing is not None else None
+
+
 def save_card(conn: sqlite3.Connection, card: BetCard) -> str:
     """Persist a BetCard (envelope + child rows) in one transaction.
 
-    Returns the card_id actually stored. Dedup rule (M1 decision 8): Market cards
-    are one-per-trading-day per series. If a Market card already exists for the
-    same (series_key, trade_date), no new card is created and the EXISTING
-    card_id is returned. Other source_types are not deduped.
+    Returns the card_id actually stored. Dedup rule (M1 decision 8 / PRD 行为⑦):
+    Market cards are one-per-trading-day per series. If a Market card already
+    exists for the same (series_key, trade_date), no new card is created and the
+    EXISTING card_id is returned. Other source_types (analyst_pt / opinion /
+    portfolio) are NEVER deduped — two same-subject, same-day cards both persist.
+
+    Concurrency-safe: the pre-check is best-effort, and the actual INSERT is
+    guarded against the unique-index race (two Market cards racing on the same
+    day) by catching IntegrityError and falling back to the already-stored id.
+    Without this fallback a concurrent same-day Market double-write 500'd.
     """
-    # Daily dedup for Market cards: hit -> return existing id, do not insert.
-    if card.source_type in _DAILY_DEDUP_SOURCES and card.trade_date is not None:
-        existing = conn.execute(
-            "SELECT card_id FROM bet_cards WHERE series_key = ? AND trade_date = ?",
-            (card.series_key, card.trade_date),
-        ).fetchone()
-        if existing is not None:
-            return existing["card_id"]
+    # Best-effort dedup pre-check for Market cards: hit -> return existing id.
+    pre = _find_dedup_card_id(conn, card)
+    if pre is not None:
+        return pre
 
-    with conn:  # implicit BEGIN/COMMIT, rolls back on exception
-        conn.execute(
-            """
-            INSERT INTO bet_cards (
-                card_id, subject, source_type, card_kind, source_ref,
-                series_key, bet, trade_date, created_at, run_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                card.card_id,
-                card.subject,
-                card.source_type,
-                card.card_kind,
-                card.source_ref,
-                card.series_key,
-                card.bet,
-                card.trade_date,
-                card.created_at,
-                card.run_id,
-            ),
-        )
-
-        if card.holdings:
-            conn.executemany(
+    try:
+        with conn:  # implicit BEGIN/COMMIT, rolls back on exception
+            conn.execute(
                 """
-                INSERT INTO portfolio_holdings (card_id, ticker, weight_pct, run_id)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO bet_cards (
+                    card_id, subject, source_type, card_kind, source_ref,
+                    series_key, bet, trade_date, created_at, run_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                [
-                    (card.card_id, h.ticker, h.weight_pct, h.run_id)
-                    for h in card.holdings
-                ],
+                (
+                    card.card_id,
+                    card.subject,
+                    card.source_type,
+                    card.card_kind,
+                    card.source_ref,
+                    card.series_key,
+                    card.bet,
+                    card.trade_date,
+                    card.created_at,
+                    card.run_id,
+                ),
             )
 
-        if card.theme_exposures:
-            conn.executemany(
-                """
-                INSERT INTO theme_exposures (
-                    card_id, theme, exposure_pct, contributing_tickers,
-                    is_concentration_risk
-                ) VALUES (?, ?, ?, ?, ?)
-                """,
-                [
-                    (
-                        card.card_id,
-                        t.theme,
-                        t.exposure_pct,
-                        json.dumps(list(t.contributing_tickers or []),
-                                   ensure_ascii=False),
-                        1 if t.is_concentration_risk else 0,
-                    )
-                    for t in card.theme_exposures
-                ],
-            )
+            if card.holdings:
+                conn.executemany(
+                    """
+                    INSERT INTO portfolio_holdings (card_id, ticker, weight_pct, run_id)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    [
+                        (card.card_id, h.ticker, h.weight_pct, h.run_id)
+                        for h in card.holdings
+                    ],
+                )
+
+            if card.theme_exposures:
+                conn.executemany(
+                    """
+                    INSERT INTO theme_exposures (
+                        card_id, theme, exposure_pct, contributing_tickers,
+                        is_concentration_risk
+                    ) VALUES (?, ?, ?, ?, ?)
+                    """,
+                    [
+                        (
+                            card.card_id,
+                            t.theme,
+                            t.exposure_pct,
+                            json.dumps(list(t.contributing_tickers or []),
+                                       ensure_ascii=False),
+                            1 if t.is_concentration_risk else 0,
+                        )
+                        for t in card.theme_exposures
+                    ],
+                )
+    except sqlite3.IntegrityError:
+        # Lost a race on the Market daily unique index (another writer inserted
+        # the same series+day between our pre-check and INSERT). The `with conn`
+        # block rolled back our partial write; return the winner's id so the
+        # caller still gets a valid card instead of a 500.
+        winner = _find_dedup_card_id(conn, card)
+        if winner is not None:
+            return winner
+        raise  # a genuine, non-dedup integrity violation — surface it
 
     return card.card_id
 
