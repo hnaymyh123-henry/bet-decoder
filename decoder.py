@@ -24,7 +24,7 @@ persists via ``db.save_card``).  It does **not** implement anchor mode (Issue
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
 import db
@@ -260,6 +260,11 @@ def _lens_ev_ebitda(anchor: float, f: Fundamentals) -> dict | None:
     ev = f.enterprise_value(anchor)
     if ev is None:
         return None
+    # Net-cash company (cash > debt + equity value): enterprise value goes
+    # negative, and a negative "implied multiple" is meaningless — it would leak
+    # a nonsense number into cross-validation / evidence.  No solution instead.
+    if ev <= 0:
+        return None
     return _result("implied_ev_ebitda", ev / f.ebitda_ttm,
                    implied_label="隐含 EV/EBITDA")
 
@@ -323,27 +328,65 @@ def _lens_dcf(anchor: float, f: Fundamentals) -> dict | None:
         terminal_fcf_margin=base_margin,
         wacc=consensus_wacc,
     )
-    # Point estimate: implied revenue CAGR holding other vars at consensus.
-    point = reverse_dcf.reverse_solve(anchor, consensus, "revenue_cagr_5y", data)
-    if point is None:
-        return None  # DCF cannot explain this price → fallback to next lens
-    # Monte-Carlo band (R2): p25/p50/p75 of the implied CAGR.
-    perturbations = {
-        "revenue_cagr_5y": (0.05, 0.30),
-        "terminal_growth": (0.015, 0.035),
-        "terminal_fcf_margin": (base_margin * 0.6, base_margin * 1.4),
-        "wacc": (consensus_wacc - 0.015, consensus_wacc + 0.015),
-    }
-    band = reverse_dcf.monte_carlo_implied(
-        data, "revenue_cagr_5y", consensus, perturbations
-    )
+    # The consensus DCF *baseline* (business-value floor) is ALWAYS computable —
+    # it's a forward valuation of the consensus assumptions and does not depend
+    # on the reverse-solve having a root.  Compute it first and never throw it
+    # away: anchor mode's `_base_business_value` needs it even when the point
+    # reverse-solve has no solution (otherwise an *undervalued* stock — anchor
+    # below its DCF — collapses to base=0 and gets mis-judged as 100% narrative).
     baseline_price = reverse_dcf.dcf_equity_value_per_share(consensus, data)
+    if baseline_price is not None and baseline_price <= -1e8:
+        # Gordon-model infeasible sentinel (wacc <= terminal_growth) → no
+        # defensible baseline rather than a nonsensical large-negative price.
+        baseline_price = None
+
+    # Point estimate: implied revenue CAGR holding other vars at consensus.  This
+    # CAN be None (TSLA-style: the price is outside the feasible CAGR range) —
+    # that means "DCF can't pin an implied growth", NOT "DCF has no baseline".
+    point = reverse_dcf.reverse_solve(anchor, consensus, "revenue_cagr_5y", data)
+
+    # If we have neither a baseline NOR a point, the DCF lens truly has nothing
+    # to say → no solution, fall back to the next lens.
+    if point is None and baseline_price is None:
+        return None
+
+    # Monte-Carlo band (R2): p25/p50/p75 of the implied CAGR.  Only meaningful
+    # when the reverse-solve is feasible (the band is over implied CAGRs).
+    band = None
+    if point is not None:
+        perturbations = {
+            "revenue_cagr_5y": (0.05, 0.30),
+            "terminal_growth": (0.015, 0.035),
+            "terminal_fcf_margin": (base_margin * 0.6, base_margin * 1.4),
+            "wacc": (consensus_wacc - 0.015, consensus_wacc + 0.015),
+        }
+        band = reverse_dcf.monte_carlo_implied(
+            data, "revenue_cagr_5y", consensus, perturbations
+        )
+
+    # The lens "value" is the implied CAGR when solvable.  When the point solve
+    # has no root but a baseline exists, we must NOT route through `_result`
+    # (which returns None on a None value and would discard the baseline a second
+    # time — exactly the original bug).  Build the envelope directly so the DCF
+    # baseline survives into anchor mode with implied_value honestly None.
+    if point is None:
+        return {
+            "metric": "implied_revenue_cagr_5y",
+            "implied_value": None,           # no feasible implied CAGR
+            "implied_label": "隐含 5 年营收 CAGR(无可行解,仅余基础估值)",
+            "unit": "",
+            "band": None,
+            "baseline_dcf_price": baseline_price,   # business-value floor stands alone
+            "consensus_wacc": consensus_wacc,
+            "point_solved": False,
+        }
     return _result(
         "implied_revenue_cagr_5y", point, unit="",
         implied_label="隐含 5 年营收 CAGR",
         band=band,                       # {p25,p50,p75,success_rate,...} | None
-        baseline_dcf_price=baseline_price,
+        baseline_dcf_price=baseline_price,   # business-value floor (may stand alone)
         consensus_wacc=consensus_wacc,
+        point_solved=True,
     )
 
 
@@ -361,22 +404,77 @@ def _lens_dcf(anchor: float, f: Fundamentals) -> dict | None:
 # conservative — a *normal* stock must never be mis-gated into anchor mode.
 
 # Theme buckets → the keywords that imply membership in the AI complex.
-AI_COMPOSITE_THEMES: dict[str, tuple[str, ...]] = {
-    "AI 基础设施": (
-        "gpu", "accelerator", "ai chip", "ai 芯片", "datacenter",
-        "data center", "数据中心", "ai infrastructure", "ai 基础设施",
-    ),
-    "存储": ("hbm", "memory", "dram", "nand", "存储", "storage"),
-    "光模块": ("optical", "transceiver", "光模块", "光通信", "silicon photonics"),
-    "AI 应用": ("ai application", "ai 应用", "generative ai", "llm", "copilot"),
+#
+# Each theme has two tiers of keywords:
+#   - SPECIFIC: AI-proprietary terms that fire on their own (e.g. "hbm", "gpu").
+#     These are unambiguous — a warehouse REIT will never carry "hbm".
+#   - GENERIC: terms that ALSO appear in plenty of non-AI businesses
+#     ("memory", "storage", "optical") and must NOT fire alone.  A self-storage
+#     operator, a cold-storage warehouse REIT, or a senior-care "memory care"
+#     facility all match a bare "storage"/"memory" — but none is an AI complex.
+#     Generic terms only count when a semiconductor / tech sector signal
+#     co-occurs (see _SEMI_TECH_SIGNALS), so the gate stays conservative.
+AI_COMPOSITE_THEMES: dict[str, dict[str, tuple[str, ...]]] = {
+    "AI 基础设施": {
+        "specific": (
+            "gpu", "accelerator", "ai chip", "ai 芯片",
+            "ai infrastructure", "ai 基础设施",
+        ),
+        "generic": ("datacenter", "data center", "数据中心"),
+    },
+    "存储": {
+        # HBM/DRAM/NAND/GDDR are AI-memory specific; bare "memory"/"storage" are
+        # generic (storage REITs, memory-care facilities) and gated on a tech
+        # signal.
+        "specific": ("hbm", "dram", "nand", "gddr", "高带宽内存"),
+        "generic": ("memory", "storage", "存储"),
+    },
+    "光模块": {
+        "specific": ("transceiver", "光模块", "光通信", "silicon photonics"),
+        "generic": ("optical",),
+    },
+    "AI 应用": {
+        "specific": ("ai application", "ai 应用", "generative ai", "llm", "copilot"),
+        "generic": (),
+    },
 }
 
-def _ai_theme_for(text: str) -> str | None:
-    """Return the AI-complex theme a lowercased text matches, or None."""
+# Sector / industry signals that, when present alongside a GENERIC keyword,
+# confirm the subject is in the AI/semiconductor complex rather than (say) a
+# storage REIT or a senior-care operator that merely shares a word.
+_SEMI_TECH_SIGNALS: tuple[str, ...] = (
+    "semiconductor", "半导体", "technology", "科技", "chip", "芯片",
+    "integrated circuit", "集成电路", "fabless", "foundry", "晶圆",
+    "ai", "artificial intelligence", "人工智能", "compute", "computing",
+    "hardware", "电子",
+)
+
+
+def _has_semi_tech_signal(low: str) -> bool:
+    """True when a lowercased text carries a semiconductor/tech sector signal."""
+    return any(sig in low for sig in _SEMI_TECH_SIGNALS)
+
+
+def _ai_theme_for(text: str, *, corpus: str | None = None) -> str | None:
+    """Return the AI-complex theme a lowercased `text` matches, or None.
+
+    SPECIFIC keywords match on their own.  GENERIC keywords only match when a
+    semiconductor/tech sector signal co-occurs — checked against `corpus`
+    (tags + industry joined) so a generic term in a tag can still be confirmed
+    by the industry string and vice-versa.  Defaults `corpus` to `text` when not
+    supplied.
+    """
     low = text.lower()
-    for theme, kws in AI_COMPOSITE_THEMES.items():
-        if any(kw in low for kw in kws):
+    ctx = (corpus or text).lower()
+    has_signal = _has_semi_tech_signal(ctx)
+    for theme, tiers in AI_COMPOSITE_THEMES.items():
+        if any(kw in low for kw in tiers.get("specific", ())):
             return theme
+    # Generic tier: only after no specific match, and only with a tech signal.
+    if has_signal:
+        for theme, tiers in AI_COMPOSITE_THEMES.items():
+            if any(kw in low for kw in tiers.get("generic", ())):
+                return theme
     return None
 
 
@@ -390,16 +488,23 @@ def is_ai_composite(f: Fundamentals) -> tuple[bool, str | None]:
 
     The gate keys off *classification signals* (industry / tags) that
     `fetch_fundamentals` populates from yfinance — NOT a bare ticker whitelist.
-    This keeps it conservative (a normal ticker with no AI signal never trips
-    the gate) and reproducible, and it does not collide with the traditional
-    decision tree's ticker-agnostic lens selection.
+    Generic, easily-shared words ("memory", "storage", "optical") only trip the
+    gate when a semiconductor/tech sector signal co-occurs, so a self-storage
+    REIT, a cold-storage warehouse operator, or a senior "memory care" facility
+    is never mis-gated into anchor mode.  Reproducible, no LLM, no collision with
+    the traditional ticker-agnostic lens tree.
     """
+    # Build a combined corpus so a generic keyword in `tags` can be confirmed by
+    # a tech signal living in `industry` (and vice-versa).
+    corpus = " ".join(
+        [str(t) for t in (f.tags or [])] + ([f.industry] if f.industry else [])
+    )
     for tag in (f.tags or []):
-        theme = _ai_theme_for(str(tag))
+        theme = _ai_theme_for(str(tag), corpus=corpus)
         if theme:
             return True, theme
     if f.industry:
-        theme = _ai_theme_for(f.industry)
+        theme = _ai_theme_for(f.industry, corpus=corpus)
         if theme:
             return True, theme
     return False, None
@@ -669,6 +774,16 @@ def _run_lens(key: str, anchor: float, f: Fundamentals) -> dict | None:
     result["lens"] = key
     result["lens_label"] = lens_obj.label
     result["lens_family"] = lens_obj.family
+    # General guard: a *multiple*-family lens reporting a negative implied value
+    # is definitionally invalid (a negative P/E, P/S, EV/EBITDA, P/FCF, P/B has
+    # no meaning — it signals a negative denominator/EV slipped the applicable
+    # gate).  Treat it as no-solution so the nonsense never reaches cross-
+    # validation or evidence.  The DCF family is exempt: an implied CAGR can be
+    # legitimately negative (price below the no-growth value).
+    if (lens_obj.family == "multiple"
+            and isinstance(result.get("implied_value"), (int, float))
+            and result["implied_value"] < 0):
+        return None
     return result
 
 
@@ -691,7 +806,12 @@ def _run_plan(plan: LensPlan, anchor: float, f: Fundamentals,
     used_primary_key: str | None = None
     for key in chain:
         res = _run_lens(key, anchor, f)
-        if res is not None:
+        # A lens that returns an envelope with no implied_value (e.g. the DCF
+        # lens when its point reverse-solve had no root but a baseline survives)
+        # is NOT a valid *primary* — it carries no comparable scalar for
+        # card.bet.  Skip it for primary selection; it can still appear among the
+        # cross results below, where its DCF baseline feeds anchor mode.
+        if res is not None and res.get("implied_value") is not None:
             primary_result = res
             used_primary_key = key
             if key != plan.primary:
@@ -729,31 +849,40 @@ _RECON_TOL_PCT = 0.01  # 1% of anchor
 
 
 def _base_business_value(anchor: float, f: Fundamentals,
-                         cross_results: list[dict]) -> tuple[float, str]:
+                         cross_results: list[dict]) -> tuple[float, str, float]:
     """Conservative *base business value* the traditional lenses can defend.
 
     Preference order:
-      1. DCF consensus baseline price (the business-value floor, R2-bearing)
-      2. a conservative multiple-implied value (rare fallback)
-      3. 0 (no defensible base → the whole price is narrative/option)
+      1. DCF consensus baseline price (the business-value floor) — this is
+         ALWAYS available now: `_lens_dcf` returns the baseline even when its
+         point reverse-solve has no root (the original bug threw it away, so an
+         undervalued stock fell to base=0 and looked like 100% narrative).
+      2. 0 (no defensible base → the whole price is narrative/option)
 
-    Returns (base_value, source_label).  The base is clamped to [0, anchor] so
-    the residual gap that anchor lenses decompose is always non-negative.
+    Returns (clamped_base, source_label, raw_base).  `clamped_base` is in
+    [0, anchor] so the residual gap is non-negative; `raw_base` is the
+    *unclamped* DCF baseline so the caller can detect base > anchor (the stock
+    is UNDERVALUED relative to its DCF) and emit an honest "no narrative gap"
+    card instead of a misleading 100%-narrative one.
     """
-    base = 0.0
+    raw_base = 0.0
     src = "none"
-    # Look for a DCF view among already-solved cross lenses first.
-    dcf_view = next((r for r in cross_results if r.get("lens") == "dcf"), None)
+    # Look for a DCF view among already-solved cross lenses first.  Accept a DCF
+    # envelope even when its implied_value is None — what we need here is its
+    # baseline_dcf_price, which survives a no-root point solve.
+    dcf_view = next((r for r in cross_results if r.get("lens") == "dcf"
+                     and r.get("baseline_dcf_price") is not None), None)
     if dcf_view is None:
         # Run DCF explicitly to obtain its consensus baseline (business value).
         dcf_view = _run_lens("dcf", anchor, f)
     if dcf_view is not None and dcf_view.get("baseline_dcf_price") is not None:
-        base = float(dcf_view["baseline_dcf_price"])
+        raw_base = float(dcf_view["baseline_dcf_price"])
         src = "dcf_baseline"
-    # Clamp: a base above the anchor (DCF says undervalued) means anchor mode has
-    # no narrative gap to decompose; clamp to anchor so the gap floors at 0.
-    base = max(0.0, min(base, anchor))
-    return base, src
+    # Clamp to [0, anchor]: a base above the anchor (DCF says undervalued) means
+    # anchor mode has no narrative gap to decompose; clamp to anchor so the gap
+    # floors at 0.  Keep raw_base for the caller's undervalued detection.
+    clamped = max(0.0, min(raw_base, anchor))
+    return clamped, src, raw_base
 
 
 def _run_anchor_mode(anchor: float, f: Fundamentals, emit, subject: str,
@@ -772,12 +901,22 @@ def _run_anchor_mode(anchor: float, f: Fundamentals, emit, subject: str,
     Each component reuses the generalized Bet schema (claim / implied_amount /
     implied_assumption / probability / evidence) — no new top-level structure.
     """
-    base, base_src = _base_business_value(anchor, f, cross_results)
+    base, base_src, raw_base = _base_business_value(anchor, f, cross_results)
     gap = max(0.0, anchor - base)
+    # Undervalued: DCF business value exceeds the anchor price → there is NO
+    # narrative/option gap to decompose.  This is the honest opposite of a
+    # 100%-narrative card and must be surfaced as such (the original bug,
+    # discarding the DCF baseline, made these look like 100% narrative).
+    undervalued = base_src == "dcf_baseline" and raw_base > anchor
 
     _safe_emit(emit, phase="anchor_base", kind="computation",
-               text=f"基础业务价值={base:.2f}({base_src}),叙事/期权待对账缺口={gap:.2f}",
-               subject=subject, payload={"base": base, "gap": gap})
+               text=(f"基础业务价值={base:.2f}({base_src}),"
+                     + (f"DCF 基础估值 {raw_base:.2f} > 锚价 {anchor:.2f} → 低估,无叙事 gap"
+                        if undervalued
+                        else f"叙事/期权待对账缺口={gap:.2f}")),
+               subject=subject,
+               payload={"base": base, "gap": gap, "raw_base": raw_base,
+                        "undervalued": undervalued})
 
     components: list[dict] = []
     if gap > 0:
@@ -793,13 +932,18 @@ def _run_anchor_mode(anchor: float, f: Fundamentals, emit, subject: str,
                 comp = None
             if comp is not None:
                 components.append(comp)
+                # Defensive .get: the emit text is built even when emit is None
+                # (it's an argument), so a malformed component missing
+                # implied_amount/lens_label must not crash here either.
                 _safe_emit(emit, phase="anchor_component", kind="decision",
-                           text=f"{comp['lens_label']} → 隐含 ${comp['implied_amount']:.2f}",
+                           text=f"{comp.get('lens_label', comp.get('lens', '锚成分'))} "
+                                f"→ 隐含 ${float(comp.get('implied_amount', 0) or 0):.2f}",
                            subject=subject, payload=comp)
                 break  # one component carries the residual (keeps Σ exact)
 
-    # 加总对账: base + Σ(component implied_amount) ≈ anchor.
-    comp_sum = sum(c["implied_amount"] for c in components)
+    # 加总对账: base + Σ(component implied_amount) ≈ anchor.  Defensive .get so a
+    # malformed component (missing implied_amount) can never crash reconciliation.
+    comp_sum = sum(c.get("implied_amount", 0) or 0 for c in components)
     total = base + comp_sum
     residual = anchor - total
     reconciled = abs(residual) <= max(_RECON_TOL_PCT * anchor, 1e-6)
@@ -817,6 +961,8 @@ def _run_anchor_mode(anchor: float, f: Fundamentals, emit, subject: str,
     return {
         "base_business_value": base,
         "base_source": base_src,
+        "raw_base_business_value": raw_base,   # unclamped DCF baseline
+        "undervalued": undervalued,            # base > anchor → no narrative gap
         "components": components,
         "reconciliation": {
             "sum": total,
@@ -888,12 +1034,64 @@ def _attach_evidence(card, f: Fundamentals, anchor: float | None,
         )
     except Exception:
         # Step 3 must never crash decode; degrade to an honest-empty section.
-        section = {
-            "briefs": [], "assumption_count": 0, "found_count": 0,
-            "empty_count": 0, "cache_hits": 0, "new_hunter_calls": 0,
-            "cost": {"estimated_first_decode_usd": 0.0, "actual_new_call_usd": 0.0},
-        }
+        section = _empty_evidence_section()
     detail["evidence"] = section
+
+
+def _empty_evidence_section() -> dict:
+    """The canonical empty evidence section — the single source of truth for the
+    shape every card kind exposes at decode_detail['evidence']."""
+    return {
+        "briefs": [], "assumption_count": 0, "found_count": 0,
+        "empty_count": 0, "cache_hits": 0, "new_hunter_calls": 0,
+        "cost": {"estimated_first_decode_usd": 0.0, "actual_new_call_usd": 0.0},
+    }
+
+
+def _aggregate_leg_evidence(leg_evidence: dict[str, dict]) -> dict:
+    """Roll each portfolio leg's evidence section into ONE aggregate section that
+    matches the single-card shape (briefs / assumption_count / found_count /
+    empty_count / cache_hits / new_hunter_calls / cost), plus a per-leg `legs`
+    breakdown for drill-down.
+
+    This guarantees `decode_detail['evidence']` has a consistent shape across
+    card kinds, so a consumer that reads e.g. `evidence['found_count']` never
+    hits a KeyError or mis-renders a portfolio card as "no evidence".
+    """
+    agg = _empty_evidence_section()
+    if not leg_evidence:
+        agg["legs"] = {}
+        return agg
+
+    est = 0.0
+    actual = 0.0
+    for sec in leg_evidence.values():
+        if not isinstance(sec, dict):
+            continue
+        agg["briefs"].extend(sec.get("briefs", []) or [])
+        agg["assumption_count"] += int(sec.get("assumption_count", 0) or 0)
+        agg["found_count"] += int(sec.get("found_count", 0) or 0)
+        agg["empty_count"] += int(sec.get("empty_count", 0) or 0)
+        agg["cache_hits"] += int(sec.get("cache_hits", 0) or 0)
+        agg["new_hunter_calls"] += int(sec.get("new_hunter_calls", 0) or 0)
+        cost = sec.get("cost", {}) or {}
+        est += float(cost.get("estimated_first_decode_usd", 0.0) or 0.0)
+        actual += float(cost.get("actual_new_call_usd", 0.0) or 0.0)
+    agg["cost"] = {
+        "estimated_first_decode_usd": round(est, 2),
+        "actual_new_call_usd": round(actual, 2),
+    }
+    # Per-leg breakdown (compact: counts + cost, not the full briefs again).
+    agg["legs"] = {
+        tk: {
+            "assumption_count": (sec or {}).get("assumption_count", 0),
+            "found_count": (sec or {}).get("found_count", 0),
+            "empty_count": (sec or {}).get("empty_count", 0),
+            "cost": (sec or {}).get("cost", {}),
+        }
+        for tk, sec in leg_evidence.items()
+    }
+    return agg
 
 
 # ===========================================================================
@@ -951,11 +1149,15 @@ def decode_bet(source_type: str,
 
     # Out-of-scope source types (analyst_pt / opinion = V2, or unknown): return a
     # graceful insufficient card rather than raising — keeps callers crash-free.
+    # Preserve the ACTUAL requested source_type on the card instead of disguising
+    # an unknown type as "market" (the old behavior silently mislabeled the card,
+    # corrupting its series_key and any downstream grouping).  The cards table
+    # stores source_type as free TEXT (no CHECK), so an honest value round-trips
+    # cleanly; the insufficient status already tells consumers not to use it.
     subject = _coerce_subject(source_input)
     return _insufficient_card(
         subject=subject or "?",
-        source_type=source_type if source_type in (SOURCE_ANALYST_PT, SOURCE_OPINION)
-        else SOURCE_MARKET,
+        source_type=source_type or SOURCE_MARKET,  # honest; only blank → market
         source_ref=subject,
         reason=f"source_type '{source_type}' MVP 不支持(仅 market/portfolio)",
         emit=emit,
@@ -1103,7 +1305,8 @@ def _assemble_anchor_card(ticker, src_ref, anchor, f, emit, lang,
 
     # `bet` = narrative/anchor share of price (the comparable scalar). Falls back
     # to the anchor itself if no components (degenerate: whole price is base).
-    comp_sum = sum(c["implied_amount"] for c in anchor_detail["components"])
+    comp_sum = sum(c.get("implied_amount", 0) or 0
+                   for c in anchor_detail["components"])
     bet_value = float(comp_sum) if anchor_detail["components"] else None
 
     card = db.BetCard(
@@ -1163,6 +1366,10 @@ def _decode_portfolio(source_input, lang, emit,
     holdings: list[db.Holding] = []
     # Per-ticker primary metric (used by R1 theme aggregation downstream / #3).
     per_ticker: dict[str, dict] = {}
+    # Per-leg evidence sections so the aggregate card carries a unified, shape-
+    # consistent `evidence` node (Step 3 is non-skippable for portfolios too —
+    # each leg's Step 3 already ran inside _decode_market).
+    leg_evidence: dict[str, dict] = {}
     for spec in holdings_spec:
         tk = spec["ticker"]
         weight = spec.get("weight_pct")
@@ -1177,6 +1384,10 @@ def _decode_portfolio(source_input, lang, emit,
             elif detail and detail.get("anchor_mode"):
                 # Anchor-mode leg: surface its anchor detail for R1 aggregation.
                 per_ticker[tk] = {"lens": "anchor", "anchor_mode": detail["anchor_mode"]}
+            # Capture each leg's evidence section (always present on a decoded
+            # single card — _decode_market runs Step 3 unconditionally).
+            if detail and isinstance(detail.get("evidence"), dict):
+                leg_evidence[tk] = detail["evidence"]
         except Exception:
             pass
 
@@ -1194,6 +1405,11 @@ def _decode_portfolio(source_input, lang, emit,
         "per_ticker_primary": per_ticker,
         "holding_count": len(holdings),
         "decoded_legs": len(per_ticker),
+        # Step 3 — unified evidence node so consumers can read
+        # decode_detail["evidence"] with the SAME shape on every card kind
+        # (single OR portfolio).  Aggregates each leg's found/cost; a per-leg
+        # breakdown rides under "legs" for drill-down.
+        "evidence": _aggregate_leg_evidence(leg_evidence),
         "lang": lang,
     }
     _safe_emit(emit, phase="assemble", kind="decision",
@@ -1279,11 +1495,7 @@ def _insufficient_card(*, subject: str, source_type: str,
         # Step 3 still "ran" — there are simply no implied assumptions to research
         # on a 数据不足 card, so the evidence section is honestly empty (boundary:
         # source missing → 留空, not error / not skipped).
-        "evidence": {
-            "briefs": [], "assumption_count": 0, "found_count": 0,
-            "empty_count": 0, "cache_hits": 0, "new_hunter_calls": 0,
-            "cost": {"estimated_first_decode_usd": 0.0, "actual_new_call_usd": 0.0},
-        },
+        "evidence": _empty_evidence_section(),
     }
     return card
 
