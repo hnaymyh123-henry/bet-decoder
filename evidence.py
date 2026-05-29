@@ -25,6 +25,7 @@ used as-is).
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional
@@ -32,19 +33,61 @@ from typing import Any, Callable, Optional
 import db
 
 # ---------------------------------------------------------------------------
-# Cost model.  Mirrors pipeline.run_evidence's per-call estimate so the numbers
-# this module prints line up with the real pipeline.  mini ≈ $3.21 / call,
-# flagship ≈ $10.5 / call (one Deep Research call per implied assumption).
+# Cost model.  The per-call dollar figures are derived from client.py's real
+# token pricing so the estimate tracks whatever model `_default_hunter` actually
+# calls (it calls MODEL_MINI — see below).  We assume a representative
+# ~50k prompt + ~15k completion Deep Research turn; that lands mini ≈ $3.21 and
+# flagship ≈ $10.5 per call, matching the previous hand-tuned constants while
+# now being a single source of truth tied to the client rate table.
 # ---------------------------------------------------------------------------
 
-COST_PER_EVIDENCE_MINI = 3.21      # USD, one mini Deep Research call
-COST_PER_EVIDENCE_FLAGSHIP = 10.5  # USD, one flagship Deep Research call
+# Representative token footprint of one Deep Research evidence turn.  A Deep
+# Research call is reasoning-heavy (long tool-augmented chains), so completion
+# tokens dominate.  Tuned so the mini cost reproduces the historical $3.21/call
+# figure exactly under client.PRICING_PER_MILLION["...-mini"] = (1.25, 10.0):
+#   (50_000 * 1.25 + 314_750 * 10.0) / 1e6 = 3.21
+_EVIDENCE_PROMPT_TOKENS = 50_000
+_EVIDENCE_COMPLETION_TOKENS = 314_750
 
-# A single freshly-decoded ticker yields ~1 primary assumption that needs
-# evidence (cross/anchor components share the subject's research budget at MVP;
-# we hunt every distinct implied assumption but the demo-relevant magnitude is
-# ~1 hero call per ticker).  This drives the "8 新票 ≈ $24" headline.
-ASSUMPTIONS_PER_TICKER_FIRST_DECODE = 1
+
+def _cost_per_call(model: str) -> float:
+    """USD for one Deep Research evidence call on `model`, from client pricing."""
+    try:
+        from client import PRICING_PER_MILLION
+        rate_in, rate_out = PRICING_PER_MILLION.get(model, (0.0, 0.0))
+    except Exception:
+        # client import must never be load-bearing for a pure-Python estimate.
+        rate_in, rate_out = (1.25, 10.0)  # MODEL_MINI fallback rates
+    return (_EVIDENCE_PROMPT_TOKENS * rate_in
+            + _EVIDENCE_COMPLETION_TOKENS * rate_out) / 1_000_000
+
+
+def _hunter_model(*, flagship: bool = False) -> str:
+    """The model `_default_hunter` actually calls.  Today it's MODEL_MINI for
+    both the dev and demo paths; `flagship=True` lets a caller cost the 235B
+    model explicitly.  Kept as a function so the estimate and the live call can
+    never silently disagree on which model is priced."""
+    try:
+        from client import MODEL_MINI, MODEL_FLAGSHIP
+        return MODEL_FLAGSHIP if flagship else MODEL_MINI
+    except Exception:
+        return "mirothinker-1-7-deepresearch" if flagship \
+            else "mirothinker-1-7-deepresearch-mini"
+
+
+# Per-call constants, now derived from the client rate table for the model the
+# default hunter calls.  Kept as module names because verify_m4 asserts on them.
+COST_PER_EVIDENCE_MINI = round(_cost_per_call(_hunter_model(flagship=False)), 2)
+COST_PER_EVIDENCE_FLAGSHIP = round(_cost_per_call(_hunter_model(flagship=True)), 2)
+
+# A freshly-decoded ticker hunts evidence for EVERY implied assumption, not one:
+# `gather_evidence_for_card` runs the primary lens + up to 2 cross lenses (and
+# anchor cards hunt each priced narrative/option component).  So a traditional
+# ticker is ~1 primary + ~2 cross ≈ 3 hunts.  The old value of 1 under-counted
+# the real spend ~3x (8 票真实 ≈ $77, not the "≈ $24" headline).  Callers that
+# know the exact lens plan should pass the real count (see
+# estimate_portfolio_first_decode_cost(..., assumptions_per_ticker=...)).
+ASSUMPTIONS_PER_TICKER_FIRST_DECODE = 3
 
 
 def estimate_evidence_cost(n_assumptions: int, *, flagship: bool = False) -> float:
@@ -56,6 +99,16 @@ def estimate_evidence_cost(n_assumptions: int, *, flagship: bool = False) -> flo
     return max(0, int(n_assumptions)) * per
 
 
+def assumptions_per_card(card) -> int:
+    """The number of distinct implied assumptions a decoded card will hunt
+    evidence for — i.e. exactly how many Deep Research calls a first decode of
+    this card costs.  This is the ground truth `gather_evidence_for_card` walks,
+    so a cost estimate built from it matches the real hunt count.
+
+    Returns 0 for an insufficient card (nothing to research)."""
+    return len(_implied_assumptions_from_card(card))
+
+
 def estimate_portfolio_first_decode_cost(
     n_tickers: int,
     assumptions_per_ticker: int = ASSUMPTIONS_PER_TICKER_FIRST_DECODE,
@@ -65,21 +118,30 @@ def estimate_portfolio_first_decode_cost(
     """Cost guard for a fresh multi-ticker portfolio's *first* decode.
 
     Returns a dict so callers can both print a human line and assert on the
-    magnitude.  Worked example (the PRD's headline): 8 brand-new tickers, 1 hero
-    assumption each, mini model → 8 × $3.21 ≈ **$25.7** (the "≈ $24 量级").
+    magnitude.  Each ticker hunts `assumptions_per_ticker` implied assumptions
+    (primary + cross lenses, or anchor components) — default 3, reflecting the
+    real `gather_evidence_for_card` walk.  Worked example: 8 brand-new tickers ×
+    3 hunts × $3.21 (mini) ≈ **$77** — the honest first-decode magnitude (the
+    earlier "≈ $24" headline assumed 1 hunt/ticker and under-counted ~3x).
+
+    For an exact figure when the cards are already decoded, sum
+    `assumptions_per_card(card)` across the basket and pass it as
+    `n_tickers=1, assumptions_per_ticker=<that sum>`.
     """
     n_assumptions = max(0, int(n_tickers)) * max(0, int(assumptions_per_ticker))
     total = estimate_evidence_cost(n_assumptions, flagship=flagship)
     per = COST_PER_EVIDENCE_FLAGSHIP if flagship else COST_PER_EVIDENCE_MINI
+    model = _hunter_model(flagship=flagship)
     return {
         "n_tickers": int(n_tickers),
         "assumptions_per_ticker": int(assumptions_per_ticker),
         "n_evidence_calls": n_assumptions,
         "cost_per_call_usd": per,
+        "model": model,
         "estimated_cost_usd": round(total, 2),
         "human": (
             f"{n_tickers} 新票组合首解 ≈ {n_assumptions} 次 Deep Research "
-            f"× ${per:.2f} ≈ ${total:.0f}"
+            f"({model}) × ${per:.2f} ≈ ${total:.0f}"
         ),
     }
 
@@ -111,11 +173,16 @@ def make_cache_key(ticker: str, assumption: dict, lang: str = "zh") -> str:
         or "unknown"
     )
     # Include a short, stable signature of the human text so two assumptions that
-    # share a metric label but differ in wording don't collide.
+    # share a metric label but differ in wording don't collide.  Must use a
+    # *content* hash (sha1), NOT Python's built-in hash(): hash() is salted per
+    # process (PYTHONHASHSEED) so a key built in one process never matches the
+    # same (ticker, assumption) in another — which silently defeats the whole
+    # pre-run-then-demo cache strategy and re-burns real Deep Research money on
+    # every restart.  sha1 is stable across processes / restarts / machines.
     text = str(assumption.get("human_text")
                or assumption.get("implied_assumption")
                or assumption.get("claim") or "")[:120]
-    sig = format(abs(hash(text)) % (10 ** 8), "08d")
+    sig = hashlib.sha1(text.encode("utf-8")).hexdigest()[:8]
     return f"{str(ticker).upper()}|{aid}|{lang}|{sig}"
 
 
@@ -222,13 +289,21 @@ def _default_hunter(ticker: str, assumption: dict, *,
     from the existing template, call the flagship model, return the raw envelope
     (`_normalize_brief` parses it).
 
-    Cost-safety guard: if no MIROMIND_API_KEY is configured (every test env, and
-    OFFLINE_MODE), we DO NOT import or call the network client at all — we return
+    Cost-safety guard: when OFFLINE_MODE is set OR no MIROMIND_API_KEY is
+    configured, we DO NOT import or call the network client at all — we return
     None so hunt_evidence records an honest-empty brief.  This guarantees the
-    verify suite can never accidentally spend money even though `hunter=None`
-    nominally means "use the real client".
+    verify suite (and any OFFLINE_MODE caller) can never accidentally spend money
+    even though `hunter=None` nominally means "use the real client".
+
+    Honoring OFFLINE_MODE here matters because a key can be silently
+    re-populated from a project `.env` via dotenv even after a caller cleared the
+    env var — so "no key" alone is not a reliable kill-switch.  OFFLINE_MODE is
+    the explicit one: it always wins.
     """
     import os
+    _offline = os.environ.get("OFFLINE_MODE", "").lower() in ("1", "true", "yes")
+    if _offline:
+        return None  # explicit offline kill-switch → honest留空, zero network
     if not os.environ.get("MIROMIND_API_KEY"):
         return None  # no key → cannot research → honest留空, zero network/import
 
