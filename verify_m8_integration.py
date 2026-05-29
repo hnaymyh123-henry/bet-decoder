@@ -25,9 +25,12 @@ import sys
 import tempfile
 
 # Cost-safety: make absolutely sure the live hunter/synth paths can never reach
-# the network even if some code ignored our stubs.  An unset key forces the
-# default hunter to honest-empty and the default chat resolution to be replaced.
-os.environ.pop("MIROMIND_API_KEY", None)
+# the network even if some code ignored our stubs.  Set the key EMPTY (not pop):
+# client.py's load_dotenv() does NOT override an already-present env var, so an
+# empty string stays empty and a real key in a parent .env can never be
+# re-injected.  Popping it would let load_dotenv re-read the real key from .env
+# → a live (hanging, billable) Deep Research call.  Empty key → honest-empty.
+os.environ["MIROMIND_API_KEY"] = ""
 os.environ["OFFLINE_MODE"] = "false"
 
 import db
