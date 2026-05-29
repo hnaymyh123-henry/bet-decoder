@@ -7,16 +7,37 @@ Start the server:
 """
 import json
 import os
+import re
 import time
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
 import activity
 import db
 from sse import stream_evidence_mock
+
+# Tickers in path segments must match this (defense-in-depth — yfinance / DB
+# lookups should never see arbitrary path content). Upper letters, digits,
+# dot and hyphen (e.g. BRK.B, RDS-A), 1–10 chars.
+TICKER_RE = re.compile(r"^[A-Z0-9.\-]{1,10}$")
+
+
+def _bad_request(message: str) -> JSONResponse:
+    return JSONResponse(status_code=400,
+                        content={"error_code": "bad_request", "message": message})
+
+
+def _require_dict(body) -> dict | None:
+    """Return body if it's a dict, else None (caller returns _bad_request).
+    A list / str / number / oversized-non-object body must 400, not 500."""
+    return body if isinstance(body, dict) else None
+
+
+def _valid_ticker(ticker: str) -> bool:
+    return bool(TICKER_RE.match(ticker or ""))
 
 # Common SSE response headers. X-Accel-Buffering:no defeats nginx proxy
 # buffering; Cache-Control:no-cache + Connection:keep-alive keep the stream
@@ -40,14 +61,30 @@ PRICE_HISTORY_TTL_SECONDS = 24 * 60 * 60  # 1 day
 app = FastAPI(title="PriceLens API")
 
 # SQLite-backed storage (v0.6). FastAPI runs sync endpoints in a threadpool,
-# and sqlite3 connections are bound to the thread that created them, so we
-# open a fresh connection per request via _db(). The ensure-schema work in
-# init_db is idempotent (CREATE TABLE IF NOT EXISTS), so the cost is small.
+# and sqlite3 connections are bound to the thread that created them, so we open
+# a FRESH connection per request and always close it (db.connection context
+# manager). The schema/migration DDL runs ONCE at process startup
+# (ensure_schema), not on every request — the previous _db() = init_db() opened
+# a never-closed connection AND re-ran the full DDL + migration per request
+# (connection leak + wasted work).
 DB_PATH = "pricelens.db"
 
 
-def _db():
-    return db.init_db(DB_PATH)
+def _conn_factory():
+    """Thread-safe fresh-connection factory. Safe to call from a background
+    worker thread — each thread gets its own connection. Calls ensure_schema
+    first (cheap set-membership check after the first call) so a worker-thread
+    connection never races ahead of schema creation when the startup hook hasn't
+    run (e.g. a TestClient built without a `with` block)."""
+    db.ensure_schema(DB_PATH)
+    return db.get_connection(DB_PATH)
+
+
+@app.on_event("startup")
+def _on_startup() -> None:
+    # Build/upgrade the schema once for this process. Per-request handlers then
+    # use the lightweight get_connection / connection (no DDL).
+    db.ensure_schema(DB_PATH)
 
 
 app.add_middleware(
@@ -59,6 +96,27 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(HTTPException)
+async def _http_exception_handler(request: Request, exc: HTTPException):
+    """Normalize any HTTPException into the unified ``{error_code, message}``
+    envelope (API_CONTRACT §0). Some legacy endpoints still raise HTTPException
+    with a plain ``detail`` string; this reshapes them so every error body
+    carries an ``error_code`` + ``message`` regardless of how it was raised."""
+    detail = exc.detail
+    if isinstance(detail, dict) and "error_code" in detail:
+        body = detail
+    else:
+        code_by_status = {
+            400: "bad_request", 404: "not_found", 409: "conflict",
+            502: "upstream_error", 503: "offline_mode",
+        }
+        body = {
+            "error_code": code_by_status.get(exc.status_code, "error"),
+            "message": detail if isinstance(detail, str) else str(detail),
+        }
+    return JSONResponse(status_code=exc.status_code, content=body)
+
+
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
@@ -66,18 +124,23 @@ def health():
 
 @app.get("/api/tickers")
 def list_tickers():
-    return {"tickers": db.list_tickers(_db())}
+    with db.connection(DB_PATH) as conn:
+        return {"tickers": db.list_tickers(conn)}
 
 
 @app.get("/api/decode/{ticker}")
 def get_decode(ticker: str):
     ticker_upper = ticker.upper()
-    data = db.get_latest_run(_db(), ticker_upper)
+    if not _valid_ticker(ticker_upper):
+        raise HTTPException(status_code=400, detail={
+            "error_code": "bad_request", "message": f"Invalid ticker {ticker!r}."})
+    with db.connection(DB_PATH) as conn:
+        data = db.get_latest_run(conn, ticker_upper)
     if data is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No cached decode for {ticker_upper}. Run python pipeline.py {ticker_upper} --no-evidence first.",
-        )
+        raise HTTPException(status_code=404, detail={
+            "error_code": "no_cached_decode",
+            "message": f"No cached decode for {ticker_upper}. Run python pipeline.py {ticker_upper} --no-evidence first.",
+        })
     return JSONResponse(content=data)
 
 
@@ -85,12 +148,16 @@ def get_decode(ticker: str):
 def get_short_term(ticker: str):
     """Latest non-null short-term attribution for {ticker}. Window-agnostic."""
     ticker_upper = ticker.upper()
-    st = db.get_latest_run_with_short_term(_db(), ticker_upper)
+    if not _valid_ticker(ticker_upper):
+        raise HTTPException(status_code=400, detail={
+            "error_code": "bad_request", "message": f"Invalid ticker {ticker!r}."})
+    with db.connection(DB_PATH) as conn:
+        st = db.get_latest_run_with_short_term(conn, ticker_upper)
     if st is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No short-term attribution computed for {ticker_upper}. Run python pipeline.py {ticker_upper} --short-term first.",
-        )
+        raise HTTPException(status_code=404, detail={
+            "error_code": "no_cached_decode",
+            "message": f"No short-term attribution computed for {ticker_upper}. Run python pipeline.py {ticker_upper} --short-term first.",
+        })
     return JSONResponse(content=st)
 
 
@@ -154,76 +221,98 @@ async def stream_activity_replay(job_id: str, speed: float = 1.0):
     Honors the original inter-event timing (scaled by ``speed``). Unknown /
     empty job ⇒ a single synthetic error-terminal frame so the client never
     hangs (bug #34 class: a stream that opens but never closes)."""
-    events = activity.get_activity_log(_db(), job_id)
+    with db.connection(DB_PATH) as conn:
+        events = activity.get_activity_log(conn, job_id)
     stream = activity.replay_activity_stream(events, speed=speed)
     return StreamingResponse(stream, media_type="text/event-stream", headers=SSE_HEADERS)
 
 
 @app.post("/api/stream/decode")
-async def stream_decode(body: dict):
+async def stream_decode(body=Body(default=None)):
     """Live-decode a single/portfolio bet, streaming the agent's reasoning as an
     activity SSE. Body: {source_type, source_input, lang?}. The decoded card is
     persisted by the front-end's /api/decode path; this endpoint streams the
-    *process* and persists the event log. Serialized via the default JobQueue."""
+    *process* and persists the event log.
+
+    Serialized via the process-wide JobQueue (default_queue) inside
+    live_activity_stream — a second concurrent live request waits its turn
+    instead of running a parallel LLM job. The queue worker thread persists with
+    its OWN connection (conn_factory), never one created on this event-loop
+    thread."""
     if _offline_mode_enabled():
         return JSONResponse(
             status_code=503,
             content={"error_code": "offline_mode", "message": "OFFLINE_MODE active; live decode refused."},
         )
-    source_type = (body or {}).get("source_type")
-    source_input = (body or {}).get("source_input")
-    lang = (body or {}).get("lang", "zh")
+    body = _require_dict(body)
+    if body is None:
+        return _bad_request("request body must be a JSON object.")
+    source_type = body.get("source_type")
+    source_input = body.get("source_input")
+    lang = body.get("lang", "zh")
     if not source_type or source_input is None:
-        return JSONResponse(
-            status_code=400,
-            content={"error_code": "bad_request", "message": "source_type and source_input are required."},
-        )
+        return _bad_request("source_type and source_input are required.")
 
     import decoder
 
-    job_id = (body or {}).get("job_id") or _new_job_id()
+    job_id = body.get("job_id") or _new_job_id()
     subject = source_input if isinstance(source_input, str) else "portfolio"
-    conn = _db()
 
-    def work(emit):
-        return decoder.decode_bet(source_type, source_input, lang, emit=emit, conn=conn)
+    def work(emit, cancel=None):
+        # Opens its own connection on the queue-worker thread (where work runs)
+        # and closes it — no cross-thread reuse, no leak. The engine ignores
+        # `cancel` today; the signature lets run_job forward the disconnect
+        # signal so a future cancel-aware decode can short-circuit.
+        conn = _conn_factory()
+        try:
+            return decoder.decode_bet(source_type, source_input, lang, emit=emit,
+                                      conn=conn)
+        finally:
+            conn.close()
 
     stream = activity.live_activity_stream(
-        work, job_id=job_id, source_ref=str(subject), conn=conn,
-        done_text="解码完成",
+        work, job_id=job_id, source_ref=str(subject),
+        conn_factory=_conn_factory, done_text="解码完成",
     )
     return StreamingResponse(stream, media_type="text/event-stream", headers=SSE_HEADERS)
 
 
 @app.post("/api/stream/synthesize")
-async def stream_synthesize(body: dict):
+async def stream_synthesize(body=Body(default=None)):
     """Live cross-card synthesis, streaming the relation-engine's steps as an
-    activity SSE. Body: {card_ids: [...], lang?}. Serialized via the default
-    JobQueue. Persists the event log to activity_logs."""
+    activity SSE. Body: {card_ids: [...], lang?}. Serialized via the process-wide
+    JobQueue (default_queue) inside live_activity_stream; the worker thread
+    persists the event log to activity_logs with its OWN connection."""
     if _offline_mode_enabled():
         return JSONResponse(
             status_code=503,
             content={"error_code": "offline_mode", "message": "OFFLINE_MODE active; live synthesis refused."},
         )
-    card_ids = (body or {}).get("card_ids")
-    lang = (body or {}).get("lang", "zh")
+    body = _require_dict(body)
+    if body is None:
+        return _bad_request("request body must be a JSON object.")
+    card_ids = body.get("card_ids")
+    lang = body.get("lang", "zh")
     if not isinstance(card_ids, list) or len(card_ids) < 1:
-        return JSONResponse(
-            status_code=400,
-            content={"error_code": "bad_request", "message": "card_ids (list) is required."},
-        )
+        return _bad_request("card_ids (non-empty list) is required.")
+    if not all(isinstance(c, str) for c in card_ids):
+        return _bad_request("card_ids must all be strings.")
 
     import synthesizer
 
-    job_id = (body or {}).get("job_id") or _new_job_id()
-    conn = _db()
+    job_id = body.get("job_id") or _new_job_id()
 
-    def work(emit):
-        return synthesizer.synthesize_cards(card_ids, lang, emit=emit, conn=conn)
+    def work(emit, cancel=None):
+        conn = _conn_factory()
+        try:
+            return synthesizer.synthesize_cards(card_ids, lang, emit=emit,
+                                                conn=conn)
+        finally:
+            conn.close()
 
     stream = activity.live_activity_stream(
         work, job_id=job_id, source_ref="+".join(str(c)[:6] for c in card_ids),
-        conn=conn, done_text="综合完成",
+        conn_factory=_conn_factory, done_text="综合完成",
     )
     return StreamingResponse(stream, media_type="text/event-stream", headers=SSE_HEADERS)
 
@@ -250,28 +339,28 @@ def list_cards(series_key: str = None, subject: str = None, source_type: str = N
 
     Filter by series_key, or by (subject, source_type) pair, or nothing (= all).
     Returns lossless card_to_json for each."""
-    conn = _db()
-    cards = db.list_cards(
-        conn, series_key=series_key, subject=subject, source_type=source_type
-    )
-    return {"cards": [db.card_to_json(c) for c in cards]}
+    with db.connection(DB_PATH) as conn:
+        cards = db.list_cards(
+            conn, series_key=series_key, subject=subject, source_type=source_type
+        )
+        return {"cards": [db.card_to_json(c) for c in cards]}
 
 
 @app.get("/api/cards/{card_id}")
 def get_card(card_id: str):
     """Fetch one card by id. 404 with error_code=card_not_found if absent."""
-    conn = _db()
-    card = db.get_card(conn, card_id)
-    if card is None:
-        return JSONResponse(
-            status_code=404,
-            content={"error_code": "card_not_found", "message": f"No card for id {card_id}."},
-        )
-    return JSONResponse(content=db.card_to_json(card))
+    with db.connection(DB_PATH) as conn:
+        card = db.get_card(conn, card_id)
+        if card is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error_code": "card_not_found", "message": f"No card for id {card_id}."},
+            )
+        return JSONResponse(content=db.card_to_json(card))
 
 
 @app.post("/api/decode")
-def decode_card(body: dict):
+def decode_card(body=Body(default=None)):
     """Decode a bet into a BetCard and persist it.
 
     Body: {source_type, source_input, lang?}. Drives M2 decode_bet → db.save_card.
@@ -283,67 +372,69 @@ def decode_card(body: dict):
             status_code=503,
             content={"error_code": "offline_mode", "message": "OFFLINE_MODE active; live decode refused."},
         )
-    source_type = (body or {}).get("source_type")
-    source_input = (body or {}).get("source_input")
-    lang = (body or {}).get("lang", "zh")
+    body = _require_dict(body)
+    if body is None:
+        return _bad_request("request body must be a JSON object.")
+    source_type = body.get("source_type")
+    source_input = body.get("source_input")
+    lang = body.get("lang", "zh")
     if not source_type or source_input is None:
-        return JSONResponse(
-            status_code=400,
-            content={"error_code": "bad_request", "message": "source_type and source_input are required."},
-        )
+        return _bad_request("source_type and source_input are required.")
 
     import decoder
 
-    conn = _db()
-    job_id = (body or {}).get("job_id") or _new_job_id()
+    job_id = body.get("job_id") or _new_job_id()
     subject = source_input if isinstance(source_input, str) else "portfolio"
 
     # Run the decode through the activity sink so the reasoning is persisted to
-    # activity_logs (job_id), then save the resulting card. run_job guarantees a
-    # terminal event and never raises, so a decode failure still returns a card
+    # activity_logs (job_id), then save the resulting card. run_job is called
+    # inline on THIS request thread, so the per-request connection it shares is
+    # used only on its creating thread (safe). run_job guarantees a terminal
+    # event and never raises, so a decode failure still returns a card
     # (decode_bet degrades to a "数据不足" card rather than raising).
-    def work(emit):
-        return decoder.decode_bet(source_type, source_input, lang, emit=emit, conn=conn)
+    with db.connection(DB_PATH) as conn:
+        def work(emit):
+            return decoder.decode_bet(source_type, source_input, lang, emit=emit, conn=conn)
 
-    try:
-        info = activity.run_job(
-            work, job_id=job_id, source_ref=str(subject), conn=conn,
-            done_text="解码完成",
-        )
-    except Exception as exc:
-        return JSONResponse(
-            status_code=502,
-            content={"error_code": "upstream_error", "message": f"decode failed: {exc}"},
-        )
+        try:
+            info = activity.run_job(
+                work, job_id=job_id, source_ref=str(subject), conn=conn,
+                done_text="解码完成",
+            )
+        except Exception as exc:
+            return JSONResponse(
+                status_code=502,
+                content={"error_code": "upstream_error", "message": f"decode failed: {exc}"},
+            )
 
-    card = info.get("result")
-    if card is None:
-        return JSONResponse(
-            status_code=502,
-            content={"error_code": "upstream_error", "message": info.get("error") or "decode produced no card."},
-        )
+        card = info.get("result")
+        if card is None:
+            return JSONResponse(
+                status_code=502,
+                content={"error_code": "upstream_error", "message": info.get("error") or "decode produced no card."},
+            )
 
-    try:
-        stored_id = db.save_card(conn, card)
-        card.card_id = stored_id
-    except Exception as exc:
-        return JSONResponse(
-            status_code=502,
-            content={"error_code": "upstream_error", "message": f"save_card failed: {exc}"},
-        )
+        try:
+            stored_id = db.save_card(conn, card)
+            card.card_id = stored_id
+        except Exception as exc:
+            return JSONResponse(
+                status_code=502,
+                content={"error_code": "upstream_error", "message": f"save_card failed: {exc}"},
+            )
 
-    return {"job_id": job_id, "card": db.card_to_json(card)}
+        return {"job_id": job_id, "card": db.card_to_json(card)}
 
 
 @app.delete("/api/cards/{card_id}")
 def delete_card(card_id: str):
     """Delete a card (FK cascade to children). Returns {deleted: bool}."""
-    conn = _db()
-    return {"deleted": db.delete_card(conn, card_id)}
+    with db.connection(DB_PATH) as conn:
+        return {"deleted": db.delete_card(conn, card_id)}
 
 
 @app.post("/api/synthesize")
-def synthesize(body: dict):
+def synthesize(body=Body(default=None)):
     """Cross-card synthesis over an existing card set.
 
     Body: {card_ids: [...], lang?}. Drives M3 synthesize_cards (chat mode, cached
@@ -354,24 +445,26 @@ def synthesize(body: dict):
             status_code=503,
             content={"error_code": "offline_mode", "message": "OFFLINE_MODE active; live synthesis refused."},
         )
-    card_ids = (body or {}).get("card_ids")
-    lang = (body or {}).get("lang", "zh")
+    body = _require_dict(body)
+    if body is None:
+        return _bad_request("request body must be a JSON object.")
+    card_ids = body.get("card_ids")
+    lang = body.get("lang", "zh")
     if not isinstance(card_ids, list) or len(card_ids) < 1:
-        return JSONResponse(
-            status_code=400,
-            content={"error_code": "bad_request", "message": "card_ids (list) is required."},
-        )
+        return _bad_request("card_ids (non-empty list) is required.")
+    if not all(isinstance(c, str) for c in card_ids):
+        return _bad_request("card_ids must all be strings.")
 
     import synthesizer
 
-    conn = _db()
-    try:
-        result = synthesizer.synthesize_cards(card_ids, lang, conn=conn)
-    except Exception as exc:
-        return JSONResponse(
-            status_code=502,
-            content={"error_code": "upstream_error", "message": f"synthesis failed: {exc}"},
-        )
+    with db.connection(DB_PATH) as conn:
+        try:
+            result = synthesizer.synthesize_cards(card_ids, lang, conn=conn)
+        except Exception as exc:
+            return JSONResponse(
+                status_code=502,
+                content={"error_code": "upstream_error", "message": f"synthesis failed: {exc}"},
+            )
     return JSONResponse(content=result)
 
 
@@ -386,12 +479,15 @@ def get_price_history(ticker: str, period: str = "5y"):
     missing key and skips the volume sub-chart.
     """
     ticker_upper = ticker.upper()
+    if not _valid_ticker(ticker_upper):
+        raise HTTPException(status_code=400, detail={
+            "error_code": "bad_request", "message": f"Invalid ticker {ticker!r}."})
     allowed_periods = {"1y", "2y", "5y", "10y", "max"}
     if period not in allowed_periods:
-        raise HTTPException(
-            status_code=400,
-            detail=f"period must be one of {sorted(allowed_periods)}",
-        )
+        raise HTTPException(status_code=400, detail={
+            "error_code": "bad_request",
+            "message": f"period must be one of {sorted(allowed_periods)}",
+        })
 
     PRICE_HISTORY_CACHE_DIR.mkdir(parents=True, exist_ok=True)
     # v2 suffix: schema now includes "volume". Old v1 files (close-only) are
