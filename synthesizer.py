@@ -281,8 +281,25 @@ def _driver_gap_strength(da: dict, db_: dict) -> tuple[str, bool, float | None]:
         # No band available → fall through to relative threshold.
 
     # Multiple / other lens: relative gap vs. threshold.
+    #
+    # Sign divergence first.  For a multiple lens the sign of the *implied*
+    # value carries meaning (e.g. P/E +20 = priced as profitable vs. P/E −20 =
+    # priced as loss-making): a positive-vs-negative pair is a fundamental
+    # disagreement about the business state, not a mere numeric gap.  We surface
+    # that as a strong contradiction directly, before the rel-gap math (which
+    # would otherwise just see a large distance OR — worse, when |va|==|vb| —
+    # cancel out around a near-zero mean).
+    if (va > 0) != (vb > 0) and va != 0 and vb != 0:
+        return "strong", True, gap
+
+    # Both same sign (or one is exactly zero).  Use the relative gap vs. a
+    # per-lens threshold.  When the mean magnitude is 0 the two values are not
+    # on a usable common scale (e.g. both ≈0), so the comparison is *not*
+    # comparable rather than silently "weak".
     mean = (abs(va) + abs(vb)) / 2.0
-    rel_gap = (gap / mean) if mean > 0 else 0.0
+    if mean == 0:
+        return "weak", False, gap
+    rel_gap = gap / mean
     return _strength_by_threshold(rel_gap, la), True, gap
 
 
@@ -306,7 +323,12 @@ def _themes_align(theme_a: str, theme_b: str, chat: Optional[Callable]) -> bool:
     Cheap path first (exact/substring) — if it already matches we never spend an
     LLM call.  Otherwise, when a ``chat`` hook is supplied, ask it for a yes/no
     fuzzy judgement (embedded in the synthesis call budget, no extra Deep
-    Research).  ``chat=None`` ⇒ exact-only (deterministic, free)."""
+    Research).  ``chat=None`` ⇒ exact-only (deterministic, free).
+
+    Stateless single-pair primitive.  For a whole synthesize run use
+    ``_ThemeAligner`` (memoizes + caps the chat calls); this bare function is the
+    fallback path the aligner delegates to and is still used directly by tests.
+    """
     if _exact_theme_match(theme_a, theme_b):
         return True
     if chat is None:
@@ -324,26 +346,99 @@ def _themes_align(theme_a: str, theme_b: str, chat: Optional[Callable]) -> bool:
         return False  # chat failure → honest "no match", never fabricate 同源
 
 
+# Hard ceiling on fuzzy theme-alignment chat calls per synthesize run.  The
+# pairwise routing is O(cards²) and each pair compares O(themes²) theme labels,
+# so a naive run could fire hundreds of serial LLM calls.  We memoize every
+# alignment verdict (so a repeated theme pair never re-asks) and stop spending
+# new chat calls once this many fuzzy questions have been asked — past the cap
+# every still-unresolved pair degrades to exact-string matching (deterministic,
+# free), never fabricating 同源.
+_THEME_ALIGN_CALL_CAP = 8
+
+
+class _ThemeAligner:
+    """Run-scoped theme-alignment with memoization + a hard chat-call cap.
+
+    One instance lives for the duration of a single ``synthesize_cards`` call.
+    It wraps the (optional) ``chat`` hook and guarantees:
+
+      - the exact/substring cheap path is always tried first (free);
+      - each *unordered* theme pair is fuzzy-matched via chat **at most once**
+        (memoized verdict reused for every later occurrence of that pair);
+      - the total number of fuzzy chat calls is bounded by ``call_cap`` — once
+        hit, every still-unresolved pair falls back to exact matching only.
+
+    ``chat=None`` ⇒ exact-only, the aligner never touches an LLM.
+    """
+
+    def __init__(self, chat: Optional[Callable], call_cap: int | None = None):
+        self._chat = chat
+        # Resolve the cap at *construction* time (not as a default-arg bound at
+        # def-time) so the module-level ``_THEME_ALIGN_CALL_CAP`` stays tunable.
+        self._call_cap = _THEME_ALIGN_CALL_CAP if call_cap is None else call_cap
+        self._chat_calls = 0                     # fuzzy chat calls actually made
+        self._memo: dict[tuple[str, str], bool] = {}
+
+    @staticmethod
+    def _pair_key(theme_a: str, theme_b: str) -> tuple[str, str]:
+        """Order-insensitive, normalized key so (A,B) and (B,A) share a memo slot."""
+        a = (theme_a or "").strip().lower()
+        b = (theme_b or "").strip().lower()
+        return (a, b) if a <= b else (b, a)
+
+    @property
+    def chat_calls(self) -> int:
+        return self._chat_calls
+
+    def align(self, theme_a: str, theme_b: str) -> bool:
+        # Cheap deterministic path: never consumes a chat call or a memo slot.
+        if _exact_theme_match(theme_a, theme_b):
+            return True
+        if self._chat is None:
+            return False
+
+        key = self._pair_key(theme_a, theme_b)
+        if key in self._memo:
+            return self._memo[key]          # already asked this pair → reuse
+
+        # Over the budget: degrade to exact-only (already failed above → False).
+        # Memoize the False so we don't keep re-checking the same pair either.
+        if self._chat_calls >= self._call_cap:
+            self._memo[key] = False
+            return False
+
+        self._chat_calls += 1
+        verdict = _themes_align(theme_a, theme_b, self._chat)
+        self._memo[key] = verdict
+        return verdict
+
+
 def _shared_theme_strength(card_a: "db.BetCard", card_b: "db.BetCard",
-                           chat: Optional[Callable]
+                           aligner: "_ThemeAligner"
                            ) -> tuple[str | None, float | None, str]:
     """Find the strongest shared theme between two cards and score its strength.
 
     Returns (shared_theme | None, geo_mean_pct | None, strength).  Strength comes
     from the **geometric mean** √(exposureA × exposureB) of the two cards'
     exposure % to the aligned theme (PRD 决策 6).  None theme ⇒ no 同源 relation.
+
+    A theme pair only counts when **both** sides carry a real (>0) exposure: a
+    geometric mean of 0 means there is no genuine shared exposure, so we skip it
+    rather than fabricate a flimsy "0% exposure" 同源 (PRD 决策 8: 绝不凑牵强同源).
     """
     best: tuple[str, float] | None = None  # (theme_label, geo_mean)
     for ta in (card_a.theme_exposures or []):
         for tb in (card_b.theme_exposures or []):
-            if not _themes_align(ta.theme, tb.theme, chat):
+            if not aligner.align(ta.theme, tb.theme):
                 continue
             ea = ta.exposure_pct
             eb = tb.exposure_pct
             if ea is None or eb is None or ea <= 0 or eb <= 0:
-                geo = 0.0
-            else:
-                geo = math.sqrt(ea * eb)
+                # No usable common exposure → not a real 同源 candidate. Skipping
+                # (rather than recording geo=0) keeps a contrived "暴露 0%" link
+                # from ever winning `best` or occupying the headline.
+                continue
+            geo = math.sqrt(ea * eb)
             label = ta.theme  # canonical = card_a's label
             if best is None or geo > best[1]:
                 best = (label, geo)
@@ -442,11 +537,11 @@ def _drift_relation(ca, cb, da, db_, *, lang: str) -> dict:
     }
 
 
-def _same_source_relation(ca, cb, *, lang: str, chat) -> dict | None:
+def _same_source_relation(ca, cb, *, lang: str, aligner: "_ThemeAligner") -> dict | None:
     """Route a different-subject pair into a 同源 relation IFF they share a
     theme.  Returns None when there is NO shared theme (PRD 决策 8: 绝不凑牵强
     同源)."""
-    theme, geo, strength = _shared_theme_strength(ca, cb, chat)
+    theme, geo, strength = _shared_theme_strength(ca, cb, aligner)
     if theme is None:
         return None
     geo_txt = f"{geo:.0f}%" if geo is not None else "—"
@@ -468,7 +563,7 @@ def _same_source_relation(ca, cb, *, lang: str, chat) -> dict | None:
 # Pairwise routing
 # ===========================================================================
 
-def _route_pair(ca, cb, *, lang: str, chat, conn) -> dict | None:
+def _route_pair(ca, cb, *, lang: str, aligner: "_ThemeAligner", conn) -> dict | None:
     """Auto-route ONE card pair to its relation (PRD 决策 5), or None if no
     relation applies."""
     same_subject = ca.subject == cb.subject
@@ -476,9 +571,16 @@ def _route_pair(ca, cb, *, lang: str, chat, conn) -> dict | None:
 
     # Same series (subject+source identical) but different snapshot time → drift.
     if same_series and ca.trade_date != cb.trade_date:
+        # Order older→newer by `trade_date` (ascending). We only reach here when
+        # the two trade_dates differ, so they fully determine the order; the
+        # created_at tiebreak below is a defensive no-op for the equal-date case
+        # that this branch never sees. NOTE: relies on `trade_date` being a
+        # zero-padded ISO "YYYY-MM-DD" string so a lexicographic compare equals a
+        # chronological one (guaranteed by db.BetCard.__post_init__).
         older, newer = (ca, cb)
-        # order by trade_date ascending; created_at as tiebreak
-        if (cb.trade_date or "") < (ca.trade_date or ""):
+        ka = (ca.trade_date or "", ca.created_at or "")
+        kb = (cb.trade_date or "", cb.created_at or "")
+        if kb < ka:
             older, newer = cb, ca
         da = _read_driver(older, conn)
         db_ = _read_driver(newer, conn)
@@ -492,7 +594,7 @@ def _route_pair(ca, cb, *, lang: str, chat, conn) -> dict | None:
 
     # Different subject → same-source (同源) via shared theme exposures.
     if not same_subject:
-        return _same_source_relation(ca, cb, lang=lang, chat=chat)
+        return _same_source_relation(ca, cb, lang=lang, aligner=aligner)
 
     # Same subject + same source + same trade_date (duplicate-ish): nothing.
     return None
@@ -654,7 +756,6 @@ def synthesize_cards(card_ids: list[str],
     chat_hook = chat
 
     key = cache_key_for(card_ids)
-    subject_label = "+".join(sorted({cid[:6] for cid in card_ids}))
 
     # --- cache lookup -----------------------------------------------------
     if use_cache:
@@ -710,11 +811,15 @@ def synthesize_cards(card_ids: list[str],
         chat_hook = _default_chat()
 
     # --- pairwise routing -------------------------------------------------
+    # One run-scoped theme aligner: memoizes every fuzzy theme verdict and caps
+    # the total fuzzy chat calls (so the O(cards²·themes²) pairing can't fan out
+    # into hundreds of serial LLM calls).
+    aligner = _ThemeAligner(chat_hook)
     relations: list[dict] = []
     n = len(cards)
     for i in range(n):
         for j in range(i + 1, n):
-            rel = _route_pair(cards[i], cards[j], lang=lang, chat=chat_hook, conn=conn)
+            rel = _route_pair(cards[i], cards[j], lang=lang, aligner=aligner, conn=conn)
             if rel is not None:
                 relations.append(rel)
                 _safe_emit(emit, phase="relation", kind="relation",
