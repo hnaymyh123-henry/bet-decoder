@@ -202,16 +202,29 @@ check("AC3b memory-cache fallback (no conn) also caches → zero new calls 2nd t
       f"1st={mem_first} 2nd_total={hm.calls} new_calls={EV(cm2).get('new_hunter_calls')}")
 
 # AC4 — cost guard: per-decode estimate present on the card, and the portfolio
-# first-decode estimator gives the "8 新票 ≈ $24 量级".
+# first-decode estimator gives the HONEST magnitude.  [Phase4-W2 fix #4]: the
+# old "≈ $24" headline assumed 1 hunt/ticker, but gather_evidence_for_card hunts
+# every implied assumption (primary + up to 2 cross ≈ 3) — so 8 brand-new
+# tickers ≈ 8 × 3 × $3.21 ≈ $77.  The estimator now reflects that real spend
+# (under-counting it ~3x was the bug this fix closes).
 est = sec.get("cost", {}).get("estimated_first_decode_usd")
 port_est = evidence.estimate_portfolio_first_decode_cost(8)
 check("AC4 per-decode cost estimate attached to card",
       est is not None and est > 0,
       f"estimated_first_decode_usd=${est}")
-check("AC4 '8 新票组合首解 ≈ $24 量级' estimator",
-      20 <= port_est["estimated_cost_usd"] <= 30
-      and port_est["n_evidence_calls"] == 8,
+check("AC4 '8 新票组合首解 ≈ $77 量级' estimator (honest 3 hunts/ticker)",
+      70 <= port_est["estimated_cost_usd"] <= 85
+      and port_est["n_evidence_calls"] == 24
+      and port_est["assumptions_per_ticker"] == 3,
       f"{port_est['human']} → ${port_est['estimated_cost_usd']}")
+# The per-card estimate must match the card's REAL hunt count (no ~3x drift):
+# estimate built from the decoded card == hunter calls actually made.
+_card_assumptions = evidence.assumptions_per_card(card)
+check("AC4c per-card estimate matches the real hunt count (no ~3x under-count)",
+      _card_assumptions == sec.get("assumption_count")
+      and abs(est - _card_assumptions * evidence.COST_PER_EVIDENCE_MINI) < 1e-9,
+      f"assumptions_per_card={_card_assumptions} "
+      f"== assumption_count={sec.get('assumption_count')}; est=${est}")
 # single-assumption cost function sanity
 check("AC4b estimate_evidence_cost linear in assumptions",
       abs(evidence.estimate_evidence_cost(1) - evidence.COST_PER_EVIDENCE_MINI) < 1e-9
