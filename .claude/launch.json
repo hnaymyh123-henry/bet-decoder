@@ -5,7 +5,11 @@
       "name": "pricelens-api",
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "uvicorn", "api:app", "--port", "8765", "--log-level", "warning"],
-      "port": 8765
+      "port": 8765,
+      "env": {
+        "MIROMIND_API_KEY": "",
+        "PYTHONIOENCODING": "utf-8"
+      }
     }
   ]
 }
