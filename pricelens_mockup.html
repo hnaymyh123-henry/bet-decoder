@@ -1854,6 +1854,24 @@
   .bet-card .bc-dcf .val.np { font-size: 14px; color: var(--ink); font-weight: 600; }
   .bet-card .bc-dcf .val.np.hot { color: var(--accent); }
   .bet-card .bc-dcf .val + .lab { margin-top: 5px; }
+  /* Market narrative zone (the live multi/空 debate behind the implied numbers) */
+  .bet-card .bc-narr { padding: 11px 16px; border-top: 1px solid var(--line); background: var(--paper); }
+  .bet-card .bc-narr .mn-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .bet-card .bc-narr .mn-head .lab { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-4); }
+  .bet-card .bc-narr .mn-regime { font-family: var(--mono); font-size: 10px; letter-spacing: 0.03em; padding: 1px 6px; border: 1px solid var(--line); border-radius: 3px; color: var(--ink-2); }
+  .bet-card .bc-narr .mn-bb { font-family: var(--mono); font-size: 10px; color: var(--ink-4); margin-left: auto; }
+  .bet-card .bc-narr .mn-headline { font-size: 12px; color: var(--ink-2); line-height: 1.5; margin-bottom: 9px; }
+  .bet-card .bc-narr .mn-bind { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 3px 0 3px 8px; margin: 2px 0; border-left: 2px solid var(--line); }
+  .bet-card .bc-narr .mn-bind .mn-asm { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); }
+  .bet-card .bc-narr .mn-bind .mn-lean { font-family: var(--mono); font-size: 10.5px; font-weight: 600; white-space: nowrap; }
+  .bet-card .bc-narr .mn-bind.lean-bull { border-left-color: var(--positive); }
+  .bet-card .bc-narr .mn-bind.lean-bull .mn-lean { color: var(--positive); }
+  .bet-card .bc-narr .mn-bind.lean-bear { border-left-color: var(--accent); }
+  .bet-card .bc-narr .mn-bind.lean-bear .mn-lean { color: var(--accent); }
+  .bet-card .bc-narr .mn-bind.lean-mixed .mn-lean { color: var(--neutral); }
+  .bet-card .bc-narr .mn-sq { font-family: var(--mono); font-size: 9.5px; color: var(--ink-4); margin-top: 8px; }
+  .bet-card .bc-narr.unavail { color: var(--ink-4); font-size: 11px; }
+  .bet-card .bc-narr.unavail .lab { margin-right: 6px; }
   .bet-card .bc-del {
     border: none; background: none; color: var(--ink-5); cursor: pointer;
     font-family: var(--mono); font-size: 14px; line-height: 1; padding: 0 2px;
@@ -2263,6 +2281,18 @@ const FIXTURE_CARDS = {
     source_ref: "$214.86 · 2026-05-27 收盘", bet: null, run_id: 20,
     series_key: "NVDA|market", trade_date: "2026-05-27", created_at: "2026-05-27T04:35:16Z",
     holdings: [], theme_exposures: [],
+    market_narrative: {
+      coverage: "rich", regime: "mixed",
+      headline: "在 NVDA $211.14 这个价位上, 市场一手押注 AI 基础设施 49% 高速成长和“印钞机”式自由现金流, 一手又被 Michael Burry 式泡沫警告拉扯, 32x P/E 还有溢价空间, 53x P/FCF 的安全垫却已极为单薄。",
+      bull_count: 4, bear_count: 4,
+      contested: ["Hyperscaler AI Capex 是否见顶", "AI 需求是一次性高峰还是长期基础设施化", "NVDA 的“AI 税”是否被 ASIC/TPU 内化"],
+      bindings: [
+        { assumption: "隐含 P/E ≈ 32.4x", leans: "lean_bull", note: "合理偏乐观, 安全垫有限" },
+        { assumption: "隐含营收 CAGR ≈ 49%", leans: "contested", note: "分歧最大, 现价没给悲观 CAGR 空间" },
+        { assumption: "隐含 P/FCF ≈ 53x", leans: "lean_bear", note: "三条里安全垫最薄" }
+      ],
+      source_quality: { by_tier: { A: 0, B: 11, C: 2, D: 0 }, unverified_claims: 0, total_claims: 13 }
+    },
     _display: {
       baseline_dcf: 65.22, anchor: 214.86,
       bets: [
@@ -2284,6 +2314,17 @@ const FIXTURE_CARDS = {
     source_ref: "$998.85 · 2026-05-27 收盘", bet: null, run_id: 17,
     series_key: "COST|market", trade_date: "2026-05-27", created_at: "2026-05-27T04:30:00Z",
     holdings: [], theme_exposures: [],
+    market_narrative: {
+      coverage: "rich", regime: "optimistic",
+      headline: "COST $998.85 押注会员模式把营收复合增速维持在历史约 2 倍 (21.8%); 多头信续费护城河, 空头嫌防御股估值太贵。",
+      bull_count: 3, bear_count: 2,
+      contested: ["会员费提价空间", "高估值 vs 中个位数行业增速"],
+      bindings: [
+        { assumption: "隐含营收 CAGR ≈ 21.8%", leans: "contested", note: "约历史实际 2 倍, 靠续费率支撑" },
+        { assumption: "隐含 WACC ≈ 8.3%", leans: "lean_bull", note: "低 beta, 折现率假设温和" }
+      ],
+      source_quality: { by_tier: { A: 1, B: 6, C: 2, D: 0 }, unverified_claims: 0, total_claims: 9 }
+    },
     _display: {
       baseline_dcf: 774.61, anchor: 998.85,
       bets: [
@@ -2574,6 +2615,43 @@ function narrativePremiumPct(c, d) {
   return (p == null || isNaN(p)) ? null : p;
 }
 
+// Market-narrative zone: the live bull/bear debate behind the implied numbers.
+// Reads the compact summary card_to_json exposes (regime / headline / bindings /
+// source_quality). Honest-empty when coverage is unavailable/unparseable.
+const _REGIME_ZH = { euphoria: '亢奋', optimistic: '乐观', mixed: '多空拉扯',
+  skeptical: '谨慎', fearful: '恐慌', capitulation: '出清' };
+const _LEAN = { lean_bull: ['偏多', 'lean-bull'], contested: ['分歧', 'lean-mixed'],
+  lean_bear: ['偏空', 'lean-bear'] };
+function regimeLabel(r) { return _REGIME_ZH[r] || r || '—'; }
+
+function renderNarrativeZone(mn) {
+  if (!mn || !mn.coverage) return '';
+  if (mn.coverage === 'unavailable' || mn.coverage === 'unparseable') {
+    return '<div class="bc-narr unavail"><span class="lab">市场叙事</span>材料不足 / 未联网</div>';
+  }
+  const binds = (mn.bindings || []).map(b => {
+    const lean = _LEAN[b.leans] || [b.leans || '', ''];
+    return '<div class="mn-bind ' + lean[1] + '">' +
+      '<span class="mn-asm">' + escapeHTML(b.assumption || '') + '</span>' +
+      '<span class="mn-lean">' + escapeHTML(lean[0]) + '</span>' +
+    '</div>';
+  }).join('');
+  const sq = mn.source_quality || {};
+  const byt = sq.by_tier || {};
+  const tierStr = ['A', 'B', 'C'].filter(t => byt[t]).map(t => t + '×' + byt[t]).join(' ');
+  const sqLine = (tierStr ? '信源 ' + tierStr : '') +
+    (sq.unverified_claims ? ' · ' + sq.unverified_claims + ' 条未经一手核实' : '');
+  return '<div class="bc-narr">' +
+    '<div class="mn-head"><span class="lab">市场叙事</span>' +
+      '<span class="mn-regime">' + escapeHTML(regimeLabel(mn.regime)) + '</span>' +
+      '<span class="mn-bb">多 ' + (mn.bull_count || 0) + ' · 空 ' + (mn.bear_count || 0) + '</span>' +
+    '</div>' +
+    (mn.headline ? '<div class="mn-headline">' + escapeHTML(mn.headline) + '</div>' : '') +
+    binds +
+    (sqLine ? '<div class="mn-sq">' + escapeHTML(sqLine) + '</div>' : '') +
+  '</div>';
+}
+
 function renderSingleCard(c) {
   const sel = state.selected.has(c.card_id);
   const d = c._display || {};
@@ -2597,6 +2675,7 @@ function renderSingleCard(c) {
   const chain = (d.chain || []).map(s =>
     '<div class="chain-step ' + s.t + '"><span class="m">' + escapeHTML(s.m) + '</span><span class="c">' + escapeHTML(s.c) + '</span></div>'
   ).join('');
+  const narrativeHtml = renderNarrativeZone(c.market_narrative);
   const exp = state.expanded[c.card_id] || {};
 
   return '<div class="bet-card' + (sel ? ' selected' : '') + '" data-card="' + escapeHTML(c.card_id) + '">' +
@@ -2614,6 +2693,7 @@ function renderSingleCard(c) {
       (bets ? '<div class="bc-intro">要让 <strong>' + escapeHTML(c.subject) + '</strong> 站得住, 市场必须 <strong>同时</strong> 相信:</div>' + bets : '<div class="bc-intro">数据不足 / 暂无隐含假设。</div>') +
       (d.risks ? '<div class="bc-risks"><span class="lab">关键风险</span>' + escapeHTML(d.risks) + '</div>' : '') +
     '</div>' +
+    narrativeHtml +
     (chain ? '<div class="bc-foot"><button class="tlink" data-chain="' + escapeHTML(c.card_id) + '">▾ 详细决策链</button></div>' +
       '<div class="bc-expand' + (exp.chain ? ' open' : '') + '" data-chainbody="' + escapeHTML(c.card_id) + '"><h4>决策链</h4>' + chain + '</div>' : '') +
   '</div>';

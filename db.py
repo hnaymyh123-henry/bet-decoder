@@ -1120,6 +1120,9 @@ def card_to_json(card: BetCard) -> dict:
         # Derived display hints from decode_detail (None on reloaded cards).
         "mode": _dd.get("mode"),
         "narrative_premium": _dd.get("narrative_premium"),
+        # Compact market-narrative summary (regime/headline/bindings/source_quality);
+        # the full validated narrative stays on decode_detail, in-process only.
+        "market_narrative": (_dd.get("market_narrative") or {}).get("summary"),
     }
 
 

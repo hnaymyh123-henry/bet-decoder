@@ -29,6 +29,7 @@ from typing import Any, Callable, Optional
 
 import db
 import evidence
+import narrative
 import reverse_dcf
 
 # ---------------------------------------------------------------------------
@@ -1046,6 +1047,89 @@ def _attach_evidence(card, f: Fundamentals, anchor: float | None,
     detail["evidence"] = section
 
 
+# ===========================================================================
+# Step 4 — market narrative (the live multi/空 debate behind the implied numbers).
+# Offline-safe, injectable, honest-empty.  This is the qualitative layer the
+# formula can't produce: it researches WHY the market holds these implied numbers
+# (bull/bear/regime/catalysts) and binds the debate back to each number.
+# ===========================================================================
+
+def _implied_assumptions_block(detail: dict) -> str:
+    """Format the formula's implied numbers as a bullet block — handed to the
+    narrative researcher as the QUESTIONS to investigate (not answers to verify)."""
+    lenses: list[dict] = []
+    pm = detail.get("primary_lens")
+    if isinstance(pm, dict):
+        lenses.append(pm)
+    lenses += [c for c in (detail.get("cross_lenses") or []) if isinstance(c, dict)]
+    bullets: list[str] = []
+    seen: set = set()
+    for ln in lenses:
+        label = ln.get("implied_label") or ln.get("lens_label") or ln.get("metric")
+        val = ln.get("implied_value")
+        unit = ln.get("unit") or ""
+        if label is None or val is None:
+            continue
+        try:
+            vs = f"{float(val):.2f}{unit}"
+            dedup = round(float(val), 4)
+        except (TypeError, ValueError):
+            vs = f"{val}{unit}"
+            dedup = val
+        if (label, dedup) in seen:
+            continue
+        seen.add((label, dedup))
+        bullets.append(f"  - {label} ≈ {vs}")
+    np_ = detail.get("narrative_premium")
+    if np_ is not None:
+        try:
+            bullets.append(f"  - 叙事溢价 ≈ {round(float(np_) * 100)}%"
+                           "（基础业务价值之外、靠叙事支撑的价格占比）")
+        except (TypeError, ValueError):
+            pass
+    return "\n".join(bullets) if bullets else "  - (无可用隐含假设)"
+
+
+def _attach_market_narrative(card, *, emit=None, lang: str = "zh",
+                             conn=None, narrator=None) -> None:
+    """Step 4: research the live market debate for a single market card and attach
+    it to card.decode_detail['market_narrative'] = {coverage, full, summary}.
+
+    Offline-safe: the researcher self-guards on OFFLINE_MODE / no key → honest
+    'unavailable' with zero cost/network, so the verify suite and offline decodes
+    add nothing.  MVP scope = single market cards (the per-number bindings need
+    single-card lenses); other kinds get an honest 'unavailable' stub.  Never
+    raises, never fabricates."""
+    detail = getattr(card, "decode_detail", None)
+    if detail is None:
+        return
+    if card.source_type != SOURCE_MARKET or card.card_kind != db.SINGLE:
+        detail["market_narrative"] = {"coverage": "unavailable", "full": None,
+                                      "summary": {"coverage": "unavailable"}}
+        return
+    implied_block = _implied_assumptions_block(detail)
+    anchor_price = detail.get("anchor_price")
+    _safe_emit(emit, phase="market_narrative", kind="decision",
+               text=f"研究 {card.subject} 的市场多空叙事(deep research)…",
+               subject=card.subject)
+    try:
+        env, _hit = narrative.research_market_narrative(
+            card.subject, current_price=anchor_price,
+            implied_assumptions=implied_block, lang=lang,
+            conn=conn, researcher=narrator,
+        )
+        result = narrative.build_card_narrative(env)
+    except Exception as exc:  # must never crash a decode
+        result = {"coverage": "unavailable", "full": None,
+                  "summary": {"coverage": "unavailable"}, "error": str(exc)}
+    detail["market_narrative"] = result
+    sq = (result.get("full") or {}).get("source_quality") if result.get("full") else None
+    _safe_emit(emit, phase="market_narrative", kind="computation",
+               text=f"市场叙事 coverage={result.get('coverage')}"
+                    + (f",信源 {sq}" if sq else ""),
+               subject=card.subject, payload={"coverage": result.get("coverage")})
+
+
 def _empty_evidence_section() -> dict:
     """The canonical empty evidence section — the single source of truth for the
     shape every card kind exposes at decode_detail['evidence']."""
@@ -1114,7 +1198,8 @@ def decode_bet(source_type: str,
                llm=None,
                fundamentals_fn: Callable[[str], Fundamentals] = fetch_fundamentals,
                conn=None,
-               hunter=None
+               hunter=None,
+               narrator=None
                ) -> db.BetCard:
     """Decode any bet source into a full BetCard (passive — does NOT store it).
 
@@ -1149,11 +1234,15 @@ def decode_bet(source_type: str,
     "数据不足" card instead.
     """
     if source_type == SOURCE_PORTFOLIO:
-        return _decode_portfolio(source_input, lang, emit, fundamentals_fn,
+        card = _decode_portfolio(source_input, lang, emit, fundamentals_fn,
                                  llm=llm, conn=conn, hunter=hunter)
+        _attach_market_narrative(card, emit=emit, lang=lang, conn=conn, narrator=narrator)
+        return card
     if source_type == SOURCE_MARKET:
-        return _decode_market(source_input, lang, emit, fundamentals_fn,
+        card = _decode_market(source_input, lang, emit, fundamentals_fn,
                               llm=llm, conn=conn, hunter=hunter)
+        _attach_market_narrative(card, emit=emit, lang=lang, conn=conn, narrator=narrator)
+        return card
 
     # Out-of-scope source types (analyst_pt / opinion = V2, or unknown): return a
     # graceful insufficient card rather than raising — keeps callers crash-free.
