@@ -43,7 +43,7 @@ print("found       :", ev.get("found_count"), "| empty:", ev.get("empty_count"))
 print("cache_hits  :", ev.get("cache_hits"), "| new hunter calls:", ev.get("new_hunter_calls"))
 print("cost (USD)  :", ev.get("cost"))
 for b in (ev.get("briefs") or [])[:3]:
-    print("\n  · assumption:", str(b.get("assumption"))[:80])
+    print("\n  · assumption:", str(b.get("assumption_text"))[:80])
     print("    status   :", b.get("status"))
     txt = json.dumps(b, ensure_ascii=False)[:600]
     print("    brief    :", txt)
