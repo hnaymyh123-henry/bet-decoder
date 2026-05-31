@@ -1084,7 +1084,15 @@ def make_series_key(subject: str, source_type: str) -> str:
 # ---------------------------------------------------------------------------
 
 def card_to_json(card: BetCard) -> dict:
-    """Lossless dict form of a BetCard (JSON-safe)."""
+    """Lossless dict form of a BetCard (JSON-safe).
+
+    Also surfaces two derived display hints from the (non-persisted)
+    decode_detail when it is present on a freshly-decoded card: ``mode``
+    (traditional | anchor_primary | anchor_fallback) and ``narrative_premium``
+    (0..1 — share of price the DCF base business value fails to explain).
+    Reloaded / round-tripped cards carry no decode_detail, so both are None
+    there; that keeps card_to_json/from_json round-trip equality intact."""
+    _dd = getattr(card, "decode_detail", None) or {}
     return {
         "card_id": card.card_id,
         "subject": card.subject,
@@ -1109,6 +1117,9 @@ def card_to_json(card: BetCard) -> dict:
             }
             for t in card.theme_exposures
         ],
+        # Derived display hints from decode_detail (None on reloaded cards).
+        "mode": _dd.get("mode"),
+        "narrative_premium": _dd.get("narrative_premium"),
     }
 
 

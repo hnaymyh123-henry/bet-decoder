@@ -314,6 +314,40 @@ check("AC12 NVDA anchor card reconciled + bet = narrative share (comparable scal
       f"bet={nvda_card.bet:.2f} base={nv_am.get('base_business_value'):.2f} "
       f"anchor={nv_recon.get('anchor'):.2f} residual={nv_recon.get('residual'):.4f}")
 
+# AC13 — narrative-premium gate (mode DECOUPLED from theme keyword). A high-
+# premium stock with NO AI keyword — the real-NVDA case, where yfinance's coarse
+# "Technology / Semiconductors" label carries none of the gpu/hbm/accelerator
+# keywords the Stage-2a gate needs — still routes to anchor mode PURELY on
+# valuation tension (price far above DCF base). Theme is honest-None.
+NVDA_NOKEY = Fundamentals(
+    ticker="NVDA", current_price=180.0,
+    revenue_ttm=130e9, net_income_ttm=73e9, ebitda_ttm=88e9,
+    fcf_ttm=60e9, book_equity=80e9, eps_ttm=2.95,
+    shares_outstanding=24.5e9, net_debt=-30e9, beta=1.7, growth_rate=0.55,
+    industry="Technology / Semiconductors",  # NO gpu/hbm/accelerator keyword
+)
+nokey_is_ai, _ = is_ai_composite(NVDA_NOKEY)
+nokey_card = decode_bet("market", "NVDA", "zh", fundamentals_fn=lambda t: NVDA_NOKEY)
+nokey_d = D(nokey_card)
+check("AC13 keyword-less high-premium stock → anchor via narrative-premium gate (decoupled from theme)",
+      nokey_is_ai is False
+      and nokey_d.get("mode") == "anchor_primary"
+      and (nokey_d.get("narrative_premium") or 0) >= 0.5,
+      f"is_ai={nokey_is_ai} mode={nokey_d.get('mode')} "
+      f"premium={nokey_d.get('narrative_premium')}")
+
+# AC14 — narrative_premium ("how much of the price is story") is surfaced on the
+# card for BOTH a traditional low-premium decode (COST) and a high-premium anchor
+# decode, so M4 can render it. COST stays traditional & below the gate.
+cost_np_card = decode_bet("market", "COST", "zh", fundamentals_fn=stub_fundamentals)
+cost_np_d = D(cost_np_card)
+check("AC14 narrative_premium surfaced on traditional (low) AND anchor (high) cards",
+      cost_np_d.get("mode") == "traditional"
+      and 0 <= (cost_np_d.get("narrative_premium") or -1) < 0.5
+      and (nokey_d.get("narrative_premium") or 0) >= 0.5,
+      f"COST={cost_np_d.get('narrative_premium')} (traditional) | "
+      f"NVDA-nokey={nokey_d.get('narrative_premium')} (anchor)")
+
 # ===========================================================================
 print("=" * 72)
 print(f"RESULT: {_passed} passed, {_failed} failed")

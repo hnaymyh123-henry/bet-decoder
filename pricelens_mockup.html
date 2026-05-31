@@ -1851,6 +1851,9 @@
   .bet-card .bc-dcf { text-align: right; font-family: var(--mono); white-space: nowrap; }
   .bet-card .bc-dcf .lab { display: block; font-size: 8.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-4); }
   .bet-card .bc-dcf .val { font-size: 12.5px; color: var(--ink-2); font-weight: 500; }
+  .bet-card .bc-dcf .val.np { font-size: 14px; color: var(--ink); font-weight: 600; }
+  .bet-card .bc-dcf .val.np.hot { color: var(--accent); }
+  .bet-card .bc-dcf .val + .lab { margin-top: 5px; }
   .bet-card .bc-del {
     border: none; background: none; color: var(--ink-5); cursor: pointer;
     font-family: var(--mono); font-size: 14px; line-height: 1; padding: 0 2px;
@@ -2559,10 +2562,26 @@ function renderCanvas() {
   renderSelectionUI();
 }
 
+// Narrative premium = share of price the DCF base business value fails to
+// explain ("how much of this bet is story, not business"). Prefer the value the
+// backend put on the card (c.narrative_premium); fall back to deriving it from a
+// fixture's _display baseline_dcf / anchor.
+function narrativePremiumPct(c, d) {
+  let p = (c && c.narrative_premium != null) ? Number(c.narrative_premium) : null;
+  if (p == null && d && d.baseline_dcf != null && d.anchor) {
+    p = Math.max(0, 1 - Number(d.baseline_dcf) / Number(d.anchor));
+  }
+  return (p == null || isNaN(p)) ? null : p;
+}
+
 function renderSingleCard(c) {
   const sel = state.selected.has(c.card_id);
   const d = c._display || {};
   const dcf = d.baseline_dcf != null ? ('$' + Number(d.baseline_dcf).toLocaleString('en-US', { maximumFractionDigits: 2 })) : '—';
+  const np = narrativePremiumPct(c, d);
+  const npHtml = np != null
+    ? '<span class="lab">叙事溢价</span><span class="val np' + (np >= 0.5 ? ' hot' : '') + '">' + Math.round(np * 100) + '%</span>'
+    : '';
   const stale = c.trade_date && c.trade_date < todayISO();
   const bets = (d.bets || []).map((b, i) =>
     '<div class="bet-row' + (b.nosol ? ' nosol' : '') + '">' +
@@ -2587,7 +2606,7 @@ function renderSingleCard(c) {
         '<div class="bc-subj">' + escapeHTML(c.subject) + '<span class="bc-badge">' + escapeHTML(badgeLabel(c.source_type)) + '</span></div>' +
         '<div class="bc-source">' + escapeHTML(c.source_ref || '') + '</div>' +
       '</div>' +
-      '<div class="bc-dcf">' + (d.baseline_dcf != null ? '<span class="lab">基线 DCF</span><span class="val">' + dcf + '</span>' : '') + '</div>' +
+      '<div class="bc-dcf">' + npHtml + (d.baseline_dcf != null ? '<span class="lab">基线 DCF</span><span class="val">' + dcf + '</span>' : '') + '</div>' +
       '<button class="bc-del" data-del="' + escapeHTML(c.card_id) + '" title="Remove">✕</button>' +
     '</div>' +
     (stale ? '<div class="bc-stale"><span class="dot"></span>基于 ' + escapeHTML(c.trade_date) + ' 收盘 · 历史快照</div>' : '') +

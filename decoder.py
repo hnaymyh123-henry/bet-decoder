@@ -847,6 +847,14 @@ def _run_plan(plan: LensPlan, anchor: float, f: Fundamentals,
 # How close Σ(components) + base must land to the anchor to call it reconciled.
 _RECON_TOL_PCT = 0.01  # 1% of anchor
 
+# Narrative-premium mode gate (data-source-agnostic).  When the DCF base business
+# value explains less than (1 - this) of the anchor price, narrative/theme pricing
+# dominates → anchor mode is PRIMARY even without an AI keyword.  Calibrated so a
+# plain compounder (COST ≈ 13-19% premium) stays traditional while a narrative-
+# priced name (NVDA ≈ 69-77%, TSLA ≈ 94%) gates into anchor.  Only fires off a
+# REAL DCF baseline (base_src == "dcf_baseline"), never a degenerate base=0.
+_NARRATIVE_PREMIUM_GATE = 0.50
+
 
 def _base_business_value(anchor: float, f: Fundamentals,
                          cross_results: list[dict]) -> tuple[float, str, float]:
@@ -1251,6 +1259,35 @@ def _decode_market(source_input, lang, emit,
             llm=llm, conn=conn, hunter=hunter,
         )
 
+    # Stage 2c — narrative-premium gate (data-source-agnostic).  Even when a
+    # traditional lens solves, if the DCF base business value explains less than
+    # (1 - _NARRATIVE_PREMIUM_GATE) of the price, narrative/theme pricing
+    # dominates → anchor mode PRIMARY.  This catches narrative-priced names whose
+    # yfinance industry carries no AI keyword (real NVDA = "Semiconductors") — the
+    # gap the keyword gate (Stage 2a) structurally cannot see.  Gated on a REAL
+    # DCF baseline so a missing-data base=0 can never spuriously trip it.
+    anchor_cross = [c for c in ([primary_result] + cross_results) if c]
+    _base, _base_src, _ = _base_business_value(anchor, f, anchor_cross)
+    narrative_premium = (max(0.0, anchor - _base) / anchor) if anchor > 0 else 0.0
+    if _base_src == "dcf_baseline" and narrative_premium >= _NARRATIVE_PREMIUM_GATE:
+        _, _theme_lbl = is_ai_composite(f)  # best-effort theme label (may be None)
+        _safe_emit(emit, phase="frame_gate", kind="decision",
+                   text=(f"叙事溢价 {narrative_premium*100:.0f}%(基础业务价值仅解释 "
+                         f"{_base/anchor*100:.0f}% 现价)≥ 阈值 "
+                         f"{_NARRATIVE_PREMIUM_GATE*100:.0f}% → anchor mode primary"
+                         + (f",主题={_theme_lbl}" if _theme_lbl else ",未命名叙事溢价")),
+                   subject=ticker,
+                   payload={"narrative_premium": round(narrative_premium, 4),
+                            "theme": _theme_lbl, "base_business_value": _base})
+        return _assemble_anchor_card(
+            ticker, src_ref, anchor, f, emit, lang, anchor_cross,
+            mode="anchor_primary",
+            reason=(f"叙事溢价 {narrative_premium*100:.0f}% ≥ 阈值 "
+                    f"{_NARRATIVE_PREMIUM_GATE*100:.0f}% → anchor primary"
+                    + (f"(主题={_theme_lbl})" if _theme_lbl else "(未命名叙事溢价)")),
+            llm=llm, conn=conn, hunter=hunter,
+        )
+
     _safe_emit(emit, phase="solve", kind="computation",
                text=f"primary {primary_result['lens']} → "
                     f"{primary_result['implied_label']}={primary_result['implied_value']:.2f}",
@@ -1273,6 +1310,10 @@ def _decode_market(source_input, lang, emit,
         "mode": "traditional",
         "anchor_price": anchor,
         "anchor_type": "market",
+        # Narrative premium = share of price NOT explained by the DCF base
+        # business value.  Below the gate here (else we'd be in anchor mode), but
+        # still informative for the card ("how much story is in this price").
+        "narrative_premium": round(narrative_premium, 4),
         "primary_lens": primary_result,
         "cross_lenses": cross_results,
         "lens_plan": {"primary": plan.primary, "cross": plan.cross,
@@ -1325,11 +1366,17 @@ def _assemble_anchor_card(ticker, src_ref, anchor, f, emit, lang,
     dcf_view = next((c for c in cross_refs if c.get("lens") == "dcf"), None)
     r2_band = dcf_view.get("band") if dcf_view else None
 
+    # Narrative premium = share of price the base business value fails to explain
+    # (= gap / anchor).  Undervalued cards clamp base to anchor → premium 0.
+    _base_bv = anchor_detail.get("base_business_value") or 0.0
+    narrative_premium = (max(0.0, anchor - _base_bv) / anchor) if anchor and anchor > 0 else 0.0
+
     card.decode_detail = {                       # type: ignore[attr-defined]
         "mode": mode,                            # anchor_primary | anchor_fallback
         "anchor_price": anchor,
         "anchor_type": "market",
         "reason": reason,
+        "narrative_premium": round(narrative_premium, 4),
         "anchor_mode": anchor_detail,            # base + components + 对账
         "cross_lenses": cross_refs,              # traditional lenses (reference)
         "r2_band": r2_band,                      # R2 (p25/p50/p75) | None
