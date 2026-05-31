@@ -350,3 +350,83 @@ def build_card_narrative(envelope: dict | None) -> dict:
     cov = full.get("coverage") or "raw"
     full["_meta"] = envelope.get("_meta")
     return {"coverage": cov, "full": full, "summary": summarize_narrative(full)}
+
+
+# ===========================================================================
+# Cross-check: the narrative's per-number lean vs the (independent) evidence
+# layer's verdict. They're produced by different machinery — narrative is a
+# holistic debate read, evidence counts per-number support/refute — so when they
+# DISAGREE that divergence is itself signal (epistemic uncertainty). Surfacing it
+# is what makes the otherwise-invisible evidence layer earn its cost.
+# ===========================================================================
+
+_BULL, _MIXED, _BEAR = "bull", "mixed", "bear"
+
+
+def _norm_narrative_lean(lean: str | None) -> str:
+    return {"lean_bull": _BULL, "contested": _MIXED, "lean_bear": _BEAR}.get(lean or "", _MIXED)
+
+
+def _norm_evidence_balance(balance: str | None) -> str:
+    """Evidence `overall_balance` (support|lean_support|balanced|lean_bear|bear)
+    → 3-point axis. 'support' = evidence backs the implied number holding (bull on
+    the bet); 'bear' = evidence refutes it."""
+    b = (balance or "").lower()
+    if b in ("support", "lean_support", "bull", "lean_bull"):
+        return _BULL
+    if b in ("bear", "lean_bear"):
+        return _BEAR
+    return _MIXED  # balanced / unknown
+
+
+def _metric_group(text: str | None) -> str | None:
+    """Classify an assumption (evidence assumption_id or narrative free-text) into
+    a coarse metric bucket so the two layers' verdicts can be paired per number."""
+    t = (text or "").lower()
+    if "p/fcf" in t or "p_fcf" in t or "fcf" in t or "自由现金" in t:
+        return "p_fcf"
+    if "peg" in t:
+        return "peg"
+    if "p/e" in t or "市盈" in t or "implied_pe" in t or "_pe" in t or " pe " in t:
+        return "pe"
+    if "cagr" in t or "营收" in t or "增速" in t or "growth" in t or "revenue" in t or "dcf" in t:
+        return "cagr"
+    if "ebitda" in t:
+        return "ev_ebitda"
+    if "p/s" in t or "p_s" in t or "市销" in t:
+        return "ps"
+    if "p/b" in t or "p_b" in t or "市净" in t or "book" in t:
+        return "pb"
+    return None
+
+
+def cross_check(evidence_section: dict | None, narrative_full: dict | None) -> list[dict]:
+    """Pair each narrative binding with the evidence brief for the same implied
+    number; return per-number cross-check rows::
+
+        {label, implied_value, narrative, evidence, agree, diverges}
+
+    `evidence` is None when no matching brief exists (then agree/diverges False).
+    """
+    briefs = (evidence_section or {}).get("briefs") or []
+    binds = (narrative_full or {}).get("assumption_bindings") or []
+    ev_by: dict[str, dict] = {}
+    for b in briefs:
+        g = _metric_group(b.get("assumption_id") or b.get("assumption_text"))
+        if g and g not in ev_by:
+            ev_by[g] = b
+    rows = []
+    for bd in binds:
+        g = _metric_group(bd.get("assumption_text"))
+        nv = _norm_narrative_lean(bd.get("where_price_leans"))
+        brief = ev_by.get(g) if g else None
+        ev = _norm_evidence_balance(brief.get("overall_balance")) if brief else None
+        rows.append({
+            "label": bd.get("assumption_text"),
+            "implied_value": bd.get("implied_value"),
+            "narrative": nv,
+            "evidence": ev,
+            "agree": ev is not None and ev == nv,
+            "diverges": ev is not None and ev != nv,
+        })
+    return rows

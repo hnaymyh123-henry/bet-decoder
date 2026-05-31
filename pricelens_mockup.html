@@ -1880,6 +1880,12 @@
   .bet-card .bc-narr .mn-bind.lean-bear { border-left-color: var(--accent); }
   .bet-card .bc-narr .mn-bind.lean-bear .mn-lean { color: var(--accent); }
   .bet-card .bc-narr .mn-bind.lean-mixed .mn-lean { color: var(--neutral); }
+  /* cross-check: narrative verdict vs the independent evidence verdict per number */
+  .bet-card .bc-narr .mn-verdicts { display: flex; align-items: baseline; gap: 7px; font-family: var(--mono); font-size: 10px; white-space: nowrap; }
+  .bet-card .bc-narr .mn-ev { color: var(--ink-4); }
+  .bet-card .bc-narr .mn-bind.diverge { border-left-color: var(--accent); }
+  .bet-card .bc-narr .mn-bind.diverge .mn-ev { color: var(--accent); font-weight: 600; }
+  .bet-card .bc-narr .mn-xnote { font-family: var(--mono); font-size: 9px; color: var(--accent); margin: 2px 0 6px 8px; }
   .bet-card .bc-narr .mn-sq { font-family: var(--mono); font-size: 9.5px; color: var(--ink-4); margin-top: 8px; }
   .bet-card .bc-narr.unavail { color: var(--ink-4); font-size: 11px; }
   .bet-card .bc-narr.unavail .lab { margin-right: 6px; }
@@ -2308,9 +2314,9 @@ const FIXTURE_CARDS = {
       bull_count: 4, bear_count: 4,
       contested: ["Hyperscaler AI Capex 是否见顶", "AI 需求是一次性高峰还是长期基础设施化", "NVDA 的“AI 税”是否被 ASIC/TPU 内化"],
       bindings: [
-        { assumption: "隐含 P/E ≈ 32.4x", leans: "lean_bull", note: "合理偏乐观, 安全垫有限" },
-        { assumption: "隐含营收 CAGR ≈ 49%", leans: "contested", note: "分歧最大, 现价没给悲观 CAGR 空间" },
-        { assumption: "隐含 P/FCF ≈ 53x", leans: "lean_bear", note: "三条里安全垫最薄" }
+        { assumption: "隐含 P/E ≈ 32.4x", leans: "lean_bull", note: "合理偏乐观, 安全垫有限", evidence_verdict: "bull", diverges: false },
+        { assumption: "隐含营收 CAGR ≈ 49%", leans: "contested", note: "分歧最大, 现价没给悲观 CAGR 空间", evidence_verdict: "bear", diverges: true },
+        { assumption: "隐含 P/FCF ≈ 53x", leans: "lean_bear", note: "三条里安全垫最薄", evidence_verdict: "mixed", diverges: true }
       ],
       source_quality: { by_tier: { A: 0, B: 11, C: 2, D: 0 }, unverified_claims: 0, total_claims: 13 }
     },
@@ -2341,8 +2347,8 @@ const FIXTURE_CARDS = {
       bull_count: 3, bear_count: 2,
       contested: ["会员费提价空间", "高估值 vs 中个位数行业增速"],
       bindings: [
-        { assumption: "隐含营收 CAGR ≈ 21.8%", leans: "contested", note: "约历史实际 2 倍, 靠续费率支撑" },
-        { assumption: "隐含 WACC ≈ 8.3%", leans: "lean_bull", note: "低 beta, 折现率假设温和" }
+        { assumption: "隐含营收 CAGR ≈ 21.8%", leans: "contested", note: "约历史实际 2 倍, 靠续费率支撑", evidence_verdict: "mixed", diverges: false },
+        { assumption: "隐含 WACC ≈ 8.3%", leans: "lean_bull", note: "低 beta, 折现率假设温和", evidence_verdict: "bull", diverges: false }
       ],
       source_quality: { by_tier: { A: 1, B: 6, C: 2, D: 0 }, unverified_claims: 0, total_claims: 9 }
     },
@@ -2678,6 +2684,7 @@ const _REGIME_ZH = { euphoria: '亢奋', optimistic: '乐观', mixed: '多空拉
   skeptical: '谨慎', fearful: '恐慌', capitulation: '出清' };
 const _LEAN = { lean_bull: ['偏多', 'lean-bull'], contested: ['分歧', 'lean-mixed'],
   lean_bear: ['偏空', 'lean-bear'] };
+const _VERDICT = { bull: '偏多', mixed: '中性', bear: '偏空' };  // evidence-side 3-point axis
 function regimeLabel(r) { return _REGIME_ZH[r] || r || '—'; }
 
 function renderNarrativeZone(mn) {
@@ -2687,9 +2694,13 @@ function renderNarrativeZone(mn) {
   }
   const binds = (mn.bindings || []).map(b => {
     const lean = _LEAN[b.leans] || [b.leans || '', ''];
-    return '<div class="mn-bind ' + lean[1] + '">' +
+    const evLabel = b.evidence_verdict ? (_VERDICT[b.evidence_verdict] || b.evidence_verdict) : '';
+    const mark = b.diverges ? ' ⚠' : (b.evidence_verdict ? ' ✓' : '');
+    const evHtml = evLabel
+      ? '<span class="mn-ev">· 证据 ' + escapeHTML(evLabel) + escapeHTML(mark) + '</span>' : '';
+    return '<div class="mn-bind ' + lean[1] + (b.diverges ? ' diverge' : '') + '">' +
       '<span class="mn-asm">' + escapeHTML(b.assumption || '') + '</span>' +
-      '<span class="mn-lean">' + escapeHTML(lean[0]) + '</span>' +
+      '<span class="mn-verdicts"><span class="mn-lean">叙事 ' + escapeHTML(lean[0]) + '</span>' + evHtml + '</span>' +
     '</div>';
   }).join('');
   const sq = mn.source_quality || {};
