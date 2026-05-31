@@ -179,14 +179,28 @@ check("AC5 decision tree deterministic (same input → same plan)",
       f"primary={plan1.primary} cross={plan1.cross}")
 check("AC5 NVDA (profitable) → primary P/E",
       plan1.primary == "pe", f"primary={plan1.primary} ({plan1.reason})")
+# Decode routing is frame-adaptive (Stage 2c narrative-premium gate): this
+# NVDA-like fixture carries NO AI keyword but a high narrative premium (price far
+# above its DCF base), so it routes to ANCHOR mode via valuation tension — the
+# keyword-less "real NVDA" case yfinance's coarse 'Semiconductors' label can't
+# catch. The select_lenses PLAN above still deterministically picks P/E; the mode
+# GATE is a separate, later decision. A genuinely value-priced stock stays
+# traditional, and that's where the "1 primary + 1-2 cross" contract is asserted.
 nvda_card = decode_bet("market", "NVDA", "zh", fundamentals_fn=stub_fundamentals)
 nvda_detail = D(nvda_card)
-n_views = 1 + len(nvda_detail.get("cross_lenses", []))
-check("AC5 NVDA card = 1 primary + 1-2 cross lenses",
-      nvda_detail.get("primary_lens") is not None
-      and 1 <= len(nvda_detail.get("cross_lenses", [])) <= 2,
-      f"primary={nvda_detail['primary_lens']['lens']} "
-      f"cross={[c['lens'] for c in nvda_detail['cross_lenses']]} ({n_views} views)")
+check("AC5 high-premium NVDA-like (no keyword) → anchor via narrative-premium gate",
+      nvda_detail.get("mode") == "anchor_primary"
+      and (nvda_detail.get("narrative_premium") or 0) >= 0.5,
+      f"mode={nvda_detail.get('mode')} premium={nvda_detail.get('narrative_premium')}")
+cost_views_card = decode_bet("market", "COST", "zh", fundamentals_fn=stub_fundamentals)
+cost_views_detail = D(cost_views_card)
+n_views = 1 + len(cost_views_detail.get("cross_lenses", []))
+check("AC5 value-priced COST → traditional card = 1 primary + 1-2 cross lenses",
+      cost_views_detail.get("mode") == "traditional"
+      and cost_views_detail.get("primary_lens") is not None
+      and 1 <= len(cost_views_detail.get("cross_lenses", [])) <= 2,
+      f"primary={(cost_views_detail.get('primary_lens') or {}).get('lens')} "
+      f"cross={[c['lens'] for c in cost_views_detail.get('cross_lenses', [])]} ({n_views} views)")
 
 # AC6 — COST gives a clear DCF implied interval (DCF as a cross lens here).
 cost_card = decode_bet("market", "COST", "zh", fundamentals_fn=stub_fundamentals)
