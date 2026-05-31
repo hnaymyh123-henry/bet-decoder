@@ -138,6 +138,36 @@ check("AC6 OFFLINE research → unavailable envelope, zero cost",
       env_off["coverage"] == "unavailable" and env_off["_meta"]["cost_usd"] == 0.0
       and hit is False)
 
+# --- AC7: cross-check pairs narrative lean with the independent evidence verdict
+# (decision B). Evidence verdicts mirror the real cached NVDA briefs.
+ev_section = {"briefs": [
+    {"assumption_id": "NVDA_implied_pe", "overall_balance": "lean_support"},
+    {"assumption_id": "NVDA_implied_revenue_cagr_5y", "overall_balance": "lean_bear"},
+    {"assumption_id": "NVDA_implied_p_fcf", "overall_balance": "balanced"},
+]}
+xc = narrative.cross_check(ev_section, sample)
+by_g = {narrative._metric_group(r["label"]): r for r in xc}
+pe, cagr, pfcf = by_g.get("pe"), by_g.get("cagr"), by_g.get("p_fcf")
+check("AC7 cross-check P/E: narrative+evidence agree (both bull)",
+      bool(pe) and pe["narrative"] == "bull" and pe["evidence"] == "bull"
+      and pe["agree"] and not pe["diverges"], f"{pe}")
+check("AC7 cross-check CAGR diverges (narrative mixed vs evidence bear)",
+      bool(cagr) and cagr["narrative"] == "mixed" and cagr["evidence"] == "bear"
+      and cagr["diverges"], f"{cagr}")
+check("AC7 cross-check P/FCF diverges (narrative bear vs evidence mixed)",
+      bool(pfcf) and pfcf["narrative"] == "bear" and pfcf["evidence"] == "mixed"
+      and pfcf["diverges"], f"{pfcf}")
+check("AC7 normalizers map both scales to bull/mixed/bear",
+      narrative._norm_evidence_balance("support") == "bull"
+      and narrative._norm_evidence_balance("bear") == "bear"
+      and narrative._norm_evidence_balance("balanced") == "mixed"
+      and narrative._norm_narrative_lean("lean_bull") == "bull"
+      and narrative._norm_narrative_lean("contested") == "mixed")
+no_ev = narrative.cross_check({"briefs": []}, sample)
+check("AC7 no evidence brief → evidence None, no false agree/diverge",
+      all(r["evidence"] is None and not r["agree"] and not r["diverges"] for r in no_ev),
+      f"{[(r['label'][:10], r['evidence']) for r in no_ev]}")
+
 print("=" * 72)
 print(f"RESULT: {_passed} passed, {_failed} failed")
 print("=" * 72)

@@ -1122,6 +1122,26 @@ def _attach_market_narrative(card, *, emit=None, lang: str = "zh",
     except Exception as exc:  # must never crash a decode
         result = {"coverage": "unavailable", "full": None,
                   "summary": {"coverage": "unavailable"}, "error": str(exc)}
+
+    # Cross-check (decision B): pair the narrative's per-number lean with the
+    # already-attached evidence layer's independent verdict; a divergence is signal,
+    # and surfacing it is what makes the (otherwise invisible) evidence layer pay
+    # off. Merge the verdicts into the summary bindings so card_to_json carries them.
+    try:
+        full = result.get("full")
+        if full:
+            rows = narrative.cross_check(detail.get("evidence") or {}, full)
+            by_label = {r["label"]: r for r in rows}
+            for b in (result.get("summary", {}).get("bindings") or []):
+                r = by_label.get(b.get("assumption"))
+                if r:
+                    b["narrative_verdict"] = r["narrative"]
+                    b["evidence_verdict"] = r["evidence"]
+                    b["diverges"] = r["diverges"]
+            result["cross_check"] = rows
+    except Exception:
+        pass  # cross-check is a nice-to-have; never break a decode over it
+
     detail["market_narrative"] = result
     sq = (result.get("full") or {}).get("source_quality") if result.get("full") else None
     _safe_emit(emit, phase="market_narrative", kind="computation",
