@@ -2789,6 +2789,20 @@ async function synthesize() {
   setBusy(true);
   openSynthPanel(true);
 
+  // Demo fixtures (fix_*) live only client-side, not in the server DB, so the real
+  // /api/synthesize would honestly return no relations for them. Short-circuit to
+  // the bundled demo synthesis so the workbench can show Module 3 without a live
+  // call. Real (server-backed) cards fall through to the API below, where an empty
+  // result still renders the honest "no significant relation" state.
+  if (ids.every(id => String(id).startsWith('fix_'))) {
+    const fx = JSON.parse(JSON.stringify(FIXTURE_SYNTH));
+    fx.card_ids = ids;
+    renderSynthesis(fx);
+    setStatus('Synthesized (demo fixture)', 'synthesis');
+    state.busy = false; setBusy(false); renderSelectionUI();
+    return;
+  }
+
   let result = null;
   try {
     const r = await fetch('/api/synthesize', {
