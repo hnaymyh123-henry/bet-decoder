@@ -96,12 +96,17 @@ def _default_researcher(prompt: str) -> dict | None:
     """Real Deep Research call (flagship). Honest-empty under the OFFLINE / no-key
     kill-switch so a default decode never silently bills or hits the network in a
     test / offline run (mirrors evidence._default_hunter)."""
+    import client
     if os.environ.get("OFFLINE_MODE", "").lower() in ("1", "true", "yes"):
         return None
-    if not os.environ.get("MIROMIND_API_KEY"):
+    if not client.api_key_present():
         return None
-    from client import call_deepresearch, MODEL_FLAGSHIP
-    return call_deepresearch(prompt, model=MODEL_FLAGSHIP, verbose=False)
+    if not client.web_search_capable():
+        # Active provider can't do grounded web search → the narrative would be
+        # ungrounded with fabricated sources; honest 'unavailable' instead.
+        # (Set ALLOW_UNGROUNDED_RESEARCH=1 to override, knowing the risk.)
+        return None
+    return client.call_deepresearch(prompt, model=client.MODEL_FLAGSHIP, verbose=False)
 
 
 def research_market_narrative(

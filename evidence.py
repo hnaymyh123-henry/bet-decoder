@@ -301,11 +301,18 @@ def _default_hunter(ticker: str, assumption: dict, *,
     the explicit one: it always wins.
     """
     import os
+    import client
     _offline = os.environ.get("OFFLINE_MODE", "").lower() in ("1", "true", "yes")
     if _offline:
         return None  # explicit offline kill-switch → honest留空, zero network
-    if not os.environ.get("MIROMIND_API_KEY"):
-        return None  # no key → cannot research → honest留空, zero network/import
+    if not client.api_key_present():
+        return None  # no key for the active provider → honest留空, zero network/import
+    if not client.web_search_capable():
+        # Active provider can't do grounded web search (e.g. a plain chat model
+        # like DeepSeek via TokenDance).  Hunting "evidence" from it would be
+        # ungrounded with fabricated sources → honest留空 instead.  Override with
+        # ALLOW_UNGROUNDED_RESEARCH=1 only if you accept that risk.
+        return None
 
     from client import call_deepresearch, MODEL_MINI
     from prompt_loader import load_prompt

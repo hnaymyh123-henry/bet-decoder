@@ -1,12 +1,28 @@
-"""MiroMind API client.
-
-NOTE: MiroMind always streams SSE (no way to disable) and emits non-standard
-`reasoning_steps` fields, so we can't use the OpenAI SDK directly. We use httpx
-and parse SSE manually.
+"""LLM API client — provider-configurable.
 
 Two modes through one client (per PRD §8):
-- deepresearch mode (tool_choice=auto, default): for Evidence Hunter
-- chat mode (tool_choice=none): for Decoder narrator, Critic, Synthesizer
+- deepresearch mode: Evidence Hunter + Market Narrative (needs a web-search agent)
+- chat mode (tool_choice=none): Decoder narrator, Critic, Synthesizer
+
+Provider is selected by the LLM_PROVIDER env var:
+
+  miromind  (default) — agentic Deep Research; always streams SSE and emits
+            non-standard `reasoning_steps` / `search_results`, so we parse SSE by
+            hand (the OpenAI SDK can't model it).  Web-search capable.
+
+  tokendance          — OpenAI-compatible gateway (DeepSeek V4 Pro etc.); standard
+            chat completions via the `openai` SDK.  A plain chat model CANNOT
+            browse the web, so "deep research" here would be ungrounded guesswork
+            with fabricated sources.  WEB_SEARCH_CAPABLE is therefore False unless
+            ALLOW_UNGROUNDED_RESEARCH=1, and the research layers (evidence /
+            narrative) honest-empty instead of inventing sources.
+
+Env knobs:
+  LLM_PROVIDER=miromind|tokendance
+  LLM_BASE_URL=...                 (override the provider default endpoint)
+  LLM_MODEL / LLM_MODEL_CHAT / LLM_MODEL_RESEARCH=...   (override model ids)
+  ALLOW_UNGROUNDED_RESEARCH=1      (let a non-search provider answer research calls)
+  <PROVIDER>_API_KEY               (MIROMIND_API_KEY or TOKENDANCE_API_KEY)
 """
 import json
 import os
@@ -18,25 +34,104 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BASE_URL = "https://api.miromind.ai/v1"
+PROVIDER = os.environ.get("LLM_PROVIDER", "miromind").strip().lower()
+_ALLOW_UNGROUNDED = os.environ.get("ALLOW_UNGROUNDED_RESEARCH", "").lower() in (
+    "1", "true", "yes")
 
-PRICING_PER_MILLION = {
-    "mirothinker-1-7-deepresearch-mini": (1.25, 10.0),
-    "mirothinker-1-7-deepresearch": (4.0, 25.0),
-}
+if PROVIDER == "tokendance":
+    BASE_URL = os.environ.get("LLM_BASE_URL", "https://tokendance.space/gateway/v1")
+    API_KEY_ENV = "TOKENDANCE_API_KEY"
+    _MODEL = os.environ.get("LLM_MODEL", "deepseek-v4-pro")
+    MODEL_MINI = os.environ.get("LLM_MODEL_CHAT", _MODEL)
+    MODEL_FLAGSHIP = os.environ.get("LLM_MODEL_RESEARCH", _MODEL)
+    PROTOCOL = "openai"
+    # A plain chat model can't do grounded web research; only allow it to answer
+    # research-mode calls when the operator explicitly opts in (and accepts that
+    # the output is the model's unverified guesswork, not web-sourced evidence).
+    WEB_SEARCH_CAPABLE = _ALLOW_UNGROUNDED
+    # Gateway per-token rates aren't published on the models endpoint; leave cost
+    # untracked here (DeepSeek is cheap).  Override via code if you need it.
+    PRICING_PER_MILLION: dict[str, tuple[float, float]] = {}
+else:  # miromind (default)
+    BASE_URL = os.environ.get("LLM_BASE_URL", "https://api.miromind.ai/v1")
+    API_KEY_ENV = "MIROMIND_API_KEY"
+    MODEL_MINI = "mirothinker-1-7-deepresearch-mini"
+    MODEL_FLAGSHIP = "mirothinker-1-7-deepresearch"
+    PROTOCOL = "miromind-sse"
+    WEB_SEARCH_CAPABLE = True
+    PRICING_PER_MILLION = {
+        "mirothinker-1-7-deepresearch-mini": (1.25, 10.0),
+        "mirothinker-1-7-deepresearch": (4.0, 25.0),
+    }
 
-MODEL_MINI = "mirothinker-1-7-deepresearch-mini"
-MODEL_FLAGSHIP = "mirothinker-1-7-deepresearch"
+
+def api_key_present() -> bool:
+    """True if the active provider's API key is set in the environment."""
+    return bool(os.environ.get(API_KEY_ENV))
+
+
+def web_search_capable() -> bool:
+    """True if the active provider can actually perform grounded web research.
+
+    The research layers (evidence hunter, market narrative) MUST honest-empty when
+    this is False — a non-search chat model would otherwise emit ungrounded claims
+    with fabricated source URLs, which the source-tier classifier would then mis-
+    rank as real authority.  That is exactly the failure this product exists to
+    avoid, so the guardrail lives here, in code."""
+    return WEB_SEARCH_CAPABLE
 
 
 def _api_key() -> str:
-    key = os.environ.get("MIROMIND_API_KEY")
+    key = os.environ.get(API_KEY_ENV)
     if not key:
         raise RuntimeError(
-            "MIROMIND_API_KEY not set. Copy .env.example to .env and fill in your key."
+            f"{API_KEY_ENV} not set (LLM_PROVIDER={PROVIDER}). "
+            "Copy .env.example to .env and fill in your key."
         )
     return key
 
+
+# ---------------------------------------------------------------------------
+# Standard OpenAI-compatible path (TokenDance / any OpenAI-style gateway).
+# ---------------------------------------------------------------------------
+
+def _openai_call(prompt: str, model: str, timeout: float, verbose: bool = False) -> dict:
+    """One non-streaming chat completion via the OpenAI SDK.  No tools/search —
+    returns the same envelope shape as the MiroMind path (search_results empty)."""
+    from openai import OpenAI  # imported lazily so the miromind path needs no SDK
+
+    client = OpenAI(base_url=BASE_URL, api_key=_api_key(), timeout=timeout)
+    resp = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    content = (resp.choices[0].message.content or "") if resp.choices else ""
+    if verbose:
+        print(content, end="", flush=True)
+    usage = None
+    if getattr(resp, "usage", None) is not None:
+        try:
+            usage = resp.usage.model_dump()
+        except Exception:
+            usage = {
+                "prompt_tokens": getattr(resp.usage, "prompt_tokens", 0),
+                "completion_tokens": getattr(resp.usage, "completion_tokens", 0),
+            }
+    return {
+        "content": content,
+        "model": model,
+        "usage": usage,
+        "cost_usd": estimate_cost(usage, model),
+        "reasoning_chars": 0,
+        "tool_call_count": 0,
+        "search_results": [],
+        "last_chunk": {},
+    }
+
+
+# ---------------------------------------------------------------------------
+# MiroMind SSE path (custom: reasoning_steps / search_results / num_search_queries).
+# ---------------------------------------------------------------------------
 
 def _stream_sse(payload: dict, timeout: float) -> Iterator[dict]:
     """Yield parsed JSON objects from SSE 'data:' lines."""
@@ -139,7 +234,11 @@ def call_deepresearch(
     timeout: float = 600.0,
     verbose: bool = False,
 ) -> dict:
-    """Test A path: deepresearch mode. Model can call web_search etc."""
+    """Deepresearch mode. On MiroMind the model can call web_search etc.; on an
+    OpenAI-compatible gateway it degrades to a plain chat completion (no tools —
+    callers gate on web_search_capable() to avoid presenting ungrounded output)."""
+    if PROTOCOL == "openai":
+        return _openai_call(prompt, model, timeout, verbose=verbose)
     payload = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
@@ -153,7 +252,9 @@ def call_chat(
     timeout: float = 180.0,
     verbose: bool = False,
 ) -> dict:
-    """Test B path: chat mode, no tool use."""
+    """Chat mode, no tool use."""
+    if PROTOCOL == "openai":
+        return _openai_call(prompt, model, timeout, verbose=verbose)
     payload = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
