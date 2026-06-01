@@ -1195,6 +1195,9 @@ def card_to_json(card: BetCard) -> dict:
         "derived_from": card.derived_from,
         "derivation_kind": card.derivation_kind,
         "derivation": card.derivation,
+        # Compact display projection (None for portfolio/detail-less cards) so a
+        # real/reloaded single card renders rich, not the thin "no data" branch.
+        "_display": build_card_display(card),
     }
 
 
@@ -1206,6 +1209,89 @@ def card_to_json_full(card: BetCard) -> dict:
     out = card_to_json(card)
     out["decode_detail"] = getattr(card, "decode_detail", None)
     return out
+
+
+def _fmt_implied(v: Any, unit: str) -> str:
+    """Format an implied value for the card: 54.2x (multiple) / 18% (fraction) /
+    1,234.00 (level) / 无解 (no value)."""
+    if not isinstance(v, (int, float)):
+        return "无解"
+    if unit:
+        return f"{v:.1f}{unit}"
+    if 0 < abs(v) < 1:
+        return f"{v * 100:.0f}%"
+    return f"{v:,.2f}"
+
+
+def build_card_display(card: BetCard) -> dict | None:
+    """Project decode_detail → the compact `_display` the front-end's renderSingleCard
+    reads (baseline_dcf / anchor / bets / risks / chain), so a real OR reloaded single
+    card renders rich instead of the thin 'no data' branch (previously only the
+    hardcoded fixtures had _display). None for portfolio / detail-less cards — the
+    portfolio renderer uses holdings/theme_exposures, not _display."""
+    dd = getattr(card, "decode_detail", None)
+    if not dd or card.card_kind != SINGLE:
+        return None
+    anchor = dd.get("anchor_price")
+    np_ = dd.get("narrative_premium")
+    am = dd.get("anchor_mode") or {}
+    bets: list[dict] = []
+    if am.get("components"):
+        base = am.get("base_business_value")
+        if anchor and isinstance(base, (int, float)):
+            bets.append({
+                "metric": "基础业务价值(DCF)解释的占比",
+                "impl": f"{max(0, round(base / anchor * 100))}%",
+                "base": (f"叙事溢价 {round(np_ * 100)}%"
+                         if isinstance(np_, (int, float)) else ""),
+                "iv": ""})
+        for comp in am["components"]:
+            amt = comp.get("implied_amount")
+            bets.append({
+                "metric": comp.get("claim") or comp.get("lens_label")
+                or comp.get("lens") or "成分",
+                "impl": f"${amt:,.0f}" if isinstance(amt, (int, float)) else "—",
+                "base": "", "iv": comp.get("implied_assumption") or ""})
+    else:
+        lenses = ([dd["primary_lens"]] if isinstance(dd.get("primary_lens"), dict) else [])
+        lenses += [c for c in (dd.get("cross_lenses") or []) if isinstance(c, dict)]
+        for r in lenses:
+            iv = r.get("implied_value")
+            band = r.get("band") or {}
+            p25, p75 = band.get("p25"), band.get("p75")
+            band_str = ""
+            if isinstance(p25, (int, float)) and isinstance(p75, (int, float)):
+                band_str = (f"蒙特卡洛 {p25 * 100:.0f}%–{p75 * 100:.0f}%"
+                            if 0 < abs(p25) < 1 else f"区间 {p25:.1f}–{p75:.1f}")
+            bets.append({
+                "metric": r.get("implied_label") or r.get("lens_label")
+                or r.get("lens") or "lens",
+                "impl": _fmt_implied(iv, r.get("unit") or ""),
+                "base": "", "iv": band_str, "nosol": iv is None})
+    # baseline_dcf: anchor base business value → a cross/primary lens's DCF baseline.
+    base_dcf = am.get("base_business_value")
+    if base_dcf is None:
+        for r in ([dd.get("primary_lens")] + list(dd.get("cross_lenses") or [])):
+            if isinstance(r, dict) and isinstance(r.get("baseline_dcf_price"), (int, float)):
+                base_dcf = r["baseline_dcf_price"]
+                break
+    # risks: honest, derived from the market-narrative contested points (if any).
+    mn = (dd.get("market_narrative") or {}).get("summary") or {}
+    risks = " · ".join(mn.get("contested") or [])
+    # chain: a modest decision chain from the plan/mode + the headline implied number.
+    chain: list[dict] = []
+    reason = ((dd.get("lens_plan") or {}).get("reason") or am.get("reason")
+              or dd.get("reason"))
+    if reason:
+        chain.append({"t": "fact", "m": "·", "c": reason})
+    if bets:
+        chain.append({"t": "implied", "m": "⇒",
+                      "c": f"{bets[0]['metric']} = {bets[0]['impl']}"})
+    if dd.get("agentic"):
+        chain.append({"t": "support", "m": "✦",
+                      "c": "agent 自主选择此解码方案(非固定决策树)"})
+    return {"baseline_dcf": base_dcf, "anchor": anchor, "bets": bets,
+            "risks": risks, "chain": chain}
 
 
 def card_from_json(data: dict) -> BetCard:
