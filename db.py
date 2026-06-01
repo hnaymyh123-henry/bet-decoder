@@ -15,7 +15,7 @@ import sqlite3
 import threading
 import uuid
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import date, datetime, timezone
 from typing import Any, Iterator
 
@@ -251,7 +251,7 @@ CREATE INDEX IF NOT EXISTS idx_activity_logs_created ON activity_logs(created_at
 # Connection + bootstrap
 # ---------------------------------------------------------------------------
 
-SCHEMA_VERSION = "2"  # v1 = original 13 tables; v2 = Bet Card model + runs anchor cols
+SCHEMA_VERSION = "3"  # v1 = original 13 tables; v2 = Bet Card model + runs anchor cols; v3 = decode_detail persistence + card lineage (derived_from)
 
 
 def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
@@ -293,6 +293,44 @@ def _migrate_dedup_index(conn: sqlite3.Connection) -> None:
     conn.execute("DROP INDEX IF EXISTS uq_bet_cards_series_day")
 
 
+def _migrate_card_detail(conn: sqlite3.Connection) -> None:
+    """Idempotent: persist the rich decode_detail + card lineage (schema v3).
+
+    Adds nullable columns to ``bet_cards``:
+      - decode_detail_json : the full decode_detail blob (was lost on reload, TD1).
+        Persisting it lets a reloaded card be interrogated/revised and revives the
+        mode / narrative_premium / market_narrative round-trip in card_to_json.
+      - derived_from       : parent card_id for a what-if / revision card (NULL =
+        an original). Originals stay immutable; a revision is a NEW derived card.
+      - derivation_kind    : 'whatif' | 'revision' | NULL.
+      - derivation_json    : {params, prompt, diff:[{field,before,after}]} blob.
+
+    Also repredicates the daily-unique Market index to exclude derived cards, so
+    unlimited same-day what-if snapshots can coexist with the one canonical card.
+    Modeled on _migrate_runs_anchor / _migrate_dedup_index — only touches what's
+    missing, safe to re-run.
+    """
+    cols = _table_columns(conn, "bet_cards")
+    for col in ("decode_detail_json", "derived_from", "derivation_kind",
+                "derivation_json"):
+        if col not in cols:
+            conn.execute(f"ALTER TABLE bet_cards ADD COLUMN {col} TEXT")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_bet_cards_derived ON bet_cards(derived_from)"
+    )
+    # Repredicate uq_bet_cards_market_day: same name, new predicate (… AND
+    # derived_from IS NULL), so a drop+recreate is required (CREATE IF NOT EXISTS
+    # won't replace an existing same-named index). derived_from now exists (added
+    # above), so the partial-index predicate can reference it.
+    conn.execute("DROP INDEX IF EXISTS uq_bet_cards_market_day")
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_bet_cards_market_day "
+        "ON bet_cards(series_key, trade_date) "
+        "WHERE trade_date IS NOT NULL AND source_type = 'market' "
+        "AND derived_from IS NULL"
+    )
+
+
 def _apply_schema(conn: sqlite3.Connection) -> None:
     """Run the DDL + idempotent migrations + schema_meta seed on ``conn``.
 
@@ -304,6 +342,7 @@ def _apply_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA_SQL)
     _migrate_runs_anchor(conn)
     _migrate_dedup_index(conn)
+    _migrate_card_detail(conn)
     # Seed / bump schema_meta.
     existing = conn.execute(
         "SELECT value FROM schema_meta WHERE key = ?", ("version",)
@@ -1062,6 +1101,14 @@ class BetCard:
     created_at: str | None = None
     holdings: list[Holding] = field(default_factory=list)
     theme_exposures: list[ThemeExposure] = field(default_factory=list)
+    # Lineage (schema v3): a what-if / revision is a NEW card derived from a parent
+    # (the original stays immutable). NULL derived_from = an original card.
+    derived_from: str | None = None          # parent card_id, or None for originals
+    derivation_kind: str | None = None        # 'whatif' | 'revision' | None
+    derivation: dict | None = None            # {params, prompt, diff:[{field,before,after}]}
+    # decode_detail is a RUNTIME attribute set by the decoder (not a dataclass
+    # field); save_card persists it to decode_detail_json and card_from_row
+    # restores it, so reloaded cards can be interrogated/revised.
 
     def __post_init__(self) -> None:
         if self.card_id is None:
@@ -1082,6 +1129,27 @@ def make_series_key(subject: str, source_type: str) -> str:
 # ---------------------------------------------------------------------------
 # Serialization
 # ---------------------------------------------------------------------------
+
+def _json_default(o: Any) -> Any:
+    """json.dumps fallback so a decode_detail blob is always serializable.
+
+    decode_detail nests dataclasses (e.g. ThemeExposure inside anchor_mode); turn
+    any dataclass into a dict so it round-trips, and degrade anything else to its
+    str() rather than raising (persisting *something* beats a 500)."""
+    if is_dataclass(o) and not isinstance(o, type):
+        return asdict(o)
+    return str(o)
+
+
+def _dump_detail(detail: Any) -> str | None:
+    """Serialize a decode_detail dict to JSON text (or None). Never raises."""
+    if not detail:
+        return None
+    try:
+        return json.dumps(detail, ensure_ascii=False, default=_json_default)
+    except (TypeError, ValueError):
+        return None
+
 
 def card_to_json(card: BetCard) -> dict:
     """Lossless dict form of a BetCard (JSON-safe).
@@ -1121,9 +1189,23 @@ def card_to_json(card: BetCard) -> dict:
         "mode": _dd.get("mode"),
         "narrative_premium": _dd.get("narrative_premium"),
         # Compact market-narrative summary (regime/headline/bindings/source_quality);
-        # the full validated narrative stays on decode_detail, in-process only.
+        # the full validated narrative stays on decode_detail.
         "market_narrative": (_dd.get("market_narrative") or {}).get("summary"),
+        # Lineage (v3): non-null on a what-if / revision card derived from a parent.
+        "derived_from": card.derived_from,
+        "derivation_kind": card.derivation_kind,
+        "derivation": card.derivation,
     }
+
+
+def card_to_json_full(card: BetCard) -> dict:
+    """card_to_json PLUS the full decode_detail (evidence, anchor_mode, agent_trace,
+    market_narrative.full). Used by get_card / the Q&A agent, which need the rich
+    internal state. list_cards stays on the compact card_to_json to avoid bloating
+    list responses with every card's full detail."""
+    out = card_to_json(card)
+    out["decode_detail"] = getattr(card, "decode_detail", None)
+    return out
 
 
 def card_from_json(data: dict) -> BetCard:
@@ -1156,6 +1238,9 @@ def card_from_json(data: dict) -> BetCard:
             )
             for t in (data.get("theme_exposures") or [])
         ],
+        derived_from=data.get("derived_from"),
+        derivation_kind=data.get("derivation_kind"),
+        derivation=data.get("derivation"),
     )
 
 
@@ -1171,7 +1256,8 @@ def card_from_row(conn: sqlite3.Connection, row: sqlite3.Row) -> BetCard:
         "SELECT * FROM theme_exposures WHERE card_id = ? ORDER BY id",
         (card_id,),
     ).fetchall()
-    return BetCard(
+    cols = set(row.keys())  # rows from a pre-v3 DB may lack the lineage columns
+    card = BetCard(
         card_id=card_id,
         subject=row["subject"],
         source_type=row["source_type"],
@@ -1199,7 +1285,19 @@ def card_from_row(conn: sqlite3.Connection, row: sqlite3.Row) -> BetCard:
             )
             for t in theme_rows
         ],
+        derived_from=row["derived_from"] if "derived_from" in cols else None,
+        derivation_kind=row["derivation_kind"] if "derivation_kind" in cols else None,
+        derivation=(_loads_detail(row["derivation_json"])
+                    if "derivation_json" in cols else None),
     )
+    # Restore the rich decode_detail (v3) so a reloaded card is fully
+    # interrogable/revisable (TD1 fix). A pre-v3 row, or one saved without detail,
+    # simply leaves the card without it (degrades to the old summary-only behavior).
+    if "decode_detail_json" in cols:
+        dd = _loads_detail(row["decode_detail_json"])
+        if dd is not None:
+            card.decode_detail = dd
+    return card
 
 
 def _loads_ticker_list(raw: Any) -> list[str]:
@@ -1217,6 +1315,18 @@ def _loads_ticker_list(raw: Any) -> list[str]:
     return [str(x) for x in data]
 
 
+def _loads_detail(raw: Any) -> dict | None:
+    """Parse a decode_detail / derivation JSON blob defensively (None on empty or
+    unparseable), so one corrupt row never 500s get_card / list_cards."""
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
 # ---------------------------------------------------------------------------
 # DAO: Bet Cards
 # ---------------------------------------------------------------------------
@@ -1226,9 +1336,11 @@ def _find_dedup_card_id(conn: sqlite3.Connection, card: BetCard) -> str | None:
     None. Only Market source_types are deduped (PRD 行为⑦)."""
     if card.source_type not in _DAILY_DEDUP_SOURCES or card.trade_date is None:
         return None
+    if card.derived_from is not None:
+        return None  # a what-if / revision is its own card, never deduped
     existing = conn.execute(
         "SELECT card_id FROM bet_cards WHERE series_key = ? AND trade_date = ? "
-        "AND source_type = ?",
+        "AND source_type = ? AND derived_from IS NULL",
         (card.series_key, card.trade_date, card.source_type),
     ).fetchone()
     return existing["card_id"] if existing is not None else None
@@ -1259,8 +1371,9 @@ def save_card(conn: sqlite3.Connection, card: BetCard) -> str:
                 """
                 INSERT INTO bet_cards (
                     card_id, subject, source_type, card_kind, source_ref,
-                    series_key, bet, trade_date, created_at, run_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    series_key, bet, trade_date, created_at, run_id,
+                    decode_detail_json, derived_from, derivation_kind, derivation_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     card.card_id,
@@ -1273,6 +1386,10 @@ def save_card(conn: sqlite3.Connection, card: BetCard) -> str:
                     card.trade_date,
                     card.created_at,
                     card.run_id,
+                    _dump_detail(getattr(card, "decode_detail", None)),
+                    card.derived_from,
+                    card.derivation_kind,
+                    _dump_detail(card.derivation),
                 ),
             )
 
