@@ -356,7 +356,7 @@ def get_card(card_id: str):
                 status_code=404,
                 content={"error_code": "card_not_found", "message": f"No card for id {card_id}."},
             )
-        return JSONResponse(content=db.card_to_json(card))
+        return JSONResponse(content=db.card_to_json_full(card))
 
 
 @app.post("/api/decode")
@@ -382,7 +382,12 @@ def decode_card(body=Body(default=None)):
         return _bad_request("source_type and source_input are required.")
 
     import decoder
+    import orchestrator
 
+    # Agentic decode is PRIMARY (the agent picks the plan); it self-falls-back to
+    # the deterministic decode when the provider can't tool-call. Set agentic:false
+    # to force the deterministic tree.
+    agentic = bool(body.get("agentic", True))
     job_id = body.get("job_id") or _new_job_id()
     subject = source_input if isinstance(source_input, str) else "portfolio"
 
@@ -394,6 +399,9 @@ def decode_card(body=Body(default=None)):
     # (decode_bet degrades to a "数据不足" card rather than raising).
     with db.connection(DB_PATH) as conn:
         def work(emit):
+            if agentic:
+                return orchestrator.decode_bet_agentic(
+                    source_type, source_input, lang, emit=emit, conn=conn)
             return decoder.decode_bet(source_type, source_input, lang, emit=emit, conn=conn)
 
         try:
@@ -423,7 +431,89 @@ def decode_card(body=Body(default=None)):
                 content={"error_code": "upstream_error", "message": f"save_card failed: {exc}"},
             )
 
-        return {"job_id": job_id, "card": db.card_to_json(card)}
+        return {"job_id": job_id, "card": db.card_to_json_full(card)}
+
+
+@app.post("/api/cards/{card_id}/ask")
+def ask_card(card_id: str, body=Body(default=None)):
+    """Ask a follow-up about a decoded card. The agent answers by calling tools and
+    may PROPOSE a what-if revision (returned, not yet saved). Body: {question, lang?,
+    job_id?}. Returns {job_id, answer, revision|None}; the front-end opens an
+    EventSource on /api/stream/activity/{job_id} to replay the agent's reasoning.
+    OFFLINE_MODE refuses (the answer needs the live LLM)."""
+    if _offline_mode_enabled():
+        return JSONResponse(
+            status_code=503,
+            content={"error_code": "offline_mode",
+                     "message": "OFFLINE_MODE active; follow-up Q&A refused."},
+        )
+    body = _require_dict(body)
+    if body is None:
+        return _bad_request("request body must be a JSON object.")
+    question = body.get("question")
+    if not question or not str(question).strip():
+        return _bad_request("question is required.")
+    lang = body.get("lang", "zh")
+    import orchestrator
+
+    job_id = body.get("job_id") or _new_job_id()
+    with db.connection(DB_PATH) as conn:
+        card = db.get_card(conn, card_id)
+        if card is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error_code": "card_not_found", "message": f"No card for id {card_id}."},
+            )
+
+        def work(emit):
+            return orchestrator.answer_followup(card, str(question), lang,
+                                                emit=emit, conn=conn)
+
+        try:
+            info = activity.run_job(
+                work, job_id=job_id, source_ref=str(card.subject), conn=conn,
+                done_text="答复完成",
+            )
+        except Exception as exc:
+            return JSONResponse(
+                status_code=502,
+                content={"error_code": "upstream_error", "message": f"ask failed: {exc}"},
+            )
+        r = info.get("result") or {}
+        return {"job_id": job_id, "answer": r.get("answer"),
+                "revision": r.get("revision")}
+
+
+@app.post("/api/cards/{card_id}/revise")
+def revise_card(card_id: str, body=Body(default=None)):
+    """Confirm a proposed revision → persist a NEW derived card (the original is
+    untouched). Body: {revision} (the object returned by /ask). Returns {card}.
+    No LLM/network, so this is allowed offline."""
+    body = _require_dict(body)
+    if body is None:
+        return _bad_request("request body must be a JSON object.")
+    revision = body.get("revision")
+    if not isinstance(revision, dict):
+        return _bad_request("a 'revision' object (from /ask) is required.")
+    import orchestrator
+
+    with db.connection(DB_PATH) as conn:
+        parent = db.get_card(conn, card_id)
+        if parent is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error_code": "card_not_found", "message": f"No card for id {card_id}."},
+            )
+        try:
+            derived = orchestrator.build_revised_card(parent, revision)
+            stored_id = db.save_card(conn, derived)
+            derived.card_id = stored_id
+        except Exception as exc:
+            return JSONResponse(
+                status_code=502,
+                content={"error_code": "upstream_error", "message": f"revise failed: {exc}"},
+            )
+        return {"card": db.card_to_json_full(derived)}
 
 
 @app.delete("/api/cards/{card_id}")
