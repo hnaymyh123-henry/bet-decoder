@@ -1235,7 +1235,8 @@ def decode_bet(source_type: str,
                fundamentals_fn: Callable[[str], Fundamentals] = fetch_fundamentals,
                conn=None,
                hunter=None,
-               narrator=None
+               narrator=None,
+               _plan_override=None
                ) -> db.BetCard:
     """Decode any bet source into a full BetCard (passive — does NOT store it).
 
@@ -1276,7 +1277,8 @@ def decode_bet(source_type: str,
         return card
     if source_type == SOURCE_MARKET:
         card = _decode_market(source_input, lang, emit, fundamentals_fn,
-                              llm=llm, conn=conn, hunter=hunter)
+                              llm=llm, conn=conn, hunter=hunter,
+                              plan_override=_plan_override)
         _attach_market_narrative(card, emit=emit, lang=lang, conn=conn, narrator=narrator)
         return card
 
@@ -1300,7 +1302,8 @@ def decode_bet(source_type: str,
 # --- Market single-card path -----------------------------------------------
 
 def _decode_market(source_input, lang, emit,
-                   fundamentals_fn, *, llm=None, conn=None, hunter=None) -> db.BetCard:
+                   fundamentals_fn, *, llm=None, conn=None, hunter=None,
+                   plan_override=None) -> db.BetCard:
     ticker = _coerce_subject(source_input)
     if not ticker:
         return _insufficient_card(
@@ -1335,6 +1338,14 @@ def _decode_market(source_input, lang, emit,
         )
 
     src_ref = str(source_input) if not isinstance(source_input, dict) else ticker
+
+    # Agentic plan override (Phase C): the orchestrator already decided the plan,
+    # so bypass the deterministic gates + lens-selection and apply it directly.
+    # Reuses the SAME assemblers, so the card shape is identical to a deterministic
+    # decode (parity).  The orchestrator tags decode_detail with the agent trace.
+    if plan_override is not None:
+        return _apply_plan_override(plan_override, ticker, src_ref, anchor, f,
+                                    emit, lang, llm=llm, conn=conn, hunter=hunter)
 
     # Stage 2a — front gate (Issue #3 决策 9): narrative/theme-priced subjects
     # (AI 复合体: GPU/存储/光模块/AI 应用) → anchor mode is PRIMARY, traditional
@@ -1413,15 +1424,26 @@ def _decode_market(source_input, lang, emit,
             llm=llm, conn=conn, hunter=hunter,
         )
 
+    return _assemble_traditional_card(
+        ticker, src_ref, anchor, f, primary_result, cross_results,
+        narrative_premium,
+        {"primary": plan.primary, "cross": plan.cross, "reason": plan.reason},
+        emit, lang, conn=conn, hunter=hunter,
+    )
+
+
+def _assemble_traditional_card(ticker, src_ref, anchor, f, primary_result,
+                               cross_results, narrative_premium, lens_plan,
+                               emit, lang, *, conn=None, hunter=None,
+                               mode: str = "traditional") -> db.BetCard:
+    """Assemble a traditional (multiple-lens) single BetCard.  Extracted from
+    _decode_market so BOTH the deterministic decode AND the agentic orchestrator's
+    plan-override build byte-identical cards (parity), running Step 3 the same way.
+    `bet` = the primary implied metric value (a single comparable number)."""
     _safe_emit(emit, phase="solve", kind="computation",
                text=f"primary {primary_result['lens']} → "
                     f"{primary_result['implied_label']}={primary_result['implied_value']:.2f}",
                subject=ticker, payload=primary_result)
-
-    # Stage 3 — assembler: → BetCard.  `bet` = the primary implied metric value
-    # so the card carries a single comparable number; full lens detail rides in
-    # source_ref-adjacent structures that M3/M4 read off the run (R2 band lives
-    # in the lens result, surfaced once #3 wires runs).
     card = db.BetCard(
         subject=ticker,
         source_type=SOURCE_MARKET,
@@ -1429,20 +1451,16 @@ def _decode_market(source_input, lang, emit,
         source_ref=src_ref,
         bet=float(primary_result["implied_value"]),
     )
-    # Attach decode detail as a plain attribute (not persisted by save_card, but
-    # available to the caller / M4 in-process).  Keeps decode_bet self-contained.
     card.decode_detail = {                       # type: ignore[attr-defined]
-        "mode": "traditional",
+        "mode": mode,
         "anchor_price": anchor,
         "anchor_type": "market",
         # Narrative premium = share of price NOT explained by the DCF base
-        # business value.  Below the gate here (else we'd be in anchor mode), but
-        # still informative for the card ("how much story is in this price").
+        # business value ("how much story is in this price").
         "narrative_premium": round(narrative_premium, 4),
         "primary_lens": primary_result,
         "cross_lenses": cross_results,
-        "lens_plan": {"primary": plan.primary, "cross": plan.cross,
-                      "reason": plan.reason},
+        "lens_plan": lens_plan,
         "lang": lang,
     }
     _safe_emit(emit, phase="assemble", kind="decision",
@@ -1452,6 +1470,56 @@ def _decode_market(source_input, lang, emit,
     # assumption (primary + cross lenses); honest-empty if none found.
     _attach_evidence(card, f, anchor, emit, lang, conn, hunter)
     return card
+
+
+# --- Agentic plan-override applier (Phase C) -------------------------------
+
+def _apply_plan_override(plan, ticker, src_ref, anchor, f, emit, lang, *,
+                         llm=None, conn=None, hunter=None) -> db.BetCard:
+    """Apply an orchestrator-chosen decode plan, bypassing the deterministic
+    gates/lens-selection but REUSING the same assemblers — so the resulting card +
+    decode_detail are shape-identical to a deterministic decode (parity).
+
+    plan = {"mode": "traditional"|"anchor_primary"|"anchor_fallback"|"anchor",
+            "primary_key": <lens key>, "cross_keys": [<lens key>...],
+            "reason": <str why the agent chose this>}
+    Degrades safely: an unknown primary lens falls back to select_lenses; a primary
+    lens with no solution falls back to anchor mode (same as the deterministic tree).
+    """
+    mode = (plan.get("mode")
+            or ("anchor_primary" if plan.get("anchor") else "traditional"))
+    reason = plan.get("reason") or "agent-selected plan"
+    cross_keys = [k for k in (plan.get("cross_keys") or []) if k in LENS_REGISTRY]
+
+    if str(mode).startswith("anchor"):
+        ref_keys = cross_keys or list(LENS_REGISTRY)
+        cross = [r for r in (_run_lens(k, anchor, f) for k in ref_keys) if r]
+        return _assemble_anchor_card(
+            ticker, src_ref, anchor, f, emit, lang, cross,
+            mode=(mode if mode != "anchor" else "anchor_primary"), reason=reason,
+            llm=llm, conn=conn, hunter=hunter)
+
+    # Traditional: run the agent's primary lens; no solution → anchor fallback
+    # (mirrors the deterministic tree's behavior at decoder.py Stage 2b/2c).
+    primary_key = plan.get("primary_key")
+    if primary_key not in LENS_REGISTRY:
+        primary_key = select_lenses(f).primary
+    primary_result = (_run_lens(primary_key, anchor, f)
+                      if primary_key in LENS_REGISTRY else None)
+    if primary_result is None:
+        cross = [r for r in (_run_lens(k, anchor, f) for k in list(LENS_REGISTRY)) if r]
+        return _assemble_anchor_card(
+            ticker, src_ref, anchor, f, emit, lang, cross, mode="anchor_fallback",
+            reason=f"{reason}; primary lens {primary_key} had no solution",
+            llm=llm, conn=conn, hunter=hunter)
+    cross_results = [r for r in (_run_lens(k, anchor, f) for k in cross_keys) if r]
+    anchor_cross = [c for c in ([primary_result] + cross_results) if c]
+    _base, _src, _ = _base_business_value(anchor, f, anchor_cross)
+    np_ = (max(0.0, anchor - _base) / anchor) if anchor and anchor > 0 else 0.0
+    return _assemble_traditional_card(
+        ticker, src_ref, anchor, f, primary_result, cross_results, np_,
+        {"primary": primary_key, "cross": cross_keys, "reason": reason},
+        emit, lang, conn=conn, hunter=hunter, mode=mode)
 
 
 # --- Anchor-mode single-card assembler -------------------------------------
