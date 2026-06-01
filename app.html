@@ -1957,6 +1957,42 @@
   .bet-card .chain-step.break .m { color: var(--accent); }
   .bet-card .chain-step.break .c { color: var(--accent); font-size: 11px; font-weight: 500; }
 
+  /* ---- NEW: per-card discuss thread + what-if exhibit + derived card ---- */
+  .bet-card .bc-discuss { border-top: 2px solid var(--ink); padding: 13px 16px 14px; background: var(--paper); }
+  .bet-card .bc-discuss > .lab { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 11px; }
+  .bc-turn { margin-bottom: 11px; }
+  .bc-turn .who { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 3px; }
+  .bc-turn.you .who { color: var(--ink); }
+  .bc-turn .msg { font-size: 13px; color: var(--ink-2); }
+  .bc-turn.you .msg { color: var(--ink); font-weight: 500; }
+  .bc-turn .tools { font-family: var(--mono); font-size: 10px; color: var(--ink-4); margin-top: 4px; }
+  .bc-turn-empty { font-size: 12px; color: var(--ink-4); margin-bottom: 11px; }
+  .bc-ask { display: flex; border: 1px solid var(--line); margin-top: 4px; }
+  .bc-ask input { flex: 1; border: none; padding: 9px 11px; font-family: var(--mono); font-size: 12px; color: var(--ink); background: var(--paper); }
+  .bc-ask input:focus { outline: none; }
+  .bc-ask button { background: var(--ink); color: var(--paper); border: none; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; padding: 0 16px; text-transform: uppercase; cursor: pointer; }
+  .bc-ask button:hover { background: var(--ink-2); }
+  .bc-whatif { border: 1px solid var(--line); background: var(--paper-2); margin: 4px 0 12px; }
+  .bc-whatif .wh { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  .bc-whatif .wh .ov { color: var(--accent); }
+  .bc-whatif .wh-row { display: flex; align-items: baseline; gap: 11px; padding: 11px 12px 4px; }
+  .bc-whatif .wh-row.note { color: var(--ink-4); font-size: 12px; }
+  .bc-whatif .field { font-size: 12.5px; color: var(--ink-2); min-width: 120px; }
+  .bc-whatif .before { font-family: var(--mono); font-size: 13px; color: var(--ink-4); text-decoration: line-through; }
+  .bc-whatif .arrow { font-family: var(--mono); color: var(--ink-4); }
+  .bc-whatif .after { font-family: var(--mono); font-size: 15px; color: var(--accent); font-weight: 600; }
+  .bc-whatif .wh-note { font-size: 10.5px; color: var(--ink-4); padding: 0 12px 9px; }
+  .bc-whatif .wh-act { padding: 0 12px 11px; }
+  .bc-whatif .wh-act button { background: var(--ink); color: var(--paper); border: none; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; padding: 7px 14px; text-transform: uppercase; cursor: pointer; }
+  .derived-rail { margin-top: 10px; padding-left: 16px; border-left: 2px solid var(--line); }
+  .bet-card.derived { background: var(--paper); }
+  .bet-card.derived .dh { display: flex; justify-content: space-between; align-items: baseline; padding: 11px 16px; border-bottom: 1px solid var(--paper-3); }
+  .bet-card.derived .bc-subj.sm { font-size: 16px; font-weight: 600; }
+  .bet-card.derived .from { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.04em; color: var(--ink-3); border: 1px solid var(--line); padding: 2px 6px; margin-left: 8px; }
+  .bet-card.derived .d-body { padding: 11px 16px; }
+  .bet-card.derived .impl.hot { color: var(--accent); }
+  .bet-card.derived .d-prov { font-family: var(--mono); font-size: 10px; color: var(--ink-4); margin-top: 9px; border-top: 1px solid var(--paper-3); padding-top: 8px; }
+
   /* ---- Portfolio dashboard card (expanded form) ---- */
   .bet-card.portfolio { grid-column: 1 / -1; }   /* dashboards span full canvas width */
   .pf-body { padding: 16px 18px; }
@@ -2410,7 +2446,9 @@ const state = {
   lang: 'zh',
   offline: false,
   busy: false,          // a decode/synthesize is in flight
-  expanded: {}          // card_id -> { chain:bool } expand toggles
+  expanded: {},         // card_id -> { chain:bool } expand toggles
+  chat: {},             // card_id -> [{role:'you'|'agent', text, tools?}]
+  revision: {}          // card_id -> a pending what-if revision proposal (from /ask)
 };
 
 let _activityStream = null;   // active EventSource for the agent feed
@@ -2608,6 +2646,69 @@ function removeCard(cardId) {
 }
 
 /* ============================================================
+   ASK — POST /api/cards/{id}/ask → {answer, revision?}; replay reasoning.
+   The agent answers by calling tools; a "what if" returns a revision proposal
+   the user can save as a derived card. Fixture cards (offline) show a hint.
+   ============================================================ */
+async function askCard(cardId, question) {
+  question = (question || '').trim();
+  if (!question) return;
+  const card = state.cards.find(c => c.card_id === cardId);
+  if (!card) return;
+  (state.chat[cardId] = state.chat[cardId] || []).push({ role: 'you', text: question });
+  state.chat[cardId].push({ role: 'agent', text: '…思考中', pending: true });
+  renderCanvas();
+
+  const drop = () => {
+    const arr = state.chat[cardId] || [];
+    if (arr.length && arr[arr.length - 1].pending) arr.pop();
+  };
+  if (String(cardId).startsWith('fix')) {  // offline dev fixture — not in the DB
+    drop();
+    state.chat[cardId].push({ role: 'agent',
+      text: '(这是离线 fixture 卡;连上后端 + 一个能调用工具的 LLM 后,即可真实追问、做 what-if、派生衍生卡。)' });
+    renderCanvas();
+    return;
+  }
+  try {
+    const r = await fetch('/api/cards/' + encodeURIComponent(cardId) + '/ask', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, lang: state.lang })
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    drop();
+    state.chat[cardId].push({ role: 'agent', text: d.answer || '(无答复)' });
+    if (d.revision) state.revision[cardId] = d.revision;
+    renderCanvas();
+    if (d.job_id) streamActivity(d.job_id, card.subject);
+  } catch (e) {
+    drop();
+    state.chat[cardId].push({ role: 'agent', text: '(追问失败:' + String(e.message || e) + ')' });
+    renderCanvas();
+  }
+}
+
+// Confirm a proposed what-if → POST /revise → a derived card rails under the parent.
+async function saveRevision(cardId) {
+  const rev = state.revision[cardId];
+  if (!rev) return;
+  try {
+    const r = await fetch('/api/cards/' + encodeURIComponent(cardId) + '/revise', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ revision: rev })
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    delete state.revision[cardId];
+    if (d.card) addCard(d.card);   // derived card → rails under parent
+    else renderCanvas();
+  } catch (e) {
+    showToast('保存衍生卡失败: ' + escapeHTML(String(e.message || e)));
+  }
+}
+
+/* ============================================================
    CANVAS RENDER — multiple Bet Cards side-by-side.
    single  → compact bet card ; portfolio → expanded dashboard.
    ============================================================ */
@@ -2632,9 +2733,19 @@ function renderCanvas() {
 // in an indented rail beneath it, so the canvas reads as parent → constituents:
 // "here's my portfolio, and here's what each holding actually bets on". Holdings
 // not yet decoded are noted; bets that aren't in any portfolio render standalone.
+function _derivedRail(parentId) {
+  const kids = state.cards.filter(c => c.derived_from === parentId);
+  return kids.length
+    ? '<div class="derived-rail">' + kids.map(renderDerivedCard).join('') + '</div>' : '';
+}
+function _singleWithDerived(card, weight) {
+  return renderSingleCard(card, weight) + _derivedRail(card.card_id);
+}
+
 function renderCanvasGroups(cards) {
   const portfolios = cards.filter(c => c.card_kind === 'portfolio');
-  const singles = cards.filter(c => c.card_kind !== 'portfolio');
+  // Derived (what-if) cards rail under their parent (via _derivedRail), not standalone.
+  const singles = cards.filter(c => c.card_kind !== 'portfolio' && !c.derived_from);
   const claimed = new Set();
   let html = '';
   portfolios.forEach(pf => {
@@ -2650,7 +2761,7 @@ function renderCanvasGroups(cards) {
           '<span class="pf-group-count">' + members.length + ' / ' + total + ' 已解码</span></div>' +
         (members.length
           ? '<div class="pf-members">' +
-              members.map(m => renderSingleCard(m, wmap[String(m.subject).toUpperCase()])).join('') +
+              members.map(m => _singleWithDerived(m, wmap[String(m.subject).toUpperCase()])).join('') +
             '</div>'
           : '<div class="pf-group-empty">该组合的持仓还没单独解码 — 解码持仓票后会自动归到这里。</div>') +
       '</div>' +
@@ -2660,7 +2771,7 @@ function renderCanvasGroups(cards) {
   if (standalone.length) {
     html += (portfolios.length
       ? '<div class="pf-group-label standalone-label">其它独立 bet(不属于上面组合)</div>' : '') +
-      '<div class="card-grid-inner">' + standalone.map(s => renderSingleCard(s)).join('') + '</div>';
+      '<div class="card-grid-inner">' + standalone.map(s => _singleWithDerived(s)).join('') + '</div>';
   }
   return html;
 }
@@ -2765,6 +2876,77 @@ function renderSingleCard(c, portfolioWeight) {
     narrativeHtml +
     (chain ? '<div class="bc-foot"><button class="tlink" data-chain="' + escapeHTML(c.card_id) + '">▾ 详细决策链</button></div>' +
       '<div class="bc-expand' + (exp.chain ? ' open' : '') + '" data-chainbody="' + escapeHTML(c.card_id) + '"><h4>决策链</h4>' + chain + '</div>' : '') +
+    _discussBlock(c) +
+  '</div>';
+}
+
+// Format a what-if before/after value: 18.5% (fraction) / 54.20 (level) / pass-through.
+function _fmtNum(v) {
+  if (typeof v !== 'number' || isNaN(v)) return escapeHTML(String(v));
+  return Math.abs(v) < 1 ? (v * 100).toFixed(1) + '%' : v.toFixed(2);
+}
+
+// Per-card "讨论 / DISCUSS" thread (NEW): the conversational + revisable layer.
+// Originals only (a derived what-if card isn't itself re-interrogated). Turns are
+// distinguished by weight + mono label, NOT colored bubbles (design system §). A
+// pending what-if proposal renders a before→after exhibit + "save as derived card".
+function _discussBlock(c) {
+  if (c.card_kind !== 'single' || c.derived_from) return '';
+  const id = c.card_id;
+  const turns = (state.chat[id] || []).map(t =>
+    '<div class="bc-turn ' + (t.role === 'you' ? 'you' : 'agent') + '">' +
+      '<div class="who">' + (t.role === 'you' ? '你' : 'AGENT') + '</div>' +
+      '<div class="msg">' + escapeHTML(t.text) + '</div>' +
+      (t.tools ? '<div class="tools">▾ ' + escapeHTML(t.tools) + '</div>' : '') +
+    '</div>'
+  ).join('');
+  const rev = state.revision[id];
+  let whatif = '';
+  if (rev) {
+    const diff = (rev.diff && rev.diff[0]) || null;
+    const ov = Object.entries((rev.params && rev.params.overrides) || {})
+      .map(([k, v]) => k + '=' + v).join(' · ');
+    whatif = '<div class="bc-whatif">' +
+      '<div class="wh"><span>WHAT-IF · 修正提案</span><span class="ov">' + escapeHTML(ov) + '</span></div>' +
+      (diff
+        ? '<div class="wh-row"><span class="field">' + escapeHTML(String(diff.field || '隐含值')) + '</span>' +
+            '<span class="before">' + _fmtNum(diff.before) + '</span>' +
+            '<span class="arrow">→</span>' +
+            '<span class="after">' + _fmtNum(diff.after) + '</span></div>'
+        : '<div class="wh-row note">（这个假设下没有可解的对比）</div>') +
+      '<div class="wh-note">原卡不动 · 存成带溯源的衍生卡</div>' +
+      '<div class="wh-act"><button data-revsave="' + escapeHTML(id) + '">保存为衍生卡 →</button></div>' +
+    '</div>';
+  }
+  return '<div class="bc-discuss">' +
+    '<div class="lab">讨论 / DISCUSS</div>' +
+    (turns || '<div class="bc-turn-empty">就这张卡追问 —— 为什么这个数?最强熊市论据?如果 WACC 9%?跟某只票比?</div>') +
+    whatif +
+    '<div class="bc-ask"><input type="text" data-askinput="' + escapeHTML(id) + '" placeholder="追问这张卡…"><button data-ask="' + escapeHTML(id) + '">问</button></div>' +
+  '</div>';
+}
+
+// A compact derived (what-if) card — railed under its parent by renderCanvasGroups.
+function renderDerivedCard(c) {
+  const rev = c.derivation || {};
+  const diff = (rev.diff && rev.diff[0]) || null;
+  const ov = Object.entries((rev.params && rev.params.overrides) || {})
+    .map(([k, v]) => k + '=' + v).join(' · ');
+  return '<div class="bet-card derived" data-card="' + escapeHTML(c.card_id) + '">' +
+    '<div class="dh">' +
+      '<div><span class="bc-subj sm">' + escapeHTML(c.subject) + '</span>' +
+        '<span class="from">← 衍生自 ' + escapeHTML(c.subject) + ' · WHAT-IF</span></div>' +
+      '<button class="bc-del" data-del="' + escapeHTML(c.card_id) + '" title="Remove">✕</button>' +
+    '</div>' +
+    '<div class="d-body">' +
+      (diff
+        ? '<div class="bet-row"><span class="claim">' + escapeHTML(String(diff.field || '隐含值')) +
+            (ov ? '<span class="iv">' + escapeHTML(ov) + '</span>' : '') + '</span>' +
+            '<span class="nums"><span class="impl hot">' + _fmtNum(diff.after) + '</span>' +
+            '<span class="base">原卡 ' + _fmtNum(diff.before) + '</span></span></div>'
+        : '<div class="bc-intro">衍生快照</div>') +
+      '<div class="d-prov">▸ 派生:reverse DCF 在覆盖假设下重解 · 父卡不变 · 溯源保留</div>' +
+    '</div>' +
   '</div>';
 }
 
@@ -2857,6 +3039,19 @@ function bindCardEvents() {
       if (body) body.classList.toggle('open', state.expanded[id].chain);
     });
   });
+  // Per-card follow-up: ask button + Enter on the input.
+  const _fireAsk = (id) => {
+    const inp = document.querySelector('[data-askinput="' + cssAttr(id) + '"]');
+    if (inp && inp.value.trim()) { const q = inp.value; inp.value = ''; askCard(id, q); }
+  };
+  document.querySelectorAll('[data-ask]').forEach(b =>
+    b.addEventListener('click', () => _fireAsk(b.getAttribute('data-ask'))));
+  document.querySelectorAll('[data-askinput]').forEach(inp =>
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); _fireAsk(inp.getAttribute('data-askinput')); }
+    }));
+  document.querySelectorAll('[data-revsave]').forEach(b =>
+    b.addEventListener('click', () => saveRevision(b.getAttribute('data-revsave'))));
 }
 
 /* ============================================================
