@@ -107,14 +107,17 @@ def main() -> int:
         f"input={has_input} select={has_select} btn={has_decode_btn} post={posts_decode} grid={renders_grid}",
     )
 
-    # AC: multi-card side-by-side; single=compact, portfolio=dashboard (both renderers present).
+    # AC: tabbed workspace — one full-page 2-col dossier per scenario, switched via a
+    # tab bar (replaces the old all-cards stacked grid). Both renderers still present.
     has_single = "function renderSingleCard" in body
     has_pf = "function renderPortfolioCard" in body and "pf-theme" in body and "pf-holdings" in body
-    has_grid_css = ".card-grid" in body and "repeat(auto-fill" in body
+    tabbed = ('id="tab-bar"' in body and "function renderTabBar" in body
+              and "function activateTab" in body and "function renderPortfolioPage" in body
+              and ".card-page .cp-cols" in body and "state.activeTab" in body)
     check(
-        "multi-card compare: single compact + portfolio dashboard renderers",
-        has_single and has_pf and has_grid_css,
-        f"single={has_single} portfolio={has_pf} grid_css={has_grid_css}",
+        "tabbed workspace: tab bar + per-scenario 2-col dossier (single + portfolio renderers)",
+        has_single and has_pf and tabbed,
+        f"single={has_single} portfolio={has_pf} tabbed={tabbed}",
     )
 
     # AC: synthesis flow — select >=2 cards → synth btn → POST /api/synthesize → headline+graph+narrative.

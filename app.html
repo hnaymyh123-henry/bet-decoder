@@ -2044,6 +2044,52 @@
   .bc-discuss .bc-chips .chip { font-family: var(--mono); font-size: 10px; letter-spacing: 0.03em; color: var(--ink-2); background: var(--paper-2); border: 1px solid var(--line); padding: 5px 9px; cursor: pointer; }
   .bc-discuss .bc-chips .chip:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
+  /* ============ Tabbed workspace: tab bar + full-page 2-col dossier ============ */
+  .wb-canvas .wb-tabs { display: flex; gap: 2px; overflow-x: auto; border-bottom: 2px solid var(--ink); margin-bottom: 20px; }
+  .wb-tabs .wb-tab { display: inline-flex; align-items: center; gap: 6px; padding: 8px 9px 7px; border: 1px solid var(--line); border-bottom: none; background: var(--paper-2); cursor: pointer; white-space: nowrap; position: relative; top: 1px; }
+  .wb-tabs .wb-tab.active { background: var(--paper); border-color: var(--ink); border-bottom: 2px solid var(--paper); }
+  .wb-tabs .wb-tab.dragging { opacity: 0.45; }
+  .wb-tabs .wb-tab .tb-name { font-size: 12.5px; color: var(--ink-3); }
+  .wb-tabs .wb-tab.active .tb-name { color: var(--ink); font-weight: 600; }
+  .wb-tabs .wb-tab .tb-badge { font-family: var(--mono); font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-4); border: 1px solid var(--line); padding: 1px 4px; }
+  .wb-tabs .wb-tab .tb-pin { border: none; background: none; cursor: pointer; color: var(--ink-5); font-size: 11px; line-height: 1; padding: 0; }
+  .wb-tabs .wb-tab.pinned .tb-pin { color: var(--accent); }
+  .wb-tabs .wb-tab .tb-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
+  .wb-tabs .wb-tab .tb-close { border: none; background: none; cursor: pointer; color: var(--ink-5); font-size: 11px; line-height: 1; padding: 0 0 0 2px; }
+  .wb-tabs .wb-tab .tb-close:hover { color: var(--accent); }
+  .wb-tabs .tb-rename { font-family: var(--sans); font-size: 12.5px; border: 1px solid var(--ink); padding: 1px 4px; width: 96px; }
+
+  .bet-card.card-page { border: none; }                       /* full-bleed page: drop card chrome */
+  .bet-card.card-page.selected { box-shadow: none; }          /* selection shown via tab dot + checkbox, not a page ring */
+  .card-page .cp-head { display: flex; align-items: flex-start; gap: 20px; padding: 0 0 14px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+  .card-page .cp-id { flex: 1; min-width: 0; }
+  .card-page .cp-subj { font-family: var(--sans); font-size: 26px; font-weight: 600; color: var(--ink); letter-spacing: -0.015em; }
+  .card-page .cp-source { font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-top: 4px; letter-spacing: 0.03em; }
+  .card-page .cp-kpis { display: flex; gap: 22px; align-items: flex-start; }
+  .card-page .cp-kpis .kpi { display: flex; flex-direction: column; gap: 3px; }
+  .card-page .cp-kpis .kpi .lab { font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-4); }
+  .card-page .cp-kpis .kpi .val { font-family: var(--mono); font-size: 18px; font-weight: 600; color: var(--ink); }
+  .card-page .cp-kpis .kpi .val.hot { color: var(--accent); }
+  .card-page .cp-synth { font-family: var(--mono); font-size: 10px; letter-spacing: 0.04em; color: var(--ink-3); display: inline-flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap; }
+  .card-page .cp-synth.on { color: var(--accent); }
+  .card-page .cp-synth input { accent-color: var(--accent); cursor: pointer; }
+  .card-page .cp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+  .card-page .cp-col { min-width: 0; }
+  .card-page .cp-right .price-chart-wrap { margin-bottom: 14px; }
+  .card-page .bc-discuss { border-top: 2px solid var(--ink); margin-top: 18px; padding: 14px 0 0; }
+  .card-page .bc-risks { margin-top: 14px; }
+
+  .portfolio-page .cp-constituents { margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--line); }
+  .portfolio-page .cc-lab { font-family: var(--mono); font-size: 9px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 9px; }
+  .portfolio-page .cp-hold { display: grid; grid-template-columns: 90px 64px 1fr; gap: 12px; padding: 8px 6px; border-bottom: 1px dotted var(--line); align-items: baseline; font-size: 12.5px; }
+  .portfolio-page .cp-hold .h-t { font-weight: 600; color: var(--ink); }
+  .portfolio-page .cp-hold .h-w { font-family: var(--mono); color: var(--ink-2); text-align: right; }
+  .portfolio-page .cp-hold .h-s { font-family: var(--mono); font-size: 10px; color: var(--ink-4); letter-spacing: 0.02em; }
+  .portfolio-page .cp-hold.linked { cursor: pointer; }
+  .portfolio-page .cp-hold.linked:hover { background: var(--paper-2); }
+  .portfolio-page .cp-hold.linked .h-s { color: var(--accent); }
+  @media (max-width: 1024px) { .card-page .cp-cols { grid-template-columns: 1fr; } }
+
   /* ---- NEW: per-card discuss thread + what-if exhibit + derived card ---- */
   .bet-card .bc-discuss { border-top: 2px solid var(--ink); padding: 13px 16px 14px; background: var(--paper); }
   .bet-card .bc-discuss > .lab { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 11px; }
@@ -2297,8 +2343,9 @@
           <button class="synth-btn" id="synth-btn" disabled>Synthesize · <span id="synth-sel-count">0</span> selected</button>
         </div>
       </div>
+      <div class="wb-tabs" id="tab-bar"><!-- scenario tabs injected here --></div>
       <div class="card-grid" id="card-grid">
-        <!-- bet cards injected here -->
+        <!-- the active tab's full-page view is injected here -->
       </div>
       <div class="canvas-empty" id="canvas-empty">
         <strong>No bets decoded yet.</strong>
@@ -2533,11 +2580,17 @@ const state = {
   lang: 'zh',
   offline: false,
   busy: false,          // a decode/synthesize is in flight
-  expanded: {},         // card_id -> { chain:bool } expand toggles (now the chart expand)
+  expanded: {},         // card_id -> { chain:bool } (legacy; chart is now always-on)
   chat: {},             // card_id -> [{role:'you'|'agent', text, tools?}]
   revision: {},         // card_id -> a pending what-if revision proposal (from /ask)
-  priceHistory: {}      // TICKER -> {points:[...]} | 'loading' | 'error' (lazy, cached)
+  priceHistory: {},     // TICKER -> {points:[...]} | 'loading' | 'error' (lazy, cached)
+  // --- tabbed workspace ---
+  activeTab: null,      // active scenario card_id
+  tabOrder: [],         // ordered tab card_ids (non-derived cards only)
+  tabNames: {},         // card_id -> custom tab name (override of subject)
+  pinned: new Set()     // pinned card_ids (sort to the front of the tab bar)
 };
+let _dragTab = null;    // card_id currently being drag-reordered
 
 let _activityStream = null;   // active EventSource for the agent feed
 
@@ -2716,17 +2769,30 @@ async function decodeBet(sourceType, sourceInput) {
 }
 
 function addCard(card) {
-  // avoid duplicate card_id
+  // avoid duplicate card_id (re-decode → replace in place)
   if (state.cards.some(c => c.card_id === card.card_id)) {
     state.cards = state.cards.filter(c => c.card_id !== card.card_id);
   }
   state.cards.unshift(card);
+  // a new scenario (single / portfolio) becomes the active tab; a derived what-if
+  // card is NOT a tab (it rails under its parent), so keep the parent active.
+  if (!card.derived_from) state.activeTab = card.card_id;
   renderCanvas();
 }
 
 function removeCard(cardId) {
-  state.cards = state.cards.filter(c => c.card_id !== cardId);
+  const ord = _orderedTabs();
+  const idx = ord.indexOf(cardId);
+  // drop the card AND any derived what-if children railed under it
+  state.cards = state.cards.filter(c => c.card_id !== cardId && c.derived_from !== cardId);
   state.selected.delete(cardId);
+  state.tabOrder = state.tabOrder.filter(id => id !== cardId);
+  state.pinned.delete(cardId);
+  delete state.tabNames[cardId];
+  if (state.activeTab === cardId) {       // activate a neighbor tab
+    const left = _orderedTabs();
+    state.activeTab = left[Math.min(idx, left.length - 1)] || left[0] || null;
+  }
   // best-effort server delete (ignore failure / fixture ids)
   fetch('/api/cards/' + encodeURIComponent(cardId), { method: 'DELETE' }).catch(() => {});
   renderCanvas();
@@ -2802,66 +2868,138 @@ async function saveRevision(cardId) {
    ============================================================ */
 function renderCanvas() {
   const grid = document.getElementById('card-grid');
+  const tabbar = document.getElementById('tab-bar');
   const empty = document.getElementById('canvas-empty');
   if (!grid) return;
-  if (!state.cards.length) {
+  _syncTabOrder();
+  const hasTabs = state.cards.some(c => !c.derived_from);
+  if (!hasTabs) {
     grid.innerHTML = '';
+    if (tabbar) tabbar.innerHTML = '';
     if (empty) empty.style.display = '';
   } else {
     if (empty) empty.style.display = 'none';
-    grid.innerHTML = renderCanvasGroups(state.cards);
+    if (tabbar) tabbar.innerHTML = renderTabBar();
+    const c = _activeCard();
+    grid.innerHTML = c
+      ? (c.card_kind === 'portfolio' ? renderPortfolioPage(c) : _singleWithDerived(c))
+      : '';
   }
   const count = document.getElementById('card-count');
-  if (count) count.textContent = state.cards.length + (state.cards.length === 1 ? ' card' : ' cards');
+  if (count) {
+    const n = state.cards.filter(c => !c.derived_from).length;
+    count.textContent = n + (n === 1 ? ' card' : ' cards');
+  }
   bindCardEvents();
   renderSelectionUI();
+  // The active single card's price chart is always-on → paint it (lazy + cached).
+  const ac = _activeCard();
+  if (ac && ac.card_kind !== 'portfolio') ensurePriceHistory(ac.subject, ac.card_id);
 }
 
-// Group each portfolio with its decoded holdings (matched by ticker = card subject)
-// in an indented rail beneath it, so the canvas reads as parent → constituents:
-// "here's my portfolio, and here's what each holding actually bets on". Holdings
-// not yet decoded are noted; bets that aren't in any portfolio render standalone.
+// ----- tab model: one tab per non-derived card; pinned sort to the front -----
+function _syncTabOrder() {
+  const ids = state.cards.filter(c => !c.derived_from).map(c => c.card_id);
+  state.tabOrder = state.tabOrder.filter(id => ids.includes(id));
+  ids.forEach(id => { if (!state.tabOrder.includes(id)) state.tabOrder.push(id); });
+}
+function _orderedTabs() {
+  const ids = state.tabOrder.filter(id => state.cards.some(c => c.card_id === id && !c.derived_from));
+  return [...ids.filter(id => state.pinned.has(id)), ...ids.filter(id => !state.pinned.has(id))];
+}
+function _activeCard() {
+  const ids = _orderedTabs();
+  if (!ids.length) { state.activeTab = null; return null; }
+  if (!ids.includes(state.activeTab)) state.activeTab = ids[0];
+  return state.cards.find(c => c.card_id === state.activeTab) || null;
+}
+function activateTab(id) {
+  if (!state.cards.some(c => c.card_id === id)) return;
+  state.activeTab = id;
+  renderCanvas();
+}
+function togglePin(id) {
+  if (state.pinned.has(id)) state.pinned.delete(id); else state.pinned.add(id);
+  renderCanvas();
+}
+function reorderTab(dragId, dropId) {
+  const ord = _orderedTabs();
+  const from = ord.indexOf(dragId), to = ord.indexOf(dropId);
+  if (from < 0 || to < 0 || from === to) return;
+  ord.splice(from, 1); ord.splice(to, 0, dragId);
+  state.tabOrder = ord;
+  renderCanvas();
+}
+function beginRename(id) {
+  const span = document.querySelector('[data-tabname="' + cssAttr(id) + '"]');
+  if (!span) return;
+  const subj = (state.cards.find(c => c.card_id === id) || {}).subject || '';
+  const cur = state.tabNames[id] || subj;
+  const inp = document.createElement('input');
+  inp.className = 'tb-rename'; inp.value = cur;
+  span.replaceWith(inp); inp.focus(); inp.select();
+  const commit = () => {
+    const v = inp.value.trim();
+    if (v && v !== subj) state.tabNames[id] = v; else delete state.tabNames[id];
+    renderCanvas();
+  };
+  inp.addEventListener('blur', commit);
+  inp.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+    else if (e.key === 'Escape') { inp.value = cur; inp.blur(); }
+  });
+}
+function renderTabBar() {
+  return _orderedTabs().map(id => {
+    const c = state.cards.find(x => x.card_id === id);
+    if (!c) return '';
+    const name = state.tabNames[id] || c.subject;
+    const active = id === state.activeTab;
+    const pinned = state.pinned.has(id);
+    const selected = state.selected.has(id);
+    const badge = c.card_kind === 'portfolio' ? '组合' : badgeLabel(c.source_type);
+    return '<div class="wb-tab' + (active ? ' active' : '') + (pinned ? ' pinned' : '') + (selected ? ' selected' : '') +
+      '" draggable="true" data-tab="' + escapeHTML(id) + '">' +
+      '<button class="tb-pin" data-tabpin="' + escapeHTML(id) + '" title="固定/取消固定">' + (pinned ? '★' : '☆') + '</button>' +
+      '<span class="tb-name" data-tabname="' + escapeHTML(id) + '" title="双击重命名">' + escapeHTML(name) + '</span>' +
+      '<span class="tb-badge">' + escapeHTML(badge) + '</span>' +
+      (selected ? '<span class="tb-dot" title="已选入综合"></span>' : '') +
+      '<button class="tb-close" data-tabclose="' + escapeHTML(id) + '" title="关闭">✕</button>' +
+    '</div>';
+  }).join('');
+}
+
+// Derived (what-if) cards rail under their parent's page.
 function _derivedRail(parentId) {
   const kids = state.cards.filter(c => c.derived_from === parentId);
   return kids.length
     ? '<div class="derived-rail">' + kids.map(renderDerivedCard).join('') + '</div>' : '';
 }
-function _singleWithDerived(card, weight) {
-  return renderSingleCard(card, weight) + _derivedRail(card.card_id);
+function _singleWithDerived(card) {
+  return renderSingleCard(card) + _derivedRail(card.card_id);
 }
 
-function renderCanvasGroups(cards) {
-  const portfolios = cards.filter(c => c.card_kind === 'portfolio');
-  // Derived (what-if) cards rail under their parent (via _derivedRail), not standalone.
-  const singles = cards.filter(c => c.card_kind !== 'portfolio' && !c.derived_from);
-  const claimed = new Set();
-  let html = '';
-  portfolios.forEach(pf => {
-    const wmap = {};
-    (pf.holdings || []).forEach(h => { if (h.ticker) wmap[String(h.ticker).toUpperCase()] = h.weight_pct; });
-    const members = singles.filter(s => Object.prototype.hasOwnProperty.call(wmap, String(s.subject).toUpperCase()));
-    members.forEach(m => claimed.add(m.card_id));
-    const total = (pf.holdings || []).length;
-    html += '<div class="pf-group">' +
-      renderPortfolioCard(pf) +
-      '<div class="pf-group-rail">' +
-        '<div class="pf-group-label">↳ 组合内持仓 · 每只在 bet 什么' +
-          '<span class="pf-group-count">' + members.length + ' / ' + total + ' 已解码</span></div>' +
-        (members.length
-          ? '<div class="pf-members">' +
-              members.map(m => _singleWithDerived(m, wmap[String(m.subject).toUpperCase()])).join('') +
-            '</div>'
-          : '<div class="pf-group-empty">该组合的持仓还没单独解码 — 解码持仓票后会自动归到这里。</div>') +
-      '</div>' +
-    '</div>';
+// Portfolio page: the full dashboard + a clickable constituents list (each decoded
+// holding links to its own tab; undecoded holdings are noted).
+function renderPortfolioPage(pf) {
+  const decoded = {};
+  state.cards.forEach(c => {
+    if (c.card_kind !== 'portfolio' && !c.derived_from) decoded[String(c.subject).toUpperCase()] = c.card_id;
   });
-  const standalone = singles.filter(s => !claimed.has(s.card_id));
-  if (standalone.length) {
-    html += (portfolios.length
-      ? '<div class="pf-group-label standalone-label">其它独立 bet(不属于上面组合)</div>' : '') +
-      '<div class="card-grid-inner">' + standalone.map(s => _singleWithDerived(s)).join('') + '</div>';
-  }
-  return html;
+  const rows = (pf.holdings || []).map(h => {
+    const t = String(h.ticker || '').toUpperCase();
+    const cid = decoded[t];
+    const w = (h.weight_pct != null) ? Number(h.weight_pct).toFixed(1) + '%' : '—';
+    return '<div class="cp-hold' + (cid ? ' linked' : '') + '"' + (cid ? ' data-gotab="' + escapeHTML(cid) + '"' : '') + '>' +
+      '<span class="h-t">' + escapeHTML(t) + '</span>' +
+      '<span class="h-w num">' + w + '</span>' +
+      '<span class="h-s">' + (cid ? '已解码 · 点击查看 →' : '未解码') + '</span>' +
+    '</div>';
+  }).join('');
+  return '<div class="portfolio-page" data-card="' + escapeHTML(pf.card_id) + '">' +
+    renderPortfolioCard(pf) +
+    (rows ? '<div class="cp-constituents"><div class="cc-lab">组合内持仓 · 点已解码的跳到它的 tab</div>' + rows + '</div>' : '') +
+  '</div>';
 }
 
 // Narrative premium = share of price the DCF base business value fails to
@@ -3169,43 +3307,48 @@ async function ensurePriceHistory(ticker, cardId) {
   _paintChart(cardId, card);
 }
 
-function renderSingleCard(c, portfolioWeight) {
+// A single bet rendered as a FULL-PAGE 2-col research dossier (the active tab).
+// Keeps the `bet-card` class so all the .bet-card-scoped viz CSS (flow / decomp /
+// discuss / chart) still applies; `card-page` adds the page layout. Left col =
+// reverse-derivation flow + decomposition; right col = always-on price chart +
+// market narrative; discuss + scenario chips full-width below.
+function renderSingleCard(c) {
   const sel = state.selected.has(c.card_id);
   const d = c._display || {};
-  const pfwtBadge = (portfolioWeight != null)
-    ? '<span class="bc-badge pfwt">组合 ' + portfolioWeight + '%</span>' : '';
-  const dcf = d.baseline_dcf != null ? ('$' + Number(d.baseline_dcf).toLocaleString('en-US', { maximumFractionDigits: 2 })) : '—';
+  const dcf = d.baseline_dcf != null ? ('$' + Number(d.baseline_dcf).toLocaleString('en-US', { maximumFractionDigits: 2 })) : null;
+  const anchor = d.anchor != null ? ('$' + Number(d.anchor).toLocaleString('en-US', { maximumFractionDigits: 2 })) : '—';
   const np = narrativePremiumPct(c, d);
-  const npHtml = np != null
-    ? '<span class="lab">叙事溢价</span><span class="val np' + (np >= 0.5 ? ' hot' : '') + '">' + Math.round(np * 100) + '%</span>'
-    : '';
   const stale = c.trade_date && c.trade_date < todayISO();
   const narrativeHtml = renderNarrativeZone(c.market_narrative);
-  const exp = state.expanded[c.card_id] || {};
+  const kpi = (lab, val, hot) => '<span class="kpi"><span class="lab">' + lab + '</span><span class="val' + (hot ? ' hot' : '') + '">' + val + '</span></span>';
 
-  return '<div class="bet-card' + (sel ? ' selected' : '') + '" data-card="' + escapeHTML(c.card_id) + '">' +
-    '<div class="bc-head">' +
-      '<label class="bc-sel"><input type="checkbox" data-sel="' + escapeHTML(c.card_id) + '"' + (sel ? ' checked' : '') + '></label>' +
-      '<div class="bc-id">' +
-        '<div class="bc-subj">' + escapeHTML(c.subject) + '<span class="bc-badge">' + escapeHTML(badgeLabel(c.source_type)) + '</span>' + pfwtBadge + '</div>' +
-        '<div class="bc-source">' + escapeHTML(c.source_ref || '') + '</div>' +
+  return '<div class="bet-card card-page' + (sel ? ' selected' : '') + '" data-card="' + escapeHTML(c.card_id) + '">' +
+    '<div class="cp-head">' +
+      '<div class="cp-id">' +
+        '<div class="cp-subj">' + escapeHTML(c.subject) + '<span class="bc-badge">' + escapeHTML(badgeLabel(c.source_type)) + '</span></div>' +
+        '<div class="cp-source">' + escapeHTML(c.source_ref || '') + '</div>' +
       '</div>' +
-      '<div class="bc-dcf">' + npHtml + (d.baseline_dcf != null ? '<span class="lab">基线 DCF</span><span class="val">' + dcf + '</span>' : '') + '</div>' +
-      '<button class="bc-del" data-del="' + escapeHTML(c.card_id) + '" title="Remove">✕</button>' +
+      '<div class="cp-kpis">' +
+        kpi('现价', anchor, false) +
+        (dcf != null ? kpi('基线 DCF', dcf, false) : '') +
+        (np != null ? kpi('叙事溢价', Math.round(np * 100) + '%', np >= 0.5) : '') +
+      '</div>' +
+      '<label class="cp-synth' + (sel ? ' on' : '') + '"><input type="checkbox" data-selpage="' + escapeHTML(c.card_id) + '"' + (sel ? ' checked' : '') + '> 选入综合</label>' +
     '</div>' +
     (stale ? '<div class="bc-stale"><span class="dot"></span>基于 ' + escapeHTML(c.trade_date) + ' 收盘 · 历史快照</div>' : '') +
-    '<div class="bc-body">' +
-      renderFlowDiagram(c) +
-      renderDecomp(c) +
-      (d.risks ? '<div class="bc-risks"><span class="lab">关键风险</span>' + escapeHTML(d.risks) + '</div>' : '') +
-    '</div>' +
-    narrativeHtml +
-    '<div class="bc-foot"><button class="tlink" data-chain="' + escapeHTML(c.card_id) + '">▾ 价格走势 5Y</button></div>' +
-    '<div class="bc-expand' + (exp.chain ? ' open' : '') + '" data-chainbody="' + escapeHTML(c.card_id) + '">' +
-      '<div class="price-chart-wrap">' +
-        '<div class="pc-head"><span class="lbl">价格走势</span><span class="title">' + escapeHTML(c.subject) + ' · 5 年月线</span><span class="src">yfinance</span></div>' +
-        '<div class="pc-host" data-pchost="' + escapeHTML(c.card_id) + '"><div class="pc-empty">展开加载 5 年价格走势…</div></div>' +
-        '<div class="pc-foot">实线 MKT 现价 · 虚线 DCF 基线 · 浅线 历史月收盘</div>' +
+    '<div class="cp-cols">' +
+      '<div class="cp-col cp-left">' +
+        renderFlowDiagram(c) +
+        renderDecomp(c) +
+        (d.risks ? '<div class="bc-risks"><span class="lab">关键风险</span>' + escapeHTML(d.risks) + '</div>' : '') +
+      '</div>' +
+      '<div class="cp-col cp-right">' +
+        '<div class="price-chart-wrap">' +
+          '<div class="pc-head"><span class="lbl">价格走势</span><span class="title">' + escapeHTML(c.subject) + ' · 5 年月线</span><span class="src">yfinance</span></div>' +
+          '<div class="pc-host" data-pchost="' + escapeHTML(c.card_id) + '"><div class="pc-empty">加载 5 年价格走势…</div></div>' +
+          '<div class="pc-foot">实线 MKT 现价 · 虚线 DCF 基线 · 浅线 历史月收盘</div>' +
+        '</div>' +
+        narrativeHtml +
       '</div>' +
     '</div>' +
     _discussBlock(c) +
@@ -3350,38 +3493,17 @@ function renderPortfolioCard(c) {
 }
 
 function bindCardEvents() {
+  // Portfolio card's own select checkbox → drives state.selected (full re-render so
+  // the tab dot + synth btn update).
   document.querySelectorAll('[data-sel]').forEach(cb => {
     cb.addEventListener('change', () => {
       const id = cb.getAttribute('data-sel');
       if (cb.checked) state.selected.add(id); else state.selected.delete(id);
-      // reflect selected ring without a full re-render
-      const card = document.querySelector('.bet-card[data-card="' + cssAttr(id) + '"]');
-      if (card) card.classList.toggle('selected', cb.checked);
-      renderSelectionUI();
+      renderCanvas();
     });
   });
   document.querySelectorAll('[data-del]').forEach(b => {
     b.addEventListener('click', () => removeCard(b.getAttribute('data-del')));
-  });
-  document.querySelectorAll('[data-chain]').forEach(b => {
-    b.addEventListener('click', () => {
-      const id = b.getAttribute('data-chain');
-      state.expanded[id] = state.expanded[id] || {};
-      state.expanded[id].chain = !state.expanded[id].chain;
-      const body = document.querySelector('[data-chainbody="' + cssAttr(id) + '"]');
-      if (body) body.classList.toggle('open', state.expanded[id].chain);
-      if (state.expanded[id].chain) {  // lazy-load + paint the price chart on open
-        const card = state.cards.find(c => c.card_id === id);
-        if (card) ensurePriceHistory(card.subject, id);
-      }
-    });
-  });
-  // Re-paint any already-open price charts after a full re-render (e.g. post-ask).
-  Object.keys(state.expanded || {}).forEach(id => {
-    if (state.expanded[id] && state.expanded[id].chain) {
-      const card = state.cards.find(c => c.card_id === id);
-      if (card) ensurePriceHistory(card.subject, id);
-    }
   });
   // Per-card follow-up: ask button + Enter on the input.
   const _fireAsk = (id) => {
@@ -3399,6 +3521,34 @@ function bindCardEvents() {
   // Suggested scenario chips → fire the existing askCard() (what-if / Q&A).
   document.querySelectorAll('[data-chip]').forEach(b =>
     b.addEventListener('click', () => askCard(b.getAttribute('data-chip'), b.getAttribute('data-chipq'))));
+  // Per-page "选入综合" toggle (single-card pages).
+  document.querySelectorAll('[data-selpage]').forEach(cb =>
+    cb.addEventListener('change', () => {
+      const id = cb.getAttribute('data-selpage');
+      if (cb.checked) state.selected.add(id); else state.selected.delete(id);
+      renderCanvas();
+    }));
+  // --- Tabs: activate / dblclick-rename / drag-reorder / pin / close ---
+  document.querySelectorAll('.wb-tab[data-tab]').forEach(tab => {
+    const id = tab.getAttribute('data-tab');
+    tab.addEventListener('click', (e) => {
+      if (e.target.closest('[data-tabclose]') || e.target.closest('[data-tabpin]') || e.target.tagName === 'INPUT') return;
+      activateTab(id);
+    });
+    tab.addEventListener('dragstart', () => { _dragTab = id; tab.classList.add('dragging'); });
+    tab.addEventListener('dragend', () => { _dragTab = null; tab.classList.remove('dragging'); });
+    tab.addEventListener('dragover', (e) => e.preventDefault());
+    tab.addEventListener('drop', (e) => { e.preventDefault(); if (_dragTab && _dragTab !== id) reorderTab(_dragTab, id); });
+  });
+  document.querySelectorAll('[data-tabname]').forEach(el =>
+    el.addEventListener('dblclick', (e) => { e.stopPropagation(); beginRename(el.getAttribute('data-tabname')); }));
+  document.querySelectorAll('[data-tabclose]').forEach(b =>
+    b.addEventListener('click', (e) => { e.stopPropagation(); removeCard(b.getAttribute('data-tabclose')); }));
+  document.querySelectorAll('[data-tabpin]').forEach(b =>
+    b.addEventListener('click', (e) => { e.stopPropagation(); togglePin(b.getAttribute('data-tabpin')); }));
+  // Portfolio constituent row → jump to that holding's tab.
+  document.querySelectorAll('[data-gotab]').forEach(el =>
+    el.addEventListener('click', () => activateTab(el.getAttribute('data-gotab'))));
 }
 
 /* ============================================================
