@@ -379,6 +379,8 @@ def _lens_dcf(anchor: float, f: Fundamentals) -> dict | None:
             "band": None,
             "baseline_dcf_price": baseline_price,   # business-value floor stands alone
             "consensus_wacc": consensus_wacc,
+            "consensus_terminal_growth": consensus.terminal_growth,
+            "consensus_terminal_fcf_margin": base_margin,
             "point_solved": False,
         }
     return _result(
@@ -387,6 +389,8 @@ def _lens_dcf(anchor: float, f: Fundamentals) -> dict | None:
         band=band,                       # {p25,p50,p75,success_rate,...} | None
         baseline_dcf_price=baseline_price,   # business-value floor (may stand alone)
         consensus_wacc=consensus_wacc,
+        consensus_terminal_growth=consensus.terminal_growth,
+        consensus_terminal_fcf_margin=base_margin,
         point_solved=True,
     )
 
@@ -1432,6 +1436,19 @@ def _decode_market(source_input, lang, emit,
     )
 
 
+def _fund_snapshot(f: Fundamentals) -> dict:
+    """A JSON-able snapshot of the fundamentals used in the decode, persisted into
+    decode_detail so build_card_display can compute the multi-level derivation tree
+    (revenue path, price÷EPS, etc.) from REAL inputs on reload — not just conclusions."""
+    return {
+        "revenue_ttm": f.revenue_ttm, "eps_ttm": f.eps_ttm, "fcf_ttm": f.fcf_ttm,
+        "ebitda_ttm": f.ebitda_ttm, "book_equity": f.book_equity,
+        "net_income_ttm": getattr(f, "net_income_ttm", None),
+        "shares_outstanding": f.shares_outstanding, "net_debt": f.net_debt,
+        "growth_rate": f.growth_rate, "industry": f.industry,
+    }
+
+
 def _assemble_traditional_card(ticker, src_ref, anchor, f, primary_result,
                                cross_results, narrative_premium, lens_plan,
                                emit, lang, *, conn=None, hunter=None,
@@ -1461,6 +1478,7 @@ def _assemble_traditional_card(ticker, src_ref, anchor, f, primary_result,
         "primary_lens": primary_result,
         "cross_lenses": cross_results,
         "lens_plan": lens_plan,
+        "fundamentals": _fund_snapshot(f),
         "lang": lang,
     }
     _safe_emit(emit, phase="assemble", kind="decision",
@@ -1573,6 +1591,7 @@ def _assemble_anchor_card(ticker, src_ref, anchor, f, emit, lang,
         "anchor_mode": anchor_detail,            # base + components + 对账
         "cross_lenses": cross_refs,              # traditional lenses (reference)
         "r2_band": r2_band,                      # R2 (p25/p50/p75) | None
+        "fundamentals": _fund_snapshot(f),
         "lang": lang,
     }
     _safe_emit(emit, phase="assemble", kind="decision",

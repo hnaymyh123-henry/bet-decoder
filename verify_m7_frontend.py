@@ -113,12 +113,20 @@ def main() -> int:
     has_pf = "function renderPortfolioCard" in body and "pf-theme" in body and "pf-holdings" in body
     tabbed = ('id="tab-bar"' in body and "function renderTabBar" in body
               and "function activateTab" in body and "function renderPortfolioPage" in body
-              and ".card-page .cp-cols" in body and "state.activeTab" in body)
+              and ".card-page .cp-support" in body and "state.activeTab" in body)
     check(
-        "tabbed workspace: tab bar + per-scenario 2-col dossier (single + portfolio renderers)",
+        "tabbed workspace: tab bar + per-scenario full-page dossier (single + portfolio renderers)",
         has_single and has_pf and tabbed,
         f"single={has_single} portfolio={has_pf} tabbed={tabbed}",
     )
+
+    # AC: multi-level DERIVATION TREE is the page hero (現價 → mechanical chain →
+    # implied → sub-implication), computed server-side (_build_derivations) + rendered.
+    deriv = ("function renderDerivationTree" in body and "function renderDerivLevel" in body
+             and 'class="cp-tree"' in body and ".dt .dt-root" in body
+             and ".dt .dt-branches" in body and "renderDerivationTree(c)" in body)
+    check("derivation tree hero: multi-level renderDerivationTree + .cp-tree + .dt branches",
+          deriv, f"deriv_present={deriv}")
 
     # AC: synthesis flow — select >=2 cards → synth btn → POST /api/synthesize → headline+graph+narrative.
     has_synth_btn = 'id="synth-btn"' in body

@@ -1223,6 +1223,158 @@ def _fmt_implied(v: Any, unit: str) -> str:
     return f"{v:,.2f}"
 
 
+def _money_big(v: Any) -> str:
+    """Compact large-dollar format: $1.20T / $255B / $640M / $1,234."""
+    if not isinstance(v, (int, float)):
+        return "—"
+    a = abs(v)
+    if a >= 1e12:
+        return f"${v / 1e12:.2f}T"
+    if a >= 1e9:
+        return f"${v / 1e9:,.0f}B"
+    if a >= 1e6:
+        return f"${v / 1e6:,.0f}M"
+    return f"${v:,.0f}"
+
+
+def _pct1(v: Any) -> str:
+    return f"{v * 100:.1f}%" if isinstance(v, (int, float)) else "—"
+
+
+def _multiple_compute_text(lens: str, anchor: float, fund: dict) -> str:
+    """The mechanical 'price ÷ metric' step for a multiple lens, from real inputs.
+    Returns '' when the denominator isn't available (honest — no fabricated step)."""
+    shares = fund.get("shares_outstanding")
+    mcap = anchor * shares if (anchor and shares) else None
+    eps, rev, fcf = fund.get("eps_ttm"), fund.get("revenue_ttm"), fund.get("fcf_ttm")
+    ebitda, be, nd = fund.get("ebitda_ttm"), fund.get("book_equity"), (fund.get("net_debt") or 0.0)
+    g = fund.get("growth_rate")
+    if lens == "pe" and isinstance(eps, (int, float)) and eps:
+        return f"现价 ${anchor:,.0f} ÷ 每股收益 EPS ${eps:.2f}"
+    if lens == "ps" and mcap and isinstance(rev, (int, float)) and rev:
+        return f"市值 {_money_big(mcap)} ÷ 营收 {_money_big(rev)}"
+    if lens == "p_fcf" and mcap and isinstance(fcf, (int, float)) and fcf:
+        return f"市值 {_money_big(mcap)} ÷ 自由现金流 {_money_big(fcf)}"
+    if lens == "ev_ebitda" and mcap and isinstance(ebitda, (int, float)) and ebitda:
+        return f"企业价值 {_money_big(mcap + nd)} ÷ EBITDA {_money_big(ebitda)}"
+    if lens == "p_b" and mcap and isinstance(be, (int, float)) and be:
+        return f"市值 {_money_big(mcap)} ÷ 净资产 {_money_big(be)}"
+    if lens == "peg" and isinstance(g, (int, float)) and g:
+        return f"隐含 P/E ÷ 近一年增速 {g * 100:.0f}%"
+    return ""
+
+
+def _build_derivations(dd: dict) -> dict | None:
+    """Multi-level derivation tree from REAL computed numbers (no fabrication):
+    root 现价 → a branch per lens (or base/premium for anchor) → mechanical chain →
+    implied value (band) → sub-implication. Missing inputs render nothing, never
+    invented. Drives the front-end's renderDerivationTree."""
+    anchor = dd.get("anchor_price")
+    if not isinstance(anchor, (int, float)) or anchor <= 0:
+        return None
+    fund = dd.get("fundamentals") or {}
+    shares = fund.get("shares_outstanding")
+    mcap = anchor * shares if shares else None
+    binds = ((dd.get("market_narrative") or {}).get("summary") or {}).get("bindings") or []
+
+    def _ev(i):
+        b = binds[i] if i < len(binds) else None
+        if isinstance(b, dict) and b.get("evidence_verdict"):
+            return {"evidence_verdict": b.get("evidence_verdict"), "diverges": bool(b.get("diverges"))}
+        return None
+
+    root = {"label": "现价 · 输入", "value": f"${anchor:,.2f}",
+            "sub": (f"市值 {_money_big(mcap)}" if mcap else "")}
+    branches: list[dict] = []
+    am = dd.get("anchor_mode") or {}
+    bi = 0  # binding index for evidence matching (best-effort, by order)
+
+    if am.get("components"):
+        base = am.get("base_business_value")
+        if isinstance(base, (int, float)):
+            branches.append({"lens": "base", "label": "基础业务价值(保守 DCF)", "primary": True,
+                "levels": [{"kind": "implied", "label": "基础业务价值", "impl": _money_big(base),
+                            "impl_num": base,
+                            "text": f"按共识增速折现 → 占现价 {max(0, round(base / anchor * 100))}%"}]})
+        for comp in am["components"]:
+            amt = comp.get("implied_amount")
+            levels = [{"kind": "implied", "label": comp.get("lens_label") or comp.get("lens") or "成分",
+                       "impl": (_money_big(amt) if isinstance(amt, (int, float)) else "—"),
+                       "impl_num": amt if isinstance(amt, (int, float)) else None, "ev": _ev(bi),
+                       "text": (f"= 现价里 {round(amt / anchor * 100)}% 的溢价"
+                                if isinstance(amt, (int, float)) else "")}]
+            bi += 1
+            if comp.get("claim"):
+                levels.append({"kind": "imply", "text": "claim:" + str(comp["claim"])})
+            if comp.get("implied_assumption"):
+                levels.append({"kind": "imply", "text": "要兑现:" + str(comp["implied_assumption"])})
+            if comp.get("theme"):
+                levels.append({"kind": "imply", "text": "主题:" + str(comp["theme"])})
+            branches.append({"lens": comp.get("lens") or "comp",
+                             "label": comp.get("lens_label") or comp.get("lens") or "成分", "levels": levels})
+        return {"root": root, "branches": branches}
+
+    # traditional: a branch per lens (primary + cross)
+    primary = dd.get("primary_lens")
+    lenses = ([primary] if isinstance(primary, dict) else [])
+    lenses += [c for c in (dd.get("cross_lenses") or []) if isinstance(c, dict)]
+    for r in lenses:
+        lens = r.get("lens")
+        iv = r.get("implied_value")
+        unit = r.get("unit") or ""
+        band = r.get("band") or {}
+        p25, p50, p75 = band.get("p25"), band.get("p50"), band.get("p75")
+        band_num = ({"p25": p25, "p50": p50, "p75": p75}
+                    if isinstance(p25, (int, float)) and isinstance(p75, (int, float)) else None)
+        is_primary = (r is primary)
+        if lens == "dcf":
+            levels = []
+            w, tg, m = r.get("consensus_wacc"), r.get("consensus_terminal_growth"), r.get("consensus_terminal_fcf_margin")
+            parts = []
+            if isinstance(w, (int, float)): parts.append(f"WACC {_pct1(w)}")
+            if isinstance(tg, (int, float)): parts.append(f"终值增速 {_pct1(tg)}")
+            if isinstance(m, (int, float)): parts.append(f"FCF 利润率 {_pct1(m)}")
+            if parts:
+                levels.append({"kind": "assume", "text": "固定共识:" + " · ".join(parts) + " → 只解营收增速"})
+            bl = r.get("baseline_dcf_price")
+            if isinstance(bl, (int, float)):
+                expl = round(min(bl, anchor) / anchor * 100) if anchor else None
+                levels.append({"kind": "baseline",
+                               "text": f"基线 DCF(按共识增速)= ${bl:,.2f} → 解释现价 {expl}%"})
+            if iv is not None:
+                levels.append({"kind": "implied", "label": r.get("implied_label") or "隐含 5 年营收 CAGR",
+                               "impl": _fmt_implied(iv, unit), "impl_num": iv, "unit": unit,
+                               "band": band_num, "ev": _ev(bi)})
+                rev, g0 = fund.get("revenue_ttm"), fund.get("growth_rate")
+                if isinstance(rev, (int, float)) and rev > 0:
+                    rev5 = rev * ((1 + iv) ** 5)
+                    sub = f"= 营收 5 年 {_money_big(rev)} → {_money_big(rev5)}({rev5 / rev:.1f}×)"
+                    if isinstance(g0, (int, float)):
+                        sub += f" · vs 近一年实际 {g0 * 100:.0f}%"
+                    if isinstance(p75, (int, float)) and iv > p75:
+                        sub += " · ↑偏激进"
+                    levels.append({"kind": "imply", "text": sub})
+            else:
+                levels.append({"kind": "implied", "label": r.get("implied_label") or "隐含增速",
+                               "impl": "无可行解", "nosol": True,
+                               "text": "DCF 无法在可行区间反解出增速 → 价格超出 DCF 可解释范围"})
+            bi += 1
+            branches.append({"lens": "dcf", "label": "用 DCF 反解隐含增速", "primary": is_primary, "levels": levels})
+        else:
+            levels = []
+            ct = _multiple_compute_text(lens, anchor, fund)
+            if ct:
+                levels.append({"kind": "compute", "text": ct})
+            levels.append({"kind": "implied", "label": r.get("implied_label") or r.get("lens_label") or lens,
+                           "impl": _fmt_implied(iv, unit),
+                           "impl_num": iv if isinstance(iv, (int, float)) else None,
+                           "unit": unit, "band": band_num, "ev": _ev(bi), "nosol": iv is None})
+            bi += 1
+            branches.append({"lens": lens, "label": r.get("implied_label") or r.get("lens_label") or lens,
+                             "primary": is_primary, "levels": levels})
+    return {"root": root, "branches": branches} if branches else None
+
+
 def build_card_display(card: BetCard) -> dict | None:
     """Project decode_detail → the compact `_display` the front-end's renderSingleCard
     reads (baseline_dcf / anchor / bets / risks / chain), so a real OR reloaded single
@@ -1318,7 +1470,8 @@ def build_card_display(card: BetCard) -> dict | None:
             "residual": recon.get("residual"),
             "parts": parts}
     return {"baseline_dcf": base_dcf, "anchor": anchor, "bets": bets,
-            "risks": risks, "chain": chain, "decomp": decomp}
+            "risks": risks, "chain": chain, "decomp": decomp,
+            "derivations": _build_derivations(dd)}
 
 
 def card_from_json(data: dict) -> BetCard:

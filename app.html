@@ -1978,25 +1978,25 @@
   .bet-card .flow-node.nosol .fn-impl { color: var(--neutral); font-size: 12.5px; }
   .bet-card .flow-node .fn-base { display: block; font-family: var(--mono); font-size: 9px; color: var(--ink-4); margin-top: 1px; }
   .bet-card .flow-node .fn-sub { font-size: 11px; color: var(--ink-3); margin-top: 5px; line-height: 1.45; }
-  .bet-card .flow-node .fn-band { position: relative; height: 14px; margin-top: 8px; }
-  .bet-card .flow-node .fn-band .track { position: absolute; left: 0; right: 0; top: 6px; height: 2px; background: var(--paper-3); }
-  .bet-card .flow-node .fn-band .iqr { position: absolute; top: 4px; height: 6px; background: var(--ink-4); opacity: 0.5; }
-  .bet-card .flow-node .fn-band .p50 { position: absolute; top: 2px; width: 1px; height: 10px; background: var(--ink); }
-  .bet-card .flow-node .fn-band .mkt { position: absolute; top: 0; width: 2px; height: 14px; background: var(--ink-2); }
-  .bet-card .flow-node .fn-band .mkt.hot { background: var(--accent); }
+  .bet-card .fn-band { position: relative; height: 14px; margin-top: 8px; }
+  .bet-card .fn-band .track { position: absolute; left: 0; right: 0; top: 6px; height: 2px; background: var(--paper-3); }
+  .bet-card .fn-band .iqr { position: absolute; top: 4px; height: 6px; background: var(--ink-4); opacity: 0.5; }
+  .bet-card .fn-band .p50 { position: absolute; top: 2px; width: 1px; height: 10px; background: var(--ink); }
+  .bet-card .fn-band .mkt { position: absolute; top: 0; width: 2px; height: 14px; background: var(--ink-2); }
+  .bet-card .fn-band .mkt.hot { background: var(--accent); }
   .bet-card .flow-node .fn-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 6px; }
-  .bet-card .flow-node .fn-note { font-family: var(--mono); font-size: 9px; color: var(--ink-4); letter-spacing: 0.02em; }
-  .bet-card .flow-node .fn-note .agg { color: var(--accent); }
-  .bet-card .flow-node .fn-noband { font-family: var(--mono); font-size: 9px; color: var(--ink-5); letter-spacing: 0.03em; }
-  .bet-card .flow-node .fn-ev { font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.08em; padding: 1px 5px; border: 1px solid var(--line); white-space: nowrap; }
-  .bet-card .flow-node .fn-ev.bull { color: var(--positive); border-color: var(--positive); }
-  .bet-card .flow-node .fn-ev.bear { color: var(--negative); border-color: var(--negative); }
-  .bet-card .flow-node .fn-ev.mixed { color: var(--neutral); border-color: var(--neutral); }
+  .bet-card .fn-note { font-family: var(--mono); font-size: 9px; color: var(--ink-4); letter-spacing: 0.02em; }
+  .bet-card .fn-note .agg { color: var(--accent); }
+  .bet-card .fn-noband { font-family: var(--mono); font-size: 9px; color: var(--ink-5); letter-spacing: 0.03em; }
+  .bet-card .fn-ev { font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.08em; padding: 1px 5px; border: 1px solid var(--line); white-space: nowrap; }
+  .bet-card .fn-ev.bull { color: var(--positive); border-color: var(--positive); }
+  .bet-card .fn-ev.bear { color: var(--negative); border-color: var(--negative); }
+  .bet-card .fn-ev.mixed { color: var(--neutral); border-color: var(--neutral); }
   /* what-if perturbation stamp on a node (Phase 5) */
-  .bet-card .flow-node .fn-whatif { font-family: var(--mono); font-size: 10px; margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line); }
-  .bet-card .flow-node .fn-whatif .b { color: var(--ink-4); text-decoration: line-through; }
-  .bet-card .flow-node .fn-whatif .arr { color: var(--ink-4); margin: 0 5px; }
-  .bet-card .flow-node .fn-whatif .a { color: var(--accent); font-weight: 600; }
+  .bet-card .fn-whatif { font-family: var(--mono); font-size: 10px; margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line); }
+  .bet-card .fn-whatif .b { color: var(--ink-4); text-decoration: line-through; }
+  .bet-card .fn-whatif .arr { color: var(--ink-4); margin: 0 5px; }
+  .bet-card .fn-whatif .a { color: var(--accent); font-weight: 600; }
 
   /* ---- Revived price chart (SVG, in the card's expand) ---- */
   .price-chart-wrap { background: var(--paper-2); border: 1px solid var(--line); padding: 12px 14px 9px; }
@@ -2089,6 +2089,42 @@
   .portfolio-page .cp-hold.linked:hover { background: var(--paper-2); }
   .portfolio-page .cp-hold.linked .h-s { color: var(--accent); }
   @media (max-width: 1024px) { .card-page .cp-cols { grid-template-columns: 1fr; } }
+
+  /* ============ Multi-level derivation tree (page hero) ============ */
+  .card-page .cp-sec-lab { font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 14px; }
+  .card-page .cp-tree { margin-bottom: 4px; }
+  .dt .dt-root { display: inline-block; border: 1px solid var(--rule); background: var(--paper-2); padding: 9px 15px; }
+  .dt .dt-root-top { display: flex; align-items: baseline; gap: 12px; }
+  .dt .dt-root-lab { font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-4); }
+  .dt .dt-root-val { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; }
+  .dt .dt-root-sub { font-family: var(--mono); font-size: 10px; color: var(--ink-4); margin-top: 3px; }
+  .dt .dt-branches { border-left: 2px solid var(--ink); margin-left: 16px; }
+  .dt .dt-branch { position: relative; padding: 11px 0 11px 24px; }
+  .dt .dt-branch::before { content: ""; position: absolute; left: 0; top: 21px; width: 20px; border-top: 2px solid var(--ink); }
+  .dt .dt-bhead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 7px; }
+  .dt .dt-blabel { font-size: 13.5px; color: var(--ink-2); font-weight: 500; }
+  .dt .dt-branch.primary .dt-blabel { color: var(--ink); font-weight: 600; }
+  .dt .dt-primary { font-family: var(--mono); font-size: 8px; letter-spacing: 0.12em; color: var(--accent); border: 1px solid var(--accent); padding: 1px 4px; }
+  .dt .dt-levels { border-left: 1px solid var(--line-2); margin-left: 3px; padding-left: 17px; display: flex; flex-direction: column; gap: 7px; }
+  .dt .dt-level { position: relative; }
+  .dt .dt-level::before { content: ""; position: absolute; left: -17px; top: 9px; width: 13px; border-top: 1px solid var(--line-2); }
+  .dt .dt-level .dl-text { font-size: 12px; color: var(--ink-2); line-height: 1.5; }
+  .dt .dt-level.assume .dl-text, .dt .dt-level.compute .dl-text { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+  .dt .dt-level.imply .dl-text { color: var(--ink-3); font-size: 11.5px; }
+  .dt .dt-level.implied { border: 1px solid var(--line); border-left: 2px solid var(--ink); background: var(--paper); padding: 8px 11px; }
+  .dt .dt-level.implied::before { top: 16px; }
+  .dt .dt-level.implied.nosol { border-left-color: var(--neutral); }
+  .dt .dt-level .dl-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .dt .dt-level .dl-label { font-size: 12.5px; color: var(--ink-2); }
+  .dt .dt-level .dl-impl { font-family: var(--mono); font-size: 17px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+  .dt .dt-level.nosol .dl-impl { color: var(--neutral); font-size: 13px; }
+  .dt .dt-level .dl-sub { font-size: 11px; color: var(--ink-3); margin-top: 4px; line-height: 1.5; }
+  .dt .dt-level .dl-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 6px; }
+
+  /* ---- Supporting row (chart + decomp/narrative), below the hero ---- */
+  .card-page .cp-support { display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; align-items: start; margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
+  .card-page .cp-support .cp-sup-main, .card-page .cp-support .cp-sup-side { min-width: 0; }
+  @media (max-width: 1024px) { .card-page .cp-support { grid-template-columns: 1fr; } }
 
   /* ---- NEW: per-card discuss thread + what-if exhibit + derived card ---- */
   .bet-card .bc-discuss { border-top: 2px solid var(--ink); padding: 13px 16px 14px; background: var(--paper); }
@@ -3307,6 +3343,53 @@ async function ensurePriceHistory(ticker, cardId) {
   _paintChart(cardId, card);
 }
 
+// ---- Multi-level DERIVATION TREE (the page hero) ----
+// Renders _display.derivations: root 现价 → a branch per lens (or base/premium for
+// anchor) → mechanical chain (固定共识 → 基线DCF → 反解) → implied value (band ruler)
+// → sub-implication. The implied level folds in the band ruler + evidence chip +
+// what-if stamp. Falls back to the one-hop flow diagram if no derivations present.
+function renderDerivLevel(lv, branch, rev) {
+  const kind = lv.kind || 'imply';
+  if (kind === 'implied') {
+    const b = { band: lv.band, impl_num: lv.impl_num, unit: lv.unit, impl: lv.impl,
+                metric: lv.label, lens: branch.lens, nosol: lv.nosol };
+    const bv = lv.band ? _bandViz(b) : { ruler: '', note: '' };
+    const ev = lv.ev ? _evChip(lv.ev) : '';
+    const foot = (bv.note || ev)
+      ? '<div class="dl-foot"><span class="fn-note">' + (bv.note || '') + '</span>' + ev + '</div>' : '';
+    return '<div class="dt-level implied' + (lv.nosol ? ' nosol' : '') + '">' +
+      '<div class="dl-top"><span class="dl-label">' + escapeHTML(lv.label || '') + '</span>' +
+        '<span class="dl-impl">' + escapeHTML(lv.impl || '') + '</span></div>' +
+      (lv.text ? '<div class="dl-sub">' + escapeHTML(lv.text) + '</div>' : '') +
+      bv.ruler + foot + _whatifStamp(b, rev) +
+    '</div>';
+  }
+  return '<div class="dt-level ' + escapeHTML(kind) + '">' +
+    '<span class="dl-mark"></span><span class="dl-text">' + escapeHTML(lv.text || '') + '</span></div>';
+}
+function renderDerivationTree(c) {
+  const der = (c._display || {}).derivations;
+  if (!der || !der.branches || !der.branches.length) return renderFlowDiagram(c);  // safety fallback
+  const rev = state.revision[c.card_id];
+  const root = der.root || {};
+  const branches = der.branches.map(b => {
+    const levels = (b.levels || []).map(lv => renderDerivLevel(lv, b, rev)).join('');
+    return '<div class="dt-branch' + (b.primary ? ' primary' : '') + '">' +
+      '<div class="dt-bhead"><span class="dt-blabel">' + escapeHTML(b.label || b.lens || '') + '</span>' +
+        (b.primary ? '<span class="dt-primary">PRIMARY</span>' : '') + '</div>' +
+      '<div class="dt-levels">' + levels + '</div>' +
+    '</div>';
+  }).join('');
+  return '<div class="dt">' +
+    '<div class="dt-root">' +
+      '<div class="dt-root-top"><span class="dt-root-lab">' + escapeHTML(root.label || '现价') + '</span>' +
+        '<span class="dt-root-val">' + escapeHTML(root.value || '') + '</span></div>' +
+      (root.sub ? '<div class="dt-root-sub">' + escapeHTML(root.sub) + '</div>' : '') +
+    '</div>' +
+    '<div class="dt-branches">' + branches + '</div>' +
+  '</div>';
+}
+
 // A single bet rendered as a FULL-PAGE 2-col research dossier (the active tab).
 // Keeps the `bet-card` class so all the .bet-card-scoped viz CSS (flow / decomp /
 // discuss / chart) still applies; `card-page` adds the page layout. Left col =
@@ -3336,19 +3419,22 @@ function renderSingleCard(c) {
       '<label class="cp-synth' + (sel ? ' on' : '') + '"><input type="checkbox" data-selpage="' + escapeHTML(c.card_id) + '"' + (sel ? ' checked' : '') + '> 选入综合</label>' +
     '</div>' +
     (stale ? '<div class="bc-stale"><span class="dot"></span>基于 ' + escapeHTML(c.trade_date) + ' 收盘 · 历史快照</div>' : '') +
-    '<div class="cp-cols">' +
-      '<div class="cp-col cp-left">' +
-        renderFlowDiagram(c) +
-        renderDecomp(c) +
-        (d.risks ? '<div class="bc-risks"><span class="lab">关键风险</span>' + escapeHTML(d.risks) + '</div>' : '') +
-      '</div>' +
-      '<div class="cp-col cp-right">' +
+    '<div class="cp-tree">' +
+      '<div class="cp-sec-lab">推导 · 把现价反解成市场必须同时相信的假设</div>' +
+      renderDerivationTree(c) +
+    '</div>' +
+    '<div class="cp-support">' +
+      '<div class="cp-sup-main">' +
         '<div class="price-chart-wrap">' +
           '<div class="pc-head"><span class="lbl">价格走势</span><span class="title">' + escapeHTML(c.subject) + ' · 5 年月线</span><span class="src">yfinance</span></div>' +
           '<div class="pc-host" data-pchost="' + escapeHTML(c.card_id) + '"><div class="pc-empty">加载 5 年价格走势…</div></div>' +
           '<div class="pc-foot">实线 MKT 现价 · 虚线 DCF 基线 · 浅线 历史月收盘</div>' +
         '</div>' +
+      '</div>' +
+      '<div class="cp-sup-side">' +
+        renderDecomp(c) +
         narrativeHtml +
+        (d.risks ? '<div class="bc-risks"><span class="lab">关键风险</span>' + escapeHTML(d.risks) + '</div>' : '') +
       '</div>' +
     '</div>' +
     _discussBlock(c) +
