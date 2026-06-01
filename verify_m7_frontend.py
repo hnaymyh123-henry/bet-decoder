@@ -220,6 +220,33 @@ def main() -> int:
     check("bilingual disclaimer + lang toggle preserved", bilingual,
           f"bilingual={bilingual}")
 
+    # AC: reasoning-visualization layer — the flow diagram (现价→隐含假设节点) with a
+    # folded Monte-Carlo band ruler, the revived SVG price chart, the price-
+    # decomposition waterfall, and the scenario chips that fire the LLM what-if.
+    viz = (
+        "function renderFlowDiagram" in body and 'class="bc-flow"' in body
+        and "function _bandViz" in body and '"fn-band"' in body
+        and "function renderDecomp" in body and '"dc-bar"' in body
+        and "function _paintChart" in body and "price-chart-wrap" in body
+        and "pc-line-baseline" in body and "ensurePriceHistory" in body
+        and "function renderScenarioChips" in body and "data-chip" in body
+    )
+    check("reasoning viz: flow diagram + band ruler + price chart + decomp + scenario chips",
+          viz, f"viz_present={viz}")
+
+    # AC: de-clutter — the flow diagram REPLACED the thin always-list decision chain
+    # AND the old bet-row list (net fewer sections), rather than piling on.
+    chain_replaced = ("const chain = (d.chain || [])" not in body
+                      and "const bets = (d.bets || []).map" not in body)
+    check("thin chain + bet-row list replaced by the flow diagram (de-clutter)",
+          chain_replaced, f"old_render_removed={chain_replaced}")
+
+    # AC: price chart is lazy + offline-honest (no fabricated line; needs network).
+    chart_honest = ("/api/price-history/" in body and "state.priceHistory" in body
+                    and "暂无价格历史" in body)
+    check("price chart lazy-loaded + honest empty/offline state",
+          chart_honest, f"chart_honest={chart_honest}")
+
     return _report()
 
 

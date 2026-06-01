@@ -1957,6 +1957,93 @@
   .bet-card .chain-step.break .m { color: var(--accent); }
   .bet-card .chain-step.break .c { color: var(--accent); font-size: 11px; font-weight: 500; }
 
+  /* ---- Reverse-derivation flow diagram (现价 → 隐含假设节点) ---- */
+  .bet-card .bc-flow { margin-bottom: 4px; }
+  .bet-card .flow-cap { font-family: var(--mono); font-size: 9px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 11px; }
+  .bet-card .bc-flow-grid { display: grid; grid-template-columns: 122px 1fr; gap: 0 20px; align-items: center; }
+  .bet-card .flow-input { border: 1px solid var(--rule); background: var(--paper-2); padding: 10px 11px; }
+  .bet-card .flow-input .lab { font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-4); }
+  .bet-card .flow-input .px { font-family: var(--mono); font-size: 19px; font-weight: 600; color: var(--ink); margin-top: 4px; letter-spacing: -0.01em; }
+  .bet-card .flow-input .sub { font-size: 10.5px; color: var(--ink-3); margin-top: 8px; line-height: 1.45; }
+  .bet-card .flow-nodes { display: flex; flex-direction: column; gap: 8px; position: relative; }
+  .bet-card .flow-nodes::before { content: ""; position: absolute; left: -10px; top: 14px; bottom: 14px; border-left: 1px solid var(--line-2); }
+  .bet-card .flow-node { position: relative; border: 1px solid var(--line); border-left: 2px solid var(--ink-4); padding: 9px 11px; background: var(--paper); }
+  .bet-card .flow-node::before { content: ""; position: absolute; left: -10px; top: 17px; width: 10px; border-top: 1px solid var(--line-2); }
+  .bet-card .flow-node.nosol { border-left-color: var(--neutral); }
+  .bet-card .flow-node .fn-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .bet-card .flow-node .fn-lens { font-size: 12.5px; color: var(--ink-2); }
+  .bet-card .flow-node .fn-lens .fn-idx { font-family: var(--mono); color: var(--ink-4); font-size: 11px; margin-right: 3px; }
+  .bet-card .flow-node .fn-nums { text-align: right; white-space: nowrap; }
+  .bet-card .flow-node .fn-impl { font-family: var(--mono); font-size: 16px; font-weight: 600; color: var(--ink); }
+  .bet-card .flow-node.nosol .fn-impl { color: var(--neutral); font-size: 12.5px; }
+  .bet-card .flow-node .fn-base { display: block; font-family: var(--mono); font-size: 9px; color: var(--ink-4); margin-top: 1px; }
+  .bet-card .flow-node .fn-sub { font-size: 11px; color: var(--ink-3); margin-top: 5px; line-height: 1.45; }
+  .bet-card .flow-node .fn-band { position: relative; height: 14px; margin-top: 8px; }
+  .bet-card .flow-node .fn-band .track { position: absolute; left: 0; right: 0; top: 6px; height: 2px; background: var(--paper-3); }
+  .bet-card .flow-node .fn-band .iqr { position: absolute; top: 4px; height: 6px; background: var(--ink-4); opacity: 0.5; }
+  .bet-card .flow-node .fn-band .p50 { position: absolute; top: 2px; width: 1px; height: 10px; background: var(--ink); }
+  .bet-card .flow-node .fn-band .mkt { position: absolute; top: 0; width: 2px; height: 14px; background: var(--ink-2); }
+  .bet-card .flow-node .fn-band .mkt.hot { background: var(--accent); }
+  .bet-card .flow-node .fn-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 6px; }
+  .bet-card .flow-node .fn-note { font-family: var(--mono); font-size: 9px; color: var(--ink-4); letter-spacing: 0.02em; }
+  .bet-card .flow-node .fn-note .agg { color: var(--accent); }
+  .bet-card .flow-node .fn-noband { font-family: var(--mono); font-size: 9px; color: var(--ink-5); letter-spacing: 0.03em; }
+  .bet-card .flow-node .fn-ev { font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.08em; padding: 1px 5px; border: 1px solid var(--line); white-space: nowrap; }
+  .bet-card .flow-node .fn-ev.bull { color: var(--positive); border-color: var(--positive); }
+  .bet-card .flow-node .fn-ev.bear { color: var(--negative); border-color: var(--negative); }
+  .bet-card .flow-node .fn-ev.mixed { color: var(--neutral); border-color: var(--neutral); }
+  /* what-if perturbation stamp on a node (Phase 5) */
+  .bet-card .flow-node .fn-whatif { font-family: var(--mono); font-size: 10px; margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line); }
+  .bet-card .flow-node .fn-whatif .b { color: var(--ink-4); text-decoration: line-through; }
+  .bet-card .flow-node .fn-whatif .arr { color: var(--ink-4); margin: 0 5px; }
+  .bet-card .flow-node .fn-whatif .a { color: var(--accent); font-weight: 600; }
+
+  /* ---- Revived price chart (SVG, in the card's expand) ---- */
+  .price-chart-wrap { background: var(--paper-2); border: 1px solid var(--line); padding: 12px 14px 9px; }
+  .price-chart-wrap .pc-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+  .price-chart-wrap .pc-head .lbl { font-family: var(--mono); font-size: 9px; color: var(--accent); letter-spacing: 0.18em; text-transform: uppercase; font-weight: 500; }
+  .price-chart-wrap .pc-head .title { font-family: var(--sans); font-size: 12px; color: var(--ink); font-weight: 500; margin-left: 10px; flex: 1; }
+  .price-chart-wrap .pc-head .src { font-family: var(--mono); font-size: 9px; color: var(--ink-3); letter-spacing: 0.04em; }
+  .price-chart-wrap .pc-svg { width: 100%; height: auto; display: block; background: var(--paper); font-feature-settings: "tnum" 1; }
+  .price-chart-wrap .pc-svg .pc-grid { stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 3; fill: none; }
+  .price-chart-wrap .pc-svg .pc-axis { stroke: var(--line-2); stroke-width: 1; fill: none; }
+  .price-chart-wrap .pc-svg .pc-history { stroke: var(--ink-3); stroke-width: 1.5; fill: none; stroke-linejoin: miter; stroke-linecap: butt; }
+  .price-chart-wrap .pc-svg .pc-line-baseline { stroke: var(--ink-4); stroke-width: 1; stroke-dasharray: 4 4; }
+  .price-chart-wrap .pc-svg .pc-line-actual { stroke: var(--ink); stroke-width: 1; }
+  .price-chart-wrap .pc-svg .pc-line-whatif { stroke: var(--accent); stroke-width: 1.25; stroke-dasharray: 1 3; }
+  .price-chart-wrap .pc-svg .pc-axis-label { font-family: var(--mono); font-size: 9.5px; fill: var(--ink-4); letter-spacing: 0.04em; }
+  .price-chart-wrap .pc-svg .pc-line-label { font-family: var(--mono); font-size: 9.5px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; }
+  .price-chart-wrap .pc-svg .pc-line-label.baseline { fill: var(--ink-4); }
+  .price-chart-wrap .pc-svg .pc-line-label.actual { fill: var(--ink); }
+  .price-chart-wrap .pc-svg .pc-line-label.whatif { fill: var(--accent); }
+  .price-chart-wrap .pc-foot { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line); font-family: var(--mono); font-size: 9px; color: var(--ink-4); letter-spacing: 0.02em; }
+  .price-chart-wrap .pc-empty { padding: 26px 12px; text-align: center; font-family: var(--mono); font-size: 10.5px; color: var(--ink-4); letter-spacing: 0.04em; }
+
+  /* ---- Price-decomposition waterfall (anchor cards): base + 溢价/成分 = 现价 ---- */
+  .bet-card .bc-decomp { margin: 12px 0 2px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .bet-card .bc-decomp .dc-lab { font-family: var(--mono); font-size: 9px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 8px; }
+  .bet-card .bc-decomp .dc-bar { display: flex; width: 100%; height: 24px; overflow: hidden; gap: 1px; background: var(--line); }
+  .bet-card .bc-decomp .dc-seg { height: 100%; min-width: 2px; }
+  .bet-card .bc-decomp .dc-seg.base { background: var(--ink-3); }
+  .bet-card .bc-decomp .dc-seg.part.p1 { background: var(--accent); }
+  .bet-card .bc-decomp .dc-seg.part.p2 { background: var(--ink-4); }
+  .bet-card .bc-decomp .dc-seg.part.p3 { background: var(--neutral); }
+  .bet-card .bc-decomp .dc-seg.resid { background: var(--paper-3); }
+  .bet-card .bc-decomp .dc-legend { display: flex; flex-wrap: wrap; gap: 5px 16px; margin-top: 9px; }
+  .bet-card .bc-decomp .dc-leg { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-2); }
+  .bet-card .bc-decomp .dc-leg .sw { width: 9px; height: 9px; display: inline-block; }
+  .bet-card .bc-decomp .dc-leg .sw.base { background: var(--ink-3); }
+  .bet-card .bc-decomp .dc-leg .sw.part.p1 { background: var(--accent); }
+  .bet-card .bc-decomp .dc-leg .sw.part.p2 { background: var(--ink-4); }
+  .bet-card .bc-decomp .dc-leg .sw.part.p3 { background: var(--neutral); }
+  .bet-card .bc-decomp .dc-leg .sw.resid { background: var(--paper-3); border: 1px solid var(--line); }
+  .bet-card .bc-decomp .dc-leg .amt { font-family: var(--mono); font-size: 11px; color: var(--ink); font-weight: 600; }
+
+  /* ---- Suggested scenario chips (fire the LLM what-if / Q&A) ---- */
+  .bc-discuss .bc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 11px; }
+  .bc-discuss .bc-chips .chip { font-family: var(--mono); font-size: 10px; letter-spacing: 0.03em; color: var(--ink-2); background: var(--paper-2); border: 1px solid var(--line); padding: 5px 9px; cursor: pointer; }
+  .bc-discuss .bc-chips .chip:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
   /* ---- NEW: per-card discuss thread + what-if exhibit + derived card ---- */
   .bet-card .bc-discuss { border-top: 2px solid var(--ink); padding: 13px 16px 14px; background: var(--paper); }
   .bet-card .bc-discuss > .lab { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 11px; }
@@ -2446,9 +2533,10 @@ const state = {
   lang: 'zh',
   offline: false,
   busy: false,          // a decode/synthesize is in flight
-  expanded: {},         // card_id -> { chain:bool } expand toggles
+  expanded: {},         // card_id -> { chain:bool } expand toggles (now the chart expand)
   chat: {},             // card_id -> [{role:'you'|'agent', text, tools?}]
-  revision: {}          // card_id -> a pending what-if revision proposal (from /ask)
+  revision: {},         // card_id -> a pending what-if revision proposal (from /ask)
+  priceHistory: {}      // TICKER -> {points:[...]} | 'loading' | 'error' (lazy, cached)
 };
 
 let _activityStream = null;   // active EventSource for the agent feed
@@ -2830,6 +2918,257 @@ function renderNarrativeZone(mn) {
   '</div>';
 }
 
+// ---- Reverse-derivation FLOW DIAGRAM (replaces the thin decision-chain list) ----
+// Reads the same _display the card already carries: current price (input) → each
+// implied assumption (output node) with its number, a Monte-Carlo band ruler
+// (where the market's bet sits vs p25–p75 = how aggressive), and an evidence chip.
+// Degrades gracefully: null band → "区间不适用", no narrative → no chip.
+function _flowFmt(v, unit) {
+  if (typeof v !== 'number' || isNaN(v)) return '—';
+  if (unit) return v.toFixed(1) + unit;
+  return Math.abs(v) < 1 ? (v * 100).toFixed(0) + '%' : v.toFixed(1);
+}
+function _pctPos(v, lo, hi) {
+  return hi > lo ? Math.max(0, Math.min(100, (v - lo) / (hi - lo) * 100)) : 50;
+}
+// Band ruler + human note for one node → {ruler, note}.
+function _bandViz(b) {
+  const band = b.band;
+  if (!band || typeof band.p25 !== 'number' || typeof band.p75 !== 'number') {
+    return { ruler: '', note: '<span class="fn-noband">蒙特卡洛区间不适用</span>' };
+  }
+  const p25 = band.p25, p75 = band.p75;
+  const p50 = (typeof band.p50 === 'number') ? band.p50 : (p25 + p75) / 2;
+  const mkt = (typeof b.impl_num === 'number') ? b.impl_num : null;
+  const vals = [p25, p50, p75]; if (mkt != null) vals.push(mkt);
+  let lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+  const span = (hi - lo) || Math.abs(hi) || 1;
+  lo -= span * 0.12; hi += span * 0.12;
+  const unit = b.unit || '';
+  const aggressive = (mkt != null && mkt > p75);
+  const ruler = '<div class="fn-band">' +
+    '<div class="track"></div>' +
+    '<div class="iqr" style="left:' + _pctPos(p25, lo, hi).toFixed(1) + '%;width:' +
+      Math.max(0, _pctPos(p75, lo, hi) - _pctPos(p25, lo, hi)).toFixed(1) + '%"></div>' +
+    '<div class="p50" style="left:' + _pctPos(p50, lo, hi).toFixed(1) + '%"></div>' +
+    (mkt != null ? '<div class="mkt' + (aggressive ? ' hot' : '') + '" style="left:' +
+      _pctPos(mkt, lo, hi).toFixed(1) + '%"></div>' : '') +
+  '</div>';
+  const note = '区间 ' + _flowFmt(p25, unit) + '–' + _flowFmt(p75, unit) +
+    (mkt != null ? ' · 市场 ' + _flowFmt(mkt, unit) : '') +
+    (aggressive ? ' <span class="agg">↑ 高于 p75</span>' : '');
+  return { ruler, note };
+}
+function _evChip(binding) {
+  if (!binding || !binding.evidence_verdict) return '';
+  const v = binding.evidence_verdict;
+  const label = ({ bull: '偏多', mixed: '中性', bear: '偏空' })[v] || v;
+  const cls = (v === 'bull') ? 'bull' : (v === 'bear' ? 'bear' : 'mixed');
+  return '<span class="fn-ev ' + cls + '">证据 ' + escapeHTML(label) +
+    (binding.diverges ? ' ⚠' : '') + '</span>';
+}
+// If an LLM what-if revision solved a driver that maps to THIS node, stamp the
+// node with before→after so the derivation graph itself shows the perturbation.
+function _whatifStamp(b, rev) {
+  if (!rev || !rev.diff || !rev.diff[0]) return '';
+  const dd = rev.diff[0];
+  if (dd.before == null || dd.after == null) return '';
+  const field = String(dd.field || '').toLowerCase();
+  const lens = String(b.lens || '').toLowerCase();
+  const metric = String(b.metric || '');
+  const isGrowthField = /cagr|growth|revenue/.test(field);
+  const nodeIsGrowth = (lens === 'dcf') || /CAGR|增长/.test(metric);
+  const match = (lens && field && field.indexOf(lens) >= 0) || (isGrowthField && nodeIsGrowth);
+  if (!match) return '';
+  return '<div class="fn-whatif">WHAT-IF <span class="b">' + _fmtNum(dd.before) +
+    '</span><span class="arr">→</span><span class="a">' + _fmtNum(dd.after) + '</span></div>';
+}
+// Suggested scenario / follow-up chips that fire the existing askCard(). "如果…"
+// chips trigger an LLM what-if (propose_revision → a revision); the others get a
+// grounded answer. Generated from the card's own lenses so they fit each subject.
+function renderScenarioChips(c) {
+  const d = c._display || {};
+  const hasGrowth = (d.bets || []).some(b => String(b.lens || '') === 'dcf' || /CAGR|增长/.test(b.metric || ''));
+  const chips = ['如果 WACC 提到 9% 会怎样?'];
+  if (hasGrowth) chips.push('如果增长砍半会怎样?');
+  chips.push('最强的熊市论据是什么?', '现在是贵了还是便宜?');
+  return '<div class="bc-chips">' + chips.map(q =>
+    '<button class="chip" data-chip="' + escapeHTML(c.card_id) + '" data-chipq="' + escapeHTML(q) + '">' +
+      escapeHTML(q) + '</button>').join('') + '</div>';
+}
+function renderFlowDiagram(c) {
+  const d = c._display || {};
+  const bets = d.bets || [];
+  if (!bets.length) return '<div class="bc-intro">数据不足 / 暂无隐含假设。</div>';
+  const price = (d.anchor != null)
+    ? ('$' + Number(d.anchor).toLocaleString('en-US', { maximumFractionDigits: 2 })) : '—';
+  const reason = ((d.chain || []).find(s => s.t === 'fact') || {}).c || '';
+  const binds = (c.market_narrative && c.market_narrative.bindings) || [];
+  const rev = state.revision[c.card_id];
+  const nodes = bets.map((b, i) => {
+    const hasBand = b.band && typeof b.band.p25 === 'number';
+    const bv = _bandViz(b);
+    const sub = (!hasBand && b.iv) ? '<div class="fn-sub">' + escapeHTML(b.iv) + '</div>' : '';
+    return '<div class="flow-node' + (b.nosol ? ' nosol' : '') + '" data-fnode="' + i + '">' +
+      '<div class="fn-top">' +
+        '<span class="fn-lens"><span class="fn-idx">' + circled(i + 1) + '</span> ' +
+          escapeHTML(b.metric) + '</span>' +
+        '<span class="fn-nums"><span class="fn-impl">' + escapeHTML(b.impl) + '</span>' +
+          (b.base ? '<span class="fn-base">' + escapeHTML(b.base) + '</span>' : '') + '</span>' +
+      '</div>' +
+      sub + bv.ruler +
+      '<div class="fn-foot"><span class="fn-note">' + bv.note + '</span>' + _evChip(binds[i]) + '</div>' +
+      _whatifStamp(b, rev) +
+    '</div>';
+  }).join('');
+  return '<div class="bc-flow">' +
+    '<div class="flow-cap">EXHIBIT · 反向推导 — 把现价拆成市场必须同时相信的假设</div>' +
+    '<div class="bc-flow-grid">' +
+      '<div class="flow-input">' +
+        '<div class="lab">现价 · 输入</div>' +
+        '<div class="px">' + price + '</div>' +
+        (reason ? '<div class="sub">' + escapeHTML(reason) + '</div>' : '') +
+      '</div>' +
+      '<div class="flow-nodes">' + nodes + '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+// ---- Price-decomposition WATERFALL (anchor/narrative cards): base business
+// value (DCF) + 叙事/期权/TAM 成分 = 现价. Visualizes "what the price is made of".
+// Renders only when _display.decomp exists (anchor mode); '' otherwise. ----
+function renderDecomp(c) {
+  const dc = (c._display || {}).decomp;
+  if (!dc || typeof dc.anchor !== 'number' || dc.anchor <= 0) return '';
+  const anchor = dc.anchor;
+  const segs = [];
+  if (typeof dc.base === 'number' && dc.base > 0) {
+    segs.push({ cls: 'base', label: '基础业务价值(DCF)', amt: dc.base });
+  }
+  (dc.parts || []).forEach((p, i) => {
+    if (typeof p.amt === 'number' && p.amt > 0) {
+      segs.push({ cls: 'part p' + ((i % 3) + 1), label: p.label || '成分', amt: p.amt, theme: p.theme });
+    }
+  });
+  const sumSeg = segs.reduce((s, x) => s + x.amt, 0);
+  const resid = anchor - sumSeg;
+  if (Math.abs(resid) > anchor * 0.02) segs.push({ cls: 'resid', label: '残差 / 未解释', amt: Math.abs(resid) });
+  if (!segs.length) return '';
+  const total = segs.reduce((s, x) => s + x.amt, 0) || anchor;
+  const dollars = (v) => '$' + Math.round(v).toLocaleString('en-US');
+  const bar = segs.map(s =>
+    '<div class="dc-seg ' + s.cls + '" style="width:' + (s.amt / total * 100).toFixed(2) + '%" title="' +
+      escapeHTML(s.label) + ' ' + dollars(s.amt) + '"></div>').join('');
+  const legend = segs.map(s =>
+    '<div class="dc-leg"><span class="sw ' + s.cls + '"></span>' +
+      '<span class="lg-l">' + escapeHTML(s.label) + (s.theme ? ' · ' + escapeHTML(s.theme) : '') + '</span>' +
+      '<span class="amt">' + dollars(s.amt) + '</span></div>').join('');
+  return '<div class="bc-decomp">' +
+    '<div class="dc-lab">价格构成 · 现价 ' + dollars(anchor) + ' 由什么撑起</div>' +
+    '<div class="dc-bar">' + bar + '</div>' +
+    '<div class="dc-legend">' + legend + '</div>' +
+  '</div>';
+}
+
+// ---- Revived price chart (SVG: 5y monthly close + dashed DCF baseline + MKT
+// price marker). Ported from the pre-pivot single-stock mockup, slider dropped.
+// Lazy-loaded on card expand, cached in state.priceHistory; honest empty/offline. ----
+const PC_VB_W = 800, PC_VB_H = 300;
+const PC_PAD = { top: 16, right: 122, bottom: 24, left: 12 };
+function _pcChooseTicks(min, max, n) { const s = (max - min) / (n - 1); const t = []; for (let i = 0; i < n; i++) t.push(min + s * i); return t; }
+function _pcFmtTick(v) { if (v >= 1000) return (v / 1000).toFixed(1) + 'k'; if (v >= 10) return v.toFixed(0); return v.toFixed(1); }
+function _pcYearTicks(points, geom) {
+  const seen = new Set(), ticks = [];
+  for (let i = 0; i < points.length; i++) {
+    const yr = String(points[i].date).slice(0, 4);
+    if (!seen.has(yr)) { seen.add(yr); ticks.push({ year: yr, x: geom.xForIndex(i) }); }
+  }
+  return ticks;
+}
+function _pcGeom(points, refs) {
+  const innerW = PC_VB_W - PC_PAD.left - PC_PAD.right, innerH = PC_VB_H - PC_PAD.top - PC_PAD.bottom;
+  const cand = points.map(p => p.close).concat([refs.actual]);
+  if (refs.baseline != null) cand.push(refs.baseline);
+  if (refs.whatif != null) cand.push(refs.whatif);
+  const maxData = Math.max.apply(null, cand.filter(v => typeof v === 'number' && !isNaN(v)));
+  const yMax = maxData * 1.1, yMin = 0, x0 = PC_PAD.left, y0 = PC_PAD.top, n = points.length;
+  const xForIndex = (i) => x0 + (n <= 1 ? innerW / 2 : (i * innerW) / (n - 1));
+  const yForPrice = (p) => y0 + innerH - ((p - yMin) / (yMax - yMin)) * innerH;
+  return { innerW, innerH, x0, y0, yMin, yMax, xForIndex, yForPrice, n };
+}
+// Reference prices for the chart: MKT (current price) + DCF baseline + optional
+// what-if scenario price (Phase 5 — only when a revision resolves to a price).
+function _chartRefs(card) {
+  const d = card._display || {};
+  const refs = {
+    actual: (typeof d.anchor === 'number') ? d.anchor : null,
+    baseline: (typeof d.baseline_dcf === 'number') ? d.baseline_dcf : null,
+    whatif: null
+  };
+  const rev = state.revision[card.card_id];
+  const wp = rev && rev.scenario && rev.scenario.scenario_price;
+  if (typeof wp === 'number' && !isNaN(wp)) refs.whatif = wp;
+  return refs;
+}
+function _paintChart(cardId, card) {
+  const host = document.querySelector('[data-pchost="' + cssAttr(cardId) + '"]');
+  if (!host) return;
+  const ticker = String(card.subject || '').toUpperCase();
+  const ph = state.priceHistory[ticker];
+  if (ph === 'loading') { host.innerHTML = '<div class="pc-empty">加载 5 年价格走势…</div>'; return; }
+  if (!ph || ph === 'error' || !ph.points || ph.points.length < 2) {
+    host.innerHTML = '<div class="pc-empty">' + (state.offline ? '离线模式 · 价格历史需联网' : '暂无价格历史') + '</div>';
+    return;
+  }
+  const refs = _chartRefs(card);
+  if (refs.actual == null) { host.innerHTML = '<div class="pc-empty">缺少现价,无法绘制</div>'; return; }
+  const points = ph.points;
+  const geom = _pcGeom(points, refs);
+  let dpath = '';
+  for (let i = 0; i < points.length; i++) {
+    dpath += (i === 0 ? 'M' : 'L') + geom.xForIndex(i).toFixed(2) + ' ' + geom.yForPrice(points[i].close).toFixed(2) + ' ';
+  }
+  const yTicks = _pcChooseTicks(geom.yMin, geom.yMax, 5);
+  const gridLines = yTicks.map(v => { const y = geom.yForPrice(v).toFixed(2); return '<line class="pc-grid" x1="' + geom.x0 + '" y1="' + y + '" x2="' + (geom.x0 + geom.innerW) + '" y2="' + y + '"/>'; }).join('');
+  const yLabels = yTicks.map(v => { const y = geom.yForPrice(v).toFixed(2); return '<text class="pc-axis-label" x="' + (geom.x0 + geom.innerW + 4) + '" y="' + (parseFloat(y) + 3).toFixed(2) + '" text-anchor="start">$' + _pcFmtTick(v) + '</text>'; }).join('');
+  const yearTicks = _pcYearTicks(points, geom);
+  const xGrid = yearTicks.map(t => '<line class="pc-grid" x1="' + t.x.toFixed(2) + '" y1="' + geom.y0 + '" x2="' + t.x.toFixed(2) + '" y2="' + (geom.y0 + geom.innerH) + '"/>').join('');
+  const xLabels = yearTicks.map(t => '<text class="pc-axis-label" x="' + t.x.toFixed(2) + '" y="' + (geom.y0 + geom.innerH + 14).toFixed(2) + '" text-anchor="middle">' + t.year + '</text>').join('');
+  const xLineEnd = geom.x0 + geom.innerW, labelX = (xLineEnd + 6).toFixed(2);
+  const yActual = geom.yForPrice(refs.actual).toFixed(2);
+  const refLine = (cls, v, lbl) => {
+    const y = geom.yForPrice(Math.max(0, Math.min(v, geom.yMax))).toFixed(2);
+    return '<line class="pc-line-' + cls + '" x1="' + geom.x0 + '" y1="' + y + '" x2="' + xLineEnd + '" y2="' + y + '"/>' +
+      '<text class="pc-line-label ' + cls + '" x="' + labelX + '" y="' + (parseFloat(y) + 3).toFixed(2) + '">' + lbl + '</text>';
+  };
+  const baselineSvg = (refs.baseline != null) ? refLine('baseline', refs.baseline, 'DCF · $' + refs.baseline.toFixed(0)) : '';
+  const whatifSvg = (refs.whatif != null) ? refLine('whatif', refs.whatif, 'WHAT-IF · $' + refs.whatif.toFixed(0)) : '';
+  host.innerHTML = '<svg class="pc-svg" viewBox="0 0 ' + PC_VB_W + ' ' + PC_VB_H + '" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">' +
+    gridLines + xGrid +
+    '<line class="pc-axis" x1="' + geom.x0 + '" y1="' + (geom.y0 + geom.innerH) + '" x2="' + (geom.x0 + geom.innerW) + '" y2="' + (geom.y0 + geom.innerH) + '"/>' +
+    '<path class="pc-history" d="' + dpath.trim() + '"/>' +
+    baselineSvg + whatifSvg +
+    refLine('actual', refs.actual, 'MKT · $' + refs.actual.toFixed(0)) +
+    yLabels + xLabels +
+  '</svg>';
+}
+async function ensurePriceHistory(ticker, cardId) {
+  const key = String(ticker || '').toUpperCase();
+  if (!key) return;
+  const card = state.cards.find(c => c.card_id === cardId) || { subject: key, card_id: cardId };
+  const cached = state.priceHistory[key];
+  if (cached && cached !== 'error' && cached !== 'loading') { _paintChart(cardId, card); return; }
+  if (state.offline) { state.priceHistory[key] = 'error'; _paintChart(cardId, card); return; }
+  state.priceHistory[key] = 'loading';
+  _paintChart(cardId, card);
+  try {
+    const r = await fetch('/api/price-history/' + encodeURIComponent(key) + '?period=5y');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    state.priceHistory[key] = await r.json();
+  } catch (e) { state.priceHistory[key] = 'error'; }
+  _paintChart(cardId, card);
+}
+
 function renderSingleCard(c, portfolioWeight) {
   const sel = state.selected.has(c.card_id);
   const d = c._display || {};
@@ -2841,20 +3180,6 @@ function renderSingleCard(c, portfolioWeight) {
     ? '<span class="lab">叙事溢价</span><span class="val np' + (np >= 0.5 ? ' hot' : '') + '">' + Math.round(np * 100) + '%</span>'
     : '';
   const stale = c.trade_date && c.trade_date < todayISO();
-  const bets = (d.bets || []).map((b, i) =>
-    '<div class="bet-row' + (b.nosol ? ' nosol' : '') + '">' +
-      '<span class="idx">' + circled(i + 1) + '</span>' +
-      '<span class="claim">' + escapeHTML(b.metric) +
-        (b.iv ? '<span class="iv">' + escapeHTML(b.iv) + '</span>' : '') +
-      '</span>' +
-      '<span class="nums"><span class="impl">' + escapeHTML(b.impl) + '</span>' +
-        (b.base ? '<span class="base">' + escapeHTML(b.base) + '</span>' : '') +
-      '</span>' +
-    '</div>'
-  ).join('');
-  const chain = (d.chain || []).map(s =>
-    '<div class="chain-step ' + s.t + '"><span class="m">' + escapeHTML(s.m) + '</span><span class="c">' + escapeHTML(s.c) + '</span></div>'
-  ).join('');
   const narrativeHtml = renderNarrativeZone(c.market_narrative);
   const exp = state.expanded[c.card_id] || {};
 
@@ -2870,12 +3195,19 @@ function renderSingleCard(c, portfolioWeight) {
     '</div>' +
     (stale ? '<div class="bc-stale"><span class="dot"></span>基于 ' + escapeHTML(c.trade_date) + ' 收盘 · 历史快照</div>' : '') +
     '<div class="bc-body">' +
-      (bets ? '<div class="bc-intro">要让 <strong>' + escapeHTML(c.subject) + '</strong> 站得住, 市场必须 <strong>同时</strong> 相信:</div>' + bets : '<div class="bc-intro">数据不足 / 暂无隐含假设。</div>') +
+      renderFlowDiagram(c) +
+      renderDecomp(c) +
       (d.risks ? '<div class="bc-risks"><span class="lab">关键风险</span>' + escapeHTML(d.risks) + '</div>' : '') +
     '</div>' +
     narrativeHtml +
-    (chain ? '<div class="bc-foot"><button class="tlink" data-chain="' + escapeHTML(c.card_id) + '">▾ 详细决策链</button></div>' +
-      '<div class="bc-expand' + (exp.chain ? ' open' : '') + '" data-chainbody="' + escapeHTML(c.card_id) + '"><h4>决策链</h4>' + chain + '</div>' : '') +
+    '<div class="bc-foot"><button class="tlink" data-chain="' + escapeHTML(c.card_id) + '">▾ 价格走势 5Y</button></div>' +
+    '<div class="bc-expand' + (exp.chain ? ' open' : '') + '" data-chainbody="' + escapeHTML(c.card_id) + '">' +
+      '<div class="price-chart-wrap">' +
+        '<div class="pc-head"><span class="lbl">价格走势</span><span class="title">' + escapeHTML(c.subject) + ' · 5 年月线</span><span class="src">yfinance</span></div>' +
+        '<div class="pc-host" data-pchost="' + escapeHTML(c.card_id) + '"><div class="pc-empty">展开加载 5 年价格走势…</div></div>' +
+        '<div class="pc-foot">实线 MKT 现价 · 虚线 DCF 基线 · 浅线 历史月收盘</div>' +
+      '</div>' +
+    '</div>' +
     _discussBlock(c) +
   '</div>';
 }
@@ -2920,8 +3252,9 @@ function _discussBlock(c) {
   }
   return '<div class="bc-discuss">' +
     '<div class="lab">讨论 / DISCUSS</div>' +
-    (turns || '<div class="bc-turn-empty">就这张卡追问 —— 为什么这个数?最强熊市论据?如果 WACC 9%?跟某只票比?</div>') +
+    (turns || '<div class="bc-turn-empty">就这张卡追问,或点下面的情景假设 —— agent 会调工具回答、做 what-if。</div>') +
     whatif +
+    renderScenarioChips(c) +
     '<div class="bc-ask"><input type="text" data-askinput="' + escapeHTML(id) + '" placeholder="追问这张卡…"><button data-ask="' + escapeHTML(id) + '">问</button></div>' +
   '</div>';
 }
@@ -3037,7 +3370,18 @@ function bindCardEvents() {
       state.expanded[id].chain = !state.expanded[id].chain;
       const body = document.querySelector('[data-chainbody="' + cssAttr(id) + '"]');
       if (body) body.classList.toggle('open', state.expanded[id].chain);
+      if (state.expanded[id].chain) {  // lazy-load + paint the price chart on open
+        const card = state.cards.find(c => c.card_id === id);
+        if (card) ensurePriceHistory(card.subject, id);
+      }
     });
+  });
+  // Re-paint any already-open price charts after a full re-render (e.g. post-ask).
+  Object.keys(state.expanded || {}).forEach(id => {
+    if (state.expanded[id] && state.expanded[id].chain) {
+      const card = state.cards.find(c => c.card_id === id);
+      if (card) ensurePriceHistory(card.subject, id);
+    }
   });
   // Per-card follow-up: ask button + Enter on the input.
   const _fireAsk = (id) => {
@@ -3052,6 +3396,9 @@ function bindCardEvents() {
     }));
   document.querySelectorAll('[data-revsave]').forEach(b =>
     b.addEventListener('click', () => saveRevision(b.getAttribute('data-revsave'))));
+  // Suggested scenario chips → fire the existing askCard() (what-if / Q&A).
+  document.querySelectorAll('[data-chip]').forEach(b =>
+    b.addEventListener('click', () => askCard(b.getAttribute('data-chip'), b.getAttribute('data-chipq'))));
 }
 
 /* ============================================================

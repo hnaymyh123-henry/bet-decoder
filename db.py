@@ -1251,7 +1251,10 @@ def build_card_display(card: BetCard) -> dict | None:
                 "metric": comp.get("claim") or comp.get("lens_label")
                 or comp.get("lens") or "成分",
                 "impl": f"${amt:,.0f}" if isinstance(amt, (int, float)) else "—",
-                "base": "", "iv": comp.get("implied_assumption") or ""})
+                "base": "", "iv": comp.get("implied_assumption") or "",
+                "lens": comp.get("lens"),
+                "impl_num": amt if isinstance(amt, (int, float)) else None,
+                "band": None, "nosol": amt is None})
     else:
         lenses = ([dd["primary_lens"]] if isinstance(dd.get("primary_lens"), dict) else [])
         lenses += [c for c in (dd.get("cross_lenses") or []) if isinstance(c, dict)]
@@ -1263,11 +1266,17 @@ def build_card_display(card: BetCard) -> dict | None:
             if isinstance(p25, (int, float)) and isinstance(p75, (int, float)):
                 band_str = (f"蒙特卡洛 {p25 * 100:.0f}%–{p75 * 100:.0f}%"
                             if 0 < abs(p25) < 1 else f"区间 {p25:.1f}–{p75:.1f}")
+            p50 = band.get("p50")
             bets.append({
                 "metric": r.get("implied_label") or r.get("lens_label")
                 or r.get("lens") or "lens",
                 "impl": _fmt_implied(iv, r.get("unit") or ""),
-                "base": "", "iv": band_str, "nosol": iv is None})
+                "base": "", "iv": band_str, "nosol": iv is None,
+                "lens": r.get("lens"), "unit": r.get("unit") or "",
+                "impl_num": iv if isinstance(iv, (int, float)) else None,
+                "band": ({"p25": p25, "p50": p50, "p75": p75}
+                         if isinstance(p25, (int, float))
+                         and isinstance(p75, (int, float)) else None)})
     # baseline_dcf: anchor base business value → a cross/primary lens's DCF baseline.
     base_dcf = am.get("base_business_value")
     if base_dcf is None:
@@ -1290,8 +1299,26 @@ def build_card_display(card: BetCard) -> dict | None:
     if dd.get("agentic"):
         chain.append({"t": "support", "m": "✦",
                       "c": "agent 自主选择此解码方案(非固定决策树)"})
+    # decomp: the price decomposition for anchor/narrative cards (base business
+    # value + narrative/option/TAM parts = anchor price) — drives the waterfall.
+    decomp = None
+    if am.get("components"):
+        recon = am.get("reconciliation") or {}
+        base_bv = am.get("base_business_value")
+        parts = [
+            {"label": c.get("lens_label") or c.get("lens") or "成分",
+             "amt": c.get("implied_amount"), "theme": c.get("theme") or ""}
+            for c in am["components"]
+            if isinstance(c.get("implied_amount"), (int, float))
+        ]
+        recon_anchor = recon.get("anchor")
+        decomp = {
+            "base": base_bv if isinstance(base_bv, (int, float)) else None,
+            "anchor": recon_anchor if isinstance(recon_anchor, (int, float)) else anchor,
+            "residual": recon.get("residual"),
+            "parts": parts}
     return {"baseline_dcf": base_dcf, "anchor": anchor, "bets": bets,
-            "risks": risks, "chain": chain}
+            "risks": risks, "chain": chain, "decomp": decomp}
 
 
 def card_from_json(data: dict) -> BetCard:
