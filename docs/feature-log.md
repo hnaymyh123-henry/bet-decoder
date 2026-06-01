@@ -22,11 +22,28 @@
 
 ---
 
+### 迭代 2026-06-01 — Agentic 层(对话式可改写卡 + agent 决策解码)
+
+> 起因:用户判断"产品还是像固定网页,不是 agentic"。根因(结构性非表面):decode 是确定性决策树,LLM 只是narration 子程序,"活动流"是那棵树在自述 = theater 非 agency;流程一锤定音(input→卡),无法追问一张卡。本迭代加入真正的 agentic 层。
+
+| 阶段 | 交付 | 验证 |
+|---|---|---|
+| A 持久化 decode_detail (`db.py`) | schema v3 幂等迁移(decode_detail_json/derived_from/derivation_kind/derivation_json 列 + idx_bet_cards_derived + **日去重索引重谓词排除衍生卡** `AND derived_from IS NULL`);save_card 落库 + card_from_row 重建 decode_detail/lineage;`card_to_json_full` + `build_card_display`(_display 投影,真卡脱离 thin 分支);嵌套 ThemeExposure asdict 序列化 | verify_decode_detail_persistence 15 |
+| B 工具调用 client + 工具注册表 (`client.py` + `agent_tools.py`) | `call_chat_tools`(OpenAI tools 扩展信封 + `_CHAT_TOOLS_IMPL` stub seam + `ToolCallingUnsupported`);`Tool`/`TOOL_REGISTRY`/`dispatch`(校验 + web-gate 诚实留空 + emit ActivityEvent + 永不抛);8 工具**包装既有 fn 无重实现** | verify_client_tools 7 · verify_agent_tools 16 |
+| C 编排器(agentic 解码,PRIMARY)(`orchestrator.py` + `decoder.py` hook) | `decode_bet_agentic` 工具调用循环(max_rounds=8 · 温度 0 · 调用上限)→ `submit_decode_plan` → `decode_bet(_plan_override=)` **复用既有装配器(parity by construction)** → 标记 `mode=agentic_*` + `agent_trace`;气密 try/except 回退确定性 `decode_bet` | verify_orchestrator 12 |
+| D 对话式 Q&A + 溯源改写 (`orchestrator.py` + `api.py`) | `answer_followup`(why / what-if / compare / bear-case 工具子集);`propose_revision` 元工具跑 what-if 返回 before→after diff(**不落库**,确认后才存);`build_revised_card` 建新衍生卡(derived_from + derivation diff,**父卡不变**);`POST /ask`(job→activity 回放)+ `POST /revise`(离线可用) | verify_qa_revise 11 |
+| E 前端 (`app.html`) | 真卡走 `_display` 富渲染;每卡"讨论/DISCUSS"块(按字重区分人/机 + mono 大写标签非气泡 + ▾工具调用 disclosure);WHAT-IF 修正提案 before→after 表 + "保存为衍生卡";衍生卡"← 衍生自"徽章 + 挂在父卡下;严守 `pricelens_design_system.md` | verify_m7 14 |
+| F 收口 (`verify_agentic_e2e.py`) | TestClient e2e:agentic 解码 plan 落地 + 持久化 detail + **无损回读(TD1)**· /ask job→SSE 回放 · /revise 溯源衍生卡 + 父卡不变 + 同日共存 · 离线护栏(/ask 503,/revise 通)· 气密回退 | verify_agentic_e2e 22 |
+
+**载荷设计**:(1) **parity-by-construction**——agent 只选 plan,装配复用既有 assembler → 卡/decode_detail 形状与确定性解码逐字节一致(持久化/序列化/综合/前端全不变);(2) **不可变快照保留**——改写=新衍生卡而非静默 mutation,auditability 是产品论点;(3) **真实 agency 非 theater**——agent 的决策/工具调用经既有 activity SSE 真实流出;(4) **web 诚实**——非搜索 provider 上 evidence/narrative 工具诚实留空,编造来源是发布阻断项。**provider 可配**:默认 miromind(公开仓);测试可切 TokenDance/DeepSeek V4 Pro(OpenAI 兼容 function-calling,无 web 搜索)。**全套 6 离线套件 +83 断言全绿**(decode_detail 15 · client_tools 7 · agent_tools 16 · orchestrator 12 · qa_revise 11 · agentic_e2e 22);累计 ~373 断言全绿。CI 用 `verify_*.py` glob 自动纳入新套件。**真实冒烟 `smoke_agentic.py`(DeepSeek V4 Pro)待用户跑**(需 TokenDance key + 少量花费;必须验并行 tool_call→匹配 role:tool 结果)。
+
+---
+
 ## 技术债登记(待下轮处理)
 
 | # | 项 | 来源 | 影响 | 目标 |
 |---|---|---|---|---|
-| TD1 | **band-ruler 真实读卡路径失效**:`get_card` 不重建 decode_detail + traditional 卡 run_id 未落 → 蒙特卡洛 band 拿不到,综合走相对差距 fallback | Phase 4 review (synthesizer.py:188/203/212) | 中(综合精度略降,不崩) | 下一轮:持久化最小 driver 视图(lens/value/band)到 bet_cards 或 runs 子表 |
+| ~~TD1~~ | ✅ **已解(根因)**:Agentic Phase A 让 `get_card` 重建 `decode_detail`(蒙特卡洛 band 随卡落库 → 回读卡现在拿得到 band),`verify_decode_detail_persistence` 证无损往返。**剩余**:`synthesizer` 仍走相对差距 fallback,需改读持久化 `decode_detail` 里的 band 才能用上"band 当尺"——降级为 TD1' 小跟进(精度优化,非阻断) | Phase 4 review → Agentic Phase A 修 | 低(回读卡已可被追问/改写;综合精度可再提) | 下一轮:`synthesizer` 从 reloaded `decode_detail` 读 band 替代相对差距 fallback |
 | TD2 | **`sse.py` 旧 mock SSE 端点**(`stream_evidence_mock`)疑似被 M5 `activity.py` 真 SSE 取代,api.py 仍 import | Phase 5 清查 | 低 | 下一轮:确认 M4 不再用 mock 流后 git rm |
 | TD3 | **Windows gbk 控制台编码**:`verify_*.py` / `prerun_demo.py` 打印中文/emoji 在 gbk 控制台崩(需 `PYTHONIOENCODING=utf-8`);prerun_demo 已内置 stdout reconfigure,verify 脚本未 | Phase 4/5 | 低(加环境变量即绕过) | 下一轮:给 verify 脚本统一加 stdout reconfigure,或 README 注明 |
 | TD4 | **旧 W1 测试脚本** `test_a_evidence.py` / `test_b_chat.py`:pivot 前 W1 验证脚本,无 import,已被 verify_m* 取代 | Phase 5 清查 | 低 | 下一轮:确认无用后删 |

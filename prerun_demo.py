@@ -8,7 +8,10 @@ the demo for free:
     llm_cache(evidence)   — one brief per implied assumption per ticker
     llm_cache(narrative)  — the live bull/bear debate per SINGLE MARKET card
     llm_cache(synthesis)  — the cross-card relation/narrative blob
-    activity_logs         — the agent reasoning stream, for SSE replay
+    activity_logs         — the agent reasoning stream, for SSE replay. Acts 1-2
+                            decode AGENTICALLY → a REAL agent decode trace on a
+                            tool-calling provider (TokenDance/DeepSeek); on the
+                            default miromind provider it airtight-falls-back.
     cache/price_history    — monthly closes for the chart (file cache)
 
 This script is **dry-run by default**.  With no flag it touches NOTHING on the
@@ -135,7 +138,7 @@ def estimate_plan() -> dict:
             "cost_usd": round(act1_calls * per + NARRATIVE_COST_USD, 2),
             "fills": ["llm_cache(evidence)", "llm_cache(narrative)",
                       "activity_logs", "cache/price_history"],
-            "note": "市场卡;首解 hunt 证据 + flagship 市场叙事(deep research)",
+            "note": "市场卡(agentic 解码:tool-calling provider 上记录真实 agent 推理 trace 供 $0 回放;miromind 气密回退确定性);首解 hunt 证据 + flagship 市场叙事(deep research)",
         },
         {
             "act": 2, "kind": "decode/market", "subject": "TSLA",
@@ -144,7 +147,7 @@ def estimate_plan() -> dict:
             "cost_usd": round(act2_calls * per + NARRATIVE_COST_USD, 2),
             "fills": ["llm_cache(evidence)", "llm_cache(narrative)",
                       "activity_logs", "cache/price_history"],
-            "note": "对照卡;锚定/叙事定价拆解 + flagship 市场叙事",
+            "note": "对照卡(agentic 解码);锚定/叙事定价拆解 + flagship 市场叙事",
         },
         {
             "act": 3, "kind": "recap", "subject": "(无新解码)",
@@ -284,8 +287,12 @@ def run_execute(plan: dict) -> None:  # pragma: no cover - live path, spends bud
 
     Imported lazily so the dry-run path never imports the network client.
     """
+    import uuid
+
+    import activity
     import db
     import decoder
+    import orchestrator
     import synthesizer
 
     print("⚠ EXECUTE MODE — this WILL call the real MiroMind API and spend budget.")
@@ -295,14 +302,33 @@ def run_execute(plan: dict) -> None:  # pragma: no cover - live path, spends bud
     conn = db.init_db("pricelens.db")
     decoded_ids: list[str] = []
 
-    # Acts 1-2: single market cards.
+    # Acts 1-2: single market cards, decoded AGENTICALLY so the demo can replay the
+    # REAL agent reasoning ($0 SSE replay). On a tool-calling provider (TokenDance/
+    # DeepSeek) decode_bet_agentic records a genuine agent decode trace into
+    # activity_logs; on the default miromind provider it airtight-falls-back to the
+    # deterministic decode (same card, no trace) — either way it never crashes. Each
+    # is wrapped in activity.run_job (run inline on THIS thread, so sharing `conn` is
+    # safe) → the reasoning persists under a job_id the front-end can replay.
     for ticker, act, label in DEMO_SINGLES:
-        print(f"[{act}] decoding market card {ticker} ...")
-        card = decoder.decode_bet("market", ticker, "zh", conn=conn)  # real fetch+hunt
+        job_id = uuid.uuid4().hex
+        print(f"[{act}] agentic-decoding market card {ticker} (job {job_id[:8]}) ...")
+
+        def _work(emit, _t=ticker):
+            return orchestrator.decode_bet_agentic("market", _t, "zh", emit=emit,
+                                                   conn=conn)
+
+        info = activity.run_job(_work, job_id=job_id, source_ref=ticker, conn=conn,
+                                done_text="解码完成")
+        card = info.get("result")
+        if card is None:
+            print(f"      ⚠ no card produced ({info.get('error')}) — skipping")
+            continue
         cid = db.save_card(conn, card)
         card.card_id = cid
         decoded_ids.append(cid)
-        print(f"      saved card_id={cid} bet={card.bet}")
+        mode = (getattr(card, "decode_detail", {}) or {}).get("mode")
+        print(f"      saved card_id={cid} bet={card.bet} mode={mode} "
+              f"(activity job {job_id[:8]} cached for $0 replay)")
 
     # Act 4: portfolio card over the 8 holdings.
     print(f"[act4] decoding portfolio card ({len(DEMO_PORTFOLIO)} holdings) ...")
