@@ -181,7 +181,7 @@ PRD v0.6 的定位是 "**反向解码股票价格背后的市场隐含推理**",
 | `db.py` (SQLite) | 持久化卡片(让卡片可保存 / 历史回看) | 加新表 `bet_cards` |
 | `api.py` | 改为接受多种 source 类型 | 新 endpoint: `/api/decode?source=...` |
 | `sse.py` | Agent activity 流(已实现, 现在升级为核心交互) | 改为通用 decode 流(不只是 evidence) |
-| `pricelens_mockup.html` | **大面积重构**为 Bet Card 工作台 | 重做 |
+| `app.html` | **大面积重构**为 Bet Card 工作台 | 重做 |
 | `cache/decoder/` etc. | 持续可用, 缓存 key 改成 by source 而不是 by ticker | 调整 cache key |
 
 ---

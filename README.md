@@ -50,7 +50,7 @@ A three-zone app:
 | Evidence | `evidence.py` | Hunts evidence for each implied assumption; honest-empty when none found, never fabricated. |
 | Synthesis | `synthesizer.py` | Cross-card relation engine + narrative (the "shared-root" insight is the payoff). |
 | Activity | `activity.py` | Event protocol + SSE pipeline + timed replay (the process-transparency layer). |
-| Frontend | `pricelens_mockup.html` | The workbench, served by `api.py`. |
+| Frontend | `app.html` | The workbench, served by `api.py`. |
 | Valuation core | `reverse_dcf.py` | Reverse DCF with Monte-Carlo interval estimation (one lens among many). |
 
 Two orthogonal primitives: a **Bet Card** answers *what* a bet believes; an **Activity Event** answers *how* the agent figured it out.
@@ -75,7 +75,7 @@ docker run -p 8000:8000 --env-file .env bet-decoder   # open http://127.0.0.1:80
 
 Issues and PRs welcome — the project is designed for contribution. Different markets need different data sources (US/yfinance today; CN/Wind, EU/Refinitiv could follow), and the prompts + schemas (evidence brief, decoder voice, synthesis rules) are meant to iterate against community feedback.
 
-Each module ships a deterministic, zero-API verification script (`verify_m1.py` … `verify_m8_integration.py`); run them after changes.
+Each module ships a deterministic, zero-API verification script (`verify_m1.py` … `verify_m8_integration.py`); run them after changes. CI (`.github/workflows/verify.yml`) runs every suite offline on each push and PR, so a change that breaks one is caught automatically.
 
 ## License
 

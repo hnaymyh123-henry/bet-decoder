@@ -54,7 +54,7 @@ def _offline_mode_enabled() -> bool:
     return os.environ.get("OFFLINE_MODE", "").lower() in ("1", "true", "yes")
 
 OUTPUTS_DIR = Path(__file__).parent / "outputs"
-MOCKUP_PATH = Path(__file__).parent / "pricelens_mockup.html"
+APP_HTML_PATH = Path(__file__).parent / "app.html"
 PRICE_HISTORY_CACHE_DIR = Path(__file__).parent / "cache" / "price_history"
 PRICE_HISTORY_TTL_SECONDS = 24 * 60 * 60  # 1 day
 
@@ -562,6 +562,6 @@ def get_price_history(ticker: str, period: str = "5y"):
 
 @app.get("/")
 def root():
-    if not MOCKUP_PATH.exists():
-        raise HTTPException(status_code=404, detail="pricelens_mockup.html not found")
-    return HTMLResponse(content=MOCKUP_PATH.read_text(encoding="utf-8"))
+    if not APP_HTML_PATH.exists():
+        raise HTTPException(status_code=404, detail="app.html not found")
+    return HTMLResponse(content=APP_HTML_PATH.read_text(encoding="utf-8"))

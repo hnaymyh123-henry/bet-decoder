@@ -1,0 +1,54 @@
+name: verify
+
+# Runs every deterministic verify_*.py suite on push + PR. All suites are
+# offline by construction (stub LLM, no network): we hard-blank the API key and
+# force OFFLINE_MODE so a stray real call can't happen and can't cost money.
+# This is the contributor gate — a PR that breaks any suite fails here.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch: {}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      # Belt + suspenders: no key, force offline, UTF-8 stdout (suites print 中文/✅).
+      MIROMIND_API_KEY: ""
+      OFFLINE_MODE: "1"
+      PYTHONIOENCODING: "utf-8"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run all verify suites (offline, zero API cost)
+        run: |
+          fail=0
+          for f in verify_*.py; do
+            echo "::group::$f"
+            if python "$f"; then
+              echo "$f OK"
+            else
+              echo "::error file=$f::$f FAILED"
+              fail=1
+            fi
+            echo "::endgroup::"
+          done
+          if [ "$fail" -ne 0 ]; then
+            echo "One or more verify suites failed."
+            exit 1
+          fi
+          echo "All verify suites passed."

@@ -1,10 +1,12 @@
 """5-act demo pre-run script (Issue #8).
 
 The demo MUST never hit a live Deep Research call on stage (budget = $100 +
-100 calls; one mini evidence call ≈ $3.21).  So we pre-run everything once,
-ahead of time, and let the caches serve the demo for free:
+100 calls; one mini evidence call ≈ $3.21, one flagship market-narrative call ≈
+$8.07).  So we pre-run everything once, ahead of time, and let the caches serve
+the demo for free:
 
     llm_cache(evidence)   — one brief per implied assumption per ticker
+    llm_cache(narrative)  — the live bull/bear debate per SINGLE MARKET card
     llm_cache(synthesis)  — the cross-card relation/narrative blob
     activity_logs         — the agent reasoning stream, for SSE replay
     cache/price_history    — monthly closes for the chart (file cache)
@@ -66,19 +68,23 @@ DEMO_PORTFOLIO = [
     {"ticker": "META", "weight_pct": 6.0},
 ]
 
-# Each freshly-decoded single card yields ~1 hero implied assumption needing a
-# Deep Research brief (cross/anchor components share the subject's budget at MVP
-# — see evidence.ASSUMPTIONS_PER_TICKER_FIRST_DECODE).  We estimate at that rate
-# so the headline matches the PRD's "8 新票 ≈ $24" magnitude; the actual decode
-# may hunt a couple of cross-lens assumptions too, so we also print a generous
-# upper bound (3 assumptions/ticker) for safety.
-ASSUMPTIONS_PER_CARD = evidence.ASSUMPTIONS_PER_TICKER_FIRST_DECODE  # = 1
-UPPER_BOUND_ASSUMPTIONS_PER_CARD = 3  # primary + up to 2 cross lenses
+# Each first-decode of a ticker hunts up to ASSUMPTIONS_PER_TICKER_FIRST_DECODE
+# Deep Research briefs (primary + cross lenses).  This MUST match what decode_bet
+# actually does — an earlier version hard-coded "1" here and understated the bill
+# ~3x.  We charge each distinct ticker once (cache-aware; the 2nd decode is $0).
+ASSUMPTIONS_PER_CARD = evidence.ASSUMPTIONS_PER_TICKER_FIRST_DECODE  # currently 3
+UPPER_BOUND_ASSUMPTIONS_PER_CARD = evidence.ASSUMPTIONS_PER_TICKER_FIRST_DECODE  # == base today
 
 # Synthesis is chat-mode only (NOT Deep Research).  A mini chat call is a tiny
 # fraction of a Deep Research call; we budget it conservatively at one mini
 # evidence-call-equivalent so the total stays an honest upper bound.
 SYNTHESIS_COST_UPPER_USD = evidence.COST_PER_EVIDENCE_MINI  # conservative ceiling
+
+# Step 4 market narrative (decoder._attach_market_narrative) is a FLAGSHIP Deep
+# Research call.  It runs for every SINGLE MARKET card and is hard-guarded OFF for
+# portfolios/holdings ($0 there) — so it does NOT scale with the 8-holding basket;
+# only the single market acts (1 & 2) carry it, ~1 flagship call each.
+NARRATIVE_COST_USD = evidence.COST_PER_EVIDENCE_FLAGSHIP  # flagship deep research / single card
 
 BUDGET_USD = 100.0
 BUDGET_CALLS = 100
@@ -120,34 +126,43 @@ def estimate_plan() -> dict:
         {
             "act": 1, "kind": "decode/market", "subject": "NVDA",
             "new_evidence_calls": act1_calls,
-            "cost_usd": round(act1_calls * per, 2),
-            "fills": ["llm_cache(evidence)", "activity_logs", "cache/price_history"],
-            "note": "市场卡;首解 hunt 隐含假设证据",
+            "narrative_calls": 1, "narrative_cost_usd": round(NARRATIVE_COST_USD, 2),
+            "cost_usd": round(act1_calls * per + NARRATIVE_COST_USD, 2),
+            "fills": ["llm_cache(evidence)", "llm_cache(narrative)",
+                      "activity_logs", "cache/price_history"],
+            "note": "市场卡;首解 hunt 证据 + flagship 市场叙事(deep research)",
         },
         {
             "act": 2, "kind": "decode/market", "subject": "TSLA",
             "new_evidence_calls": act2_calls,
-            "cost_usd": round(act2_calls * per, 2),
-            "fills": ["llm_cache(evidence)", "activity_logs", "cache/price_history"],
-            "note": "对照卡;锚定/叙事定价拆解",
+            "narrative_calls": 1, "narrative_cost_usd": round(NARRATIVE_COST_USD, 2),
+            "cost_usd": round(act2_calls * per + NARRATIVE_COST_USD, 2),
+            "fills": ["llm_cache(evidence)", "llm_cache(narrative)",
+                      "activity_logs", "cache/price_history"],
+            "note": "对照卡;锚定/叙事定价拆解 + flagship 市场叙事",
         },
         {
             "act": 3, "kind": "recap", "subject": "(无新解码)",
-            "new_evidence_calls": 0, "cost_usd": 0.0,
+            "new_evidence_calls": 0, "narrative_calls": 0, "narrative_cost_usd": 0.0,
+            "cost_usd": 0.0,
             "fills": [],
             "note": "叙事递进幕,复用已解码卡,无成本",
         },
         {
             "act": 4, "kind": "decode/portfolio", "subject": f"{n_portfolio_tickers} 持仓组合",
             "new_evidence_calls": act4_calls,
+            # narrative is hard-guarded OFF for portfolios (decoder) → $0, does NOT
+            # scale with holdings.
+            "narrative_calls": 0, "narrative_cost_usd": 0.0,
             "cost_usd": round(act4_calls * per, 2),
             "fills": ["llm_cache(evidence)", "activity_logs"],
             "note": (f"逐股解码后聚合;{len(act4_new)} 个新票首解"
-                     + (f",{', '.join(shared)} 命中缓存 $0" if shared else "")),
+                     + (f",{', '.join(shared)} 命中缓存 $0" if shared else "")
+                     + ";组合卡无 flagship 叙事($0)"),
         },
         {
             "act": 5, "kind": "synthesize", "subject": "跨卡综合(单股×组合)",
-            "new_evidence_calls": 0,
+            "new_evidence_calls": 0, "narrative_calls": 0, "narrative_cost_usd": 0.0,
             "cost_usd": round(SYNTHESIS_COST_UPPER_USD, 2),
             "fills": ["llm_cache(synthesis)", "activity_logs"],
             "note": "chat 模式(非 Deep Research);成本远低于一次证据调用,按上限计",
@@ -156,13 +171,19 @@ def estimate_plan() -> dict:
 
     evidence_calls = act1_calls + act2_calls + act4_calls
     evidence_cost = round(evidence_calls * per, 2)
-    total_cost = round(evidence_cost + SYNTHESIS_COST_UPPER_USD, 2)
-    total_calls = evidence_calls + 1  # +1 synthesis chat call
+    # Step 4 market narrative: one flagship Deep Research call per SINGLE MARKET
+    # card (acts 1 & 2 only — portfolios are guarded off, so it does NOT scale with
+    # the basket).  This was previously omitted entirely, understating the bill.
+    narrative_calls = n_singles
+    narrative_cost = round(narrative_calls * NARRATIVE_COST_USD, 2)
+    total_cost = round(evidence_cost + SYNTHESIS_COST_UPPER_USD + narrative_cost, 2)
+    total_calls = evidence_calls + 1 + narrative_calls  # +1 synthesis chat call
 
     # Upper-bound (paranoid) estimate: every single/portfolio decode hunts the
-    # full primary+cross assumption set.  Demonstrates we'd still be in budget.
+    # full primary+cross assumption set.  Narrative still only on the singles.
     ub_distinct_calls = n_distinct * UPPER_BOUND_ASSUMPTIONS_PER_CARD
-    ub_cost = round(ub_distinct_calls * per + SYNTHESIS_COST_UPPER_USD, 2)
+    ub_cost = round(ub_distinct_calls * per + SYNTHESIS_COST_UPPER_USD + narrative_cost, 2)
+    ub_calls = ub_distinct_calls + 1 + narrative_calls
 
     return {
         "acts": acts,
@@ -174,16 +195,19 @@ def estimate_plan() -> dict:
         "evidence_calls": evidence_calls,
         "evidence_cost_usd": evidence_cost,
         "synthesis_cost_usd": round(SYNTHESIS_COST_UPPER_USD, 2),
+        "narrative_calls": narrative_calls,
+        "narrative_cost_usd": narrative_cost,
+        "narrative_cost_per_call_usd": round(NARRATIVE_COST_USD, 2),
         "total_cost_usd": total_cost,
         "total_calls": total_calls,
         "cost_per_call_usd": per,
         "upper_bound_cost_usd": ub_cost,
-        "upper_bound_calls": ub_distinct_calls + 1,
+        "upper_bound_calls": ub_calls,
         "budget_usd": BUDGET_USD,
         "budget_calls": BUDGET_CALLS,
         "within_budget": total_cost <= BUDGET_USD and total_calls <= BUDGET_CALLS,
         "upper_bound_within_budget": ub_cost <= BUDGET_USD
-        and (ub_distinct_calls + 1) <= BUDGET_CALLS,
+        and ub_calls <= BUDGET_CALLS,
     }
 
 
@@ -222,6 +246,9 @@ def print_dry_run(plan: dict) -> None:
           f"${plan['cost_per_call_usd']:.2f}/call):")
     print(f"  证据调用: {plan['evidence_calls']} 次 × "
           f"${plan['cost_per_call_usd']:.2f} = ${plan['evidence_cost_usd']:.2f}")
+    print(f"  市场叙事(flagship deep research): {plan['narrative_calls']} 次 × "
+          f"${plan['narrative_cost_per_call_usd']:.2f} = ${plan['narrative_cost_usd']:.2f}  "
+          f"(仅单股卡;组合卡 $0)")
     print(f"  综合调用(chat 上限): 1 次 ≈ ${plan['synthesis_cost_usd']:.2f}")
     print(f"  --------------------------------------------------")
     print(f"  预估总成本: ${plan['total_cost_usd']:.2f}   "

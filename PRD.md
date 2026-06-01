@@ -135,9 +135,9 @@ ActivityEvent { job_id, seq, t_offset_ms,
 
 ## 模块 4:工作台前端 ✅ LOCKED
 
-**边界**:纯展示+交互层,API 调 M2/M3 + 消费 M5 流,无业务逻辑。复用扩展 `pricelens_mockup.html`,从"单股研报页"→"多卡工作台"。
+**边界**:纯展示+交互层,API 调 M2/M3 + 消费 M5 流,无业务逻辑。复用扩展 `app.html`,从"单股研报页"→"多卡工作台"。
 
-**决策**:① 展示交互层无业务逻辑 · ② 起点=扩展 pricelens_mockup.html · ③ **严守 `pricelens_design_system.md`**(纸感/oxblood/Geist/无蓝紫渐变/>3 行用表格/数字右对齐 mono)· ④ **三区布局**:主画布(多卡并列)+ 右侧活动流 feed + 底部综合面板(展开式)· ⑤ 主流:输入框贴 bet→选 source type→decode→右侧 live 流→卡落画布 · ⑥ 综合流:选≥2 卡→综合→底部 headline 字幕+可下钻图谱+叙事 · ⑦ 卡形态继承 M1(单股紧凑/组合仪表盘)· ⑧ 复用 `bet_card_sample.html`/`portfolio_card_sample.html` 渲染组件 · 综合无关系→优雅空态(承接 M3)。
+**决策**:① 展示交互层无业务逻辑 · ② 起点=扩展 app.html · ③ **严守 `pricelens_design_system.md`**(纸感/oxblood/Geist/无蓝紫渐变/>3 行用表格/数字右对齐 mono)· ④ **三区布局**:主画布(多卡并列)+ 右侧活动流 feed + 底部综合面板(展开式)· ⑤ 主流:输入框贴 bet→选 source type→decode→右侧 live 流→卡落画布 · ⑥ 综合流:选≥2 卡→综合→底部 headline 字幕+可下钻图谱+叙事 · ⑦ 卡形态继承 M1(单股紧凑/组合仪表盘)· ⑧ 复用 `bet_card_sample.html`/`portfolio_card_sample.html` 渲染组件 · 综合无关系→优雅空态(承接 M3)。
 
 ---
 

@@ -1,6 +1,6 @@
 """verify_m7_frontend.py — Issue #7 [M4] Workbench front-end acceptance checks.
 
-Front-end-appropriate verification: serve pricelens_mockup.html via http.server,
+Front-end-appropriate verification: serve app.html via http.server,
 confirm it loads (200), then assert — at the structure / contract / design-system
 level — that every acceptance criterion holds. One PASS/FAIL line per AC.
 
@@ -20,7 +20,7 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).parent
-HTML = ROOT / "pricelens_mockup.html"
+HTML = ROOT / "app.html"
 
 results: list[tuple[str, bool, str]] = []
 
@@ -50,14 +50,14 @@ def serve_and_fetch() -> tuple[int, str]:
         allow_reuse_address = True
 
     httpd = Q(("127.0.0.1", port), handler)
-    # serve from project root so /pricelens_mockup.html resolves
+    # serve from project root so /app.html resolves
     import os
     os.chdir(ROOT)
     t = threading.Thread(target=httpd.serve_forever, daemon=True)
     t.start()
     try:
         time.sleep(0.3)
-        url = f"http://127.0.0.1:{port}/pricelens_mockup.html"
+        url = f"http://127.0.0.1:{port}/app.html"
         with urllib.request.urlopen(url, timeout=5) as r:
             status = r.status
             body = r.read().decode("utf-8", errors="replace")
@@ -69,7 +69,7 @@ def serve_and_fetch() -> tuple[int, str]:
 
 def main() -> int:
     if not HTML.exists():
-        check("page exists", False, "pricelens_mockup.html missing")
+        check("page exists", False, "app.html missing")
         _report()
         return 1
 

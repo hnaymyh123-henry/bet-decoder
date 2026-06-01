@@ -19,6 +19,12 @@ test_b_output.json
 data/
 .cache/
 cache/
+# ...EXCEPT the price-history file cache, which is intentionally shipped so the
+# chart (and the no-API-key fixture demo) work offline. api.py reads it; it's
+# small + regenerable via yfinance. The LLM caches (decoder/evidence/synth) are
+# NOT shipped — they moved into SQLite llm_cache at v0.6.
+!cache/price_history/
+!cache/price_history/*.json
 
 # Legacy per-run JSON outputs (v0.5 and earlier; superseded by SQLite, regenerable)
 outputs/
