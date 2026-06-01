@@ -118,8 +118,13 @@ def estimate_plan() -> dict:
 
     act1_calls, act1_new = charge(["NVDA"], ASSUMPTIONS_PER_CARD)
     act2_calls, act2_new = charge(["TSLA"], ASSUMPTIONS_PER_CARD)
-    act4_calls, act4_new = charge([h["ticker"] for h in DEMO_PORTFOLIO],
-                                  ASSUMPTIONS_PER_CARD)
+    # Act 4 portfolio: legs are decoded for their exposure but NOT evidence-hunted
+    # (decoder passes _SKIP_EVIDENCE for legs — cost discipline).  So the portfolio
+    # adds ZERO evidence calls; we still note which tickers it newly decodes.
+    pf_tickers = [h["ticker"] for h in DEMO_PORTFOLIO]
+    act4_new = [t for t in pf_tickers if t not in seen]
+    seen.update(pf_tickers)
+    act4_calls = 0
 
     per = evidence.COST_PER_EVIDENCE_MINI
     acts = [
@@ -155,10 +160,9 @@ def estimate_plan() -> dict:
             # scale with holdings.
             "narrative_calls": 0, "narrative_cost_usd": 0.0,
             "cost_usd": round(act4_calls * per, 2),
-            "fills": ["llm_cache(evidence)", "activity_logs"],
-            "note": (f"逐股解码后聚合;{len(act4_new)} 个新票首解"
-                     + (f",{', '.join(shared)} 命中缓存 $0" if shared else "")
-                     + ";组合卡无 flagship 叙事($0)"),
+            "fills": ["activity_logs"],
+            "note": (f"逐股解码聚合({n_portfolio_tickers} 持仓);"
+                     "逐股证据已砍($0,成本纪律)+ 组合卡无 flagship 叙事($0)"),
         },
         {
             "act": 5, "kind": "synthesize", "subject": "跨卡综合(单股×组合)",
@@ -179,9 +183,10 @@ def estimate_plan() -> dict:
     total_cost = round(evidence_cost + SYNTHESIS_COST_UPPER_USD + narrative_cost, 2)
     total_calls = evidence_calls + 1 + narrative_calls  # +1 synthesis chat call
 
-    # Upper-bound (paranoid) estimate: every single/portfolio decode hunts the
-    # full primary+cross assumption set.  Narrative still only on the singles.
-    ub_distinct_calls = n_distinct * UPPER_BOUND_ASSUMPTIONS_PER_CARD
+    # Upper-bound (paranoid) estimate: only SINGLE market cards hunt evidence now
+    # (portfolio legs are skipped), each up to the full primary+cross set.
+    # Narrative is likewise singles-only.
+    ub_distinct_calls = n_singles * UPPER_BOUND_ASSUMPTIONS_PER_CARD
     ub_cost = round(ub_distinct_calls * per + SYNTHESIS_COST_UPPER_USD + narrative_cost, 2)
     ub_calls = ub_distinct_calls + 1 + narrative_calls
 

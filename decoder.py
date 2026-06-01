@@ -1026,14 +1026,30 @@ def _theme_exposures_from_anchor(f: Fundamentals, anchor: float, base: float,
 # Step 3 — evidence (Issue #4): non-skippable hook into the decode flow
 # ===========================================================================
 
+# Sentinel passed as `hunter` to skip Step 3's Deep Research hunt entirely (zero
+# cost) while still attaching a shape-consistent honest-empty evidence node.  Used
+# for PORTFOLIO legs: a portfolio's signal is its holding composition + theme
+# exposure + cross-card synthesis, NOT a per-holding evidence hunt (which would be
+# 3 flagship Deep Research calls × every holding).  A user who wants a holding's
+# evidence decodes that holding as a single market card.  Single cards never use
+# this — Step 3 stays non-skippable for any bet the user decodes directly.
+_SKIP_EVIDENCE = object()
+
+
 def _attach_evidence(card, f: Fundamentals, anchor: float | None,
                      emit, lang: str, conn, hunter) -> None:
     """Run Step 3 for a freshly-assembled single card and attach the evidence
-    section to card.decode_detail['evidence'].  Always invoked (no skip flag);
-    evidence.gather_evidence_for_card honestly leaves briefs empty when nothing
-    is found and never raises, so this is safe on every decode path."""
+    section to card.decode_detail['evidence'].  Non-skippable for directly-decoded
+    single cards; evidence.gather_evidence_for_card honestly leaves briefs empty
+    when nothing is found and never raises, so this is safe on every decode path.
+    The one exception is the `_SKIP_EVIDENCE` sentinel (portfolio legs) — see its
+    definition above — which attaches an honest-empty section without hunting."""
     detail = getattr(card, "decode_detail", None)
     if detail is None:
+        return
+    if hunter is _SKIP_EVIDENCE:
+        # Portfolio leg: skip the costly per-holding hunt, keep the node shape.
+        detail["evidence"] = _empty_evidence_section()
         return
     company = getattr(f, "industry", None) or card.subject
     try:
@@ -1523,8 +1539,11 @@ def _decode_portfolio(source_input, lang, emit,
     # Per-ticker primary metric (used by R1 theme aggregation downstream / #3).
     per_ticker: dict[str, dict] = {}
     # Per-leg evidence sections so the aggregate card carries a unified, shape-
-    # consistent `evidence` node (Step 3 is non-skippable for portfolios too —
-    # each leg's Step 3 already ran inside _decode_market).
+    # consistent `evidence` node.  Legs are decoded for their implied EXPOSURE
+    # only — they pass _SKIP_EVIDENCE so NO per-holding Deep Research hunt runs
+    # (cost discipline: a portfolio's signal is composition + cross-card synthesis,
+    # not a hunt × every holding).  The aggregate is therefore an honest empty
+    # roll-up; decode a holding as a single card to get its evidence.
     leg_evidence: dict[str, dict] = {}
     for spec in holdings_spec:
         tk = spec["ticker"]
@@ -1533,15 +1552,15 @@ def _decode_portfolio(source_input, lang, emit,
         # Best-effort decode of each leg (never let one bad ticker sink the card).
         try:
             leg = _decode_market(tk, lang, None, fundamentals_fn,
-                                 llm=llm, conn=conn, hunter=hunter)
+                                 llm=llm, conn=conn, hunter=_SKIP_EVIDENCE)
             detail = getattr(leg, "decode_detail", None)
             if detail and detail.get("primary_lens"):
                 per_ticker[tk] = detail["primary_lens"]
             elif detail and detail.get("anchor_mode"):
                 # Anchor-mode leg: surface its anchor detail for R1 aggregation.
                 per_ticker[tk] = {"lens": "anchor", "anchor_mode": detail["anchor_mode"]}
-            # Capture each leg's evidence section (always present on a decoded
-            # single card — _decode_market runs Step 3 unconditionally).
+            # Capture each leg's (honest-empty) evidence section so the aggregate
+            # node stays keyed by ticker with a shape-consistent roll-up.
             if detail and isinstance(detail.get("evidence"), dict):
                 leg_evidence[tk] = detail["evidence"]
         except Exception:

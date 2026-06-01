@@ -349,14 +349,19 @@ check("#5a portfolio card HAS an evidence node with the single-card shape",
       pf.card_kind == db.PORTFOLIO and isinstance(pf_ev, dict)
       and SINGLE_KEYS.issubset(set(pf_ev.keys())),
       f"keys={sorted(pf_ev.keys())}")
-# The aggregate must be a real roll-up of the legs (NVDA 3 + COST 3 = 6 hunts).
-check("#5b portfolio evidence aggregates leg counts (NVDA+COST hunts summed)",
-      pf_ev.get("assumption_count") == hp.calls
-      and pf_ev.get("found_count") == hp.calls   # stub finds for every hunt
+# Cost discipline (2026-06-01): portfolio legs are NOT individually evidence-
+# hunted — _decode_portfolio passes the _SKIP_EVIDENCE sentinel, so the stub
+# hunter is never called and the aggregate is an HONEST-EMPTY roll-up: the node
+# still exists with the single-card shape and stays keyed per leg, but found/new
+# counts are 0.  (A holding's evidence is obtained by decoding it as a single card.)
+check("#5b portfolio legs NOT evidence-hunted (cost discipline; honest-empty roll-up)",
+      hp.calls == 0
+      and pf_ev.get("found_count") == 0
+      and pf_ev.get("new_hunter_calls") == 0
       and isinstance(pf_ev.get("legs"), dict)
       and set(pf_ev["legs"].keys()) == {"NVDA", "COST"},
-      f"assumption_count={pf_ev.get('assumption_count')} "
-      f"found={pf_ev.get('found_count')} hunter_calls={hp.calls} "
+      f"hunter_calls={hp.calls} found={pf_ev.get('found_count')} "
+      f"new_calls={pf_ev.get('new_hunter_calls')} "
       f"legs={list((pf_ev.get('legs') or {}).keys())}")
 # Cost shape consistency: a consumer can read cost.actual_new_call_usd safely.
 check("#5c portfolio evidence cost node has the same keys as a single card",

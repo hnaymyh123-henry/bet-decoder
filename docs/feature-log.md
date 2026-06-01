@@ -31,5 +31,5 @@
 | TD3 | **Windows gbk 控制台编码**:`verify_*.py` / `prerun_demo.py` 打印中文/emoji 在 gbk 控制台崩(需 `PYTHONIOENCODING=utf-8`);prerun_demo 已内置 stdout reconfigure,verify 脚本未 | Phase 4/5 | 低(加环境变量即绕过) | 下一轮:给 verify 脚本统一加 stdout reconfigure,或 README 注明 |
 | TD4 | **旧 W1 测试脚本** `test_a_evidence.py` / `test_b_chat.py`:pivot 前 W1 验证脚本,无 import,已被 verify_m* 取代 | Phase 5 清查 | 低 | 下一轮:确认无用后删 |
 | TD5 | **`pricelens_prd.md`** 被 `PRD.md` 取代,仅存 pivot 前历史细节 | Phase 5 清查 | 低(历史归档) | 待定:保留作历史,或归入 docs/archive/ |
-| TD6 | **AI 真实输出质量未验证**:Phase 4 验的是代码路径正确性,真实 LLM 解码/证据/综合的产出质量从未跑过;`prerun_demo.py --execute` 是首次真实 smoke | Phase 4 | 中(demo 前必验) | demo 前:用户跑 --execute(2026-06-01 重算诚实成本 ~$106,超 $100 预算 → 先选削减杠杆,见 CLAUDE.md Status)兼作真实 smoke |
+| TD6 | **AI 真实输出质量未验证**:Phase 4 验的是代码路径正确性,真实 LLM 解码/证据/综合的产出质量从未跑过;`prerun_demo.py --execute` 是首次真实 smoke | Phase 4 | 中(demo 前必验) | demo 前:用户跑 --execute(2026-06-01 成本重算并压回预算内 ~$38.61,组合逐股证据已砍 → decoder 对持仓腿传 `_SKIP_EVIDENCE`)兼作真实 smoke |
 | TD7 | **OPS:项目 `.env` 含真 MIROMIND_API_KEY** → 任何走默认 hunter 的 decode 打真实 API;脚本须 `MIROMIND_API_KEY=""` 或靠 stub | Phase 4 | 中(成本/挂起风险) | 持续:运行脚本注意屏蔽 key;verify_m8 已自我屏蔽 |
