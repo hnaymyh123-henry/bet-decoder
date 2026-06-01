@@ -33,12 +33,13 @@ from typing import Any, Callable, Optional
 import db
 
 # ---------------------------------------------------------------------------
-# Cost model.  The per-call dollar figures are derived from client.py's real
-# token pricing so the estimate tracks whatever model `_default_hunter` actually
-# calls (it calls MODEL_MINI — see below).  We assume a representative
-# ~50k prompt + ~15k completion Deep Research turn; that lands mini ≈ $3.21 and
-# flagship ≈ $10.5 per call, matching the previous hand-tuned constants while
-# now being a single source of truth tied to the client rate table.
+# Cost model.  The MINI per-call figure is derived from client.py's token pricing
+# and lands ≈ $3.21 — empirically a safe conservative (MiroMind console 2026-06-01
+# showed real mini calls at $0.32–$5.93, avg ~$2.1).  The FLAGSHIP figure is NOT
+# derived: the token-footprint derivation overestimated it ~5-7x (it applied the
+# 235B output rate to a footprint back-fit for mini), so it is pinned to the
+# console's observed flagship billing of $0.80–$1.60 (avg ~$1.2).  See the
+# COST_PER_EVIDENCE_* constants below.
 # ---------------------------------------------------------------------------
 
 # Representative token footprint of one Deep Research evidence turn.  A Deep
@@ -75,10 +76,19 @@ def _hunter_model(*, flagship: bool = False) -> str:
             else "mirothinker-1-7-deepresearch-mini"
 
 
-# Per-call constants, now derived from the client rate table for the model the
-# default hunter calls.  Kept as module names because verify_m4 asserts on them.
+# Per-call constants.  Kept as module names because verify_m4 asserts on them.
+#
+# MINI is derived from the client rate table and is empirically sound: the
+# MiroMind console (2026-06-01) shows real mini Deep Research calls billing
+# $0.32–$5.93 (avg ~$2.1), so the derived $3.21 sits a touch high = a safe
+# conservative per-call figure.
+#
+# FLAGSHIP is NOT derived: the token footprint above is back-fit for the mini
+# model, so applying the 235B output rate to it yields ~$8 — but the console
+# shows flagship calls actually bill $0.80–$1.60 (avg ~$1.2), i.e. the derivation
+# overestimated ~5-7x.  We pin flagship to that observed billing instead.
 COST_PER_EVIDENCE_MINI = round(_cost_per_call(_hunter_model(flagship=False)), 2)
-COST_PER_EVIDENCE_FLAGSHIP = round(_cost_per_call(_hunter_model(flagship=True)), 2)
+COST_PER_EVIDENCE_FLAGSHIP = 2.00  # console-calibrated (MiroMind 2026-06-01), not derived
 
 # A freshly-decoded ticker hunts evidence for EVERY implied assumption, not one:
 # `gather_evidence_for_card` runs the primary lens + up to 2 cross lenses (and
