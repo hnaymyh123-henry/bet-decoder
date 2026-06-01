@@ -81,6 +81,27 @@ def web_search_capable() -> bool:
     return WEB_SEARCH_CAPABLE
 
 
+class ToolCallingUnsupported(RuntimeError):
+    """Raised by call_chat_tools when the active provider can't do OpenAI-style
+    function calling (the MiroMind SSE path).  The orchestrator catches it and
+    falls back to the deterministic decode."""
+
+
+# Test seam: assign a callable to drive call_chat_tools with scripted tool_calls
+# (offline orchestrator tests inject a stub here so they never hit the network).
+_CHAT_TOOLS_IMPL = None
+
+
+def tool_calling_capable() -> bool:
+    """True if the active provider supports OpenAI-style function calling.
+
+    Only the standard OpenAI protocol (e.g. tokendance / DeepSeek V4 Pro, which
+    supports up to 128 tools + parallel calls).  The MiroMind SSE path has its own
+    built-in web search but does NOT expose arbitrary `tools`, so it returns False
+    and the orchestrator falls back to the deterministic decode there."""
+    return _CHAT_TOOLS_IMPL is not None or PROTOCOL == "openai"
+
+
 def _api_key() -> str:
     key = os.environ.get(API_KEY_ENV)
     if not key:
@@ -261,6 +282,96 @@ def call_chat(
         "tool_choice": "none",
     }
     return _aggregate_stream(payload, timeout, verbose=verbose)
+
+
+def call_chat_tools(
+    messages: list[dict],
+    *,
+    model: str = MODEL_MINI,
+    tools: list[dict] | None = None,
+    tool_choice: str = "auto",
+    temperature: float | None = None,
+    timeout: float = 180.0,
+    verbose: bool = False,
+) -> dict:
+    """One tool-calling chat turn over a FULL `messages` array (so the caller can
+    thread assistant tool-call turns + role:"tool" results across rounds).
+
+    Returns the standard envelope PLUS:
+      - tool_calls: [{"id","name","arguments_raw"}]  (empty when the model answered)
+      - assistant_message: the assistant turn dict to append to `messages` BEFORE
+        the tool results (OpenAI matches each result to it by tool_call_id)
+      - finish_reason
+
+    Raises ToolCallingUnsupported on a non-tool provider (miromind-sse)."""
+    if _CHAT_TOOLS_IMPL is not None:
+        return _CHAT_TOOLS_IMPL(messages, model=model, tools=tools,
+                                tool_choice=tool_choice, temperature=temperature,
+                                timeout=timeout, verbose=verbose)
+    if PROTOCOL != "openai":
+        raise ToolCallingUnsupported(
+            f"provider '{PROVIDER}' (protocol {PROTOCOL}) has no OpenAI tool calling"
+        )
+    return _openai_call_tools(messages, model=model, tools=tools,
+                              tool_choice=tool_choice, temperature=temperature,
+                              timeout=timeout, verbose=verbose)
+
+
+def _openai_call_tools(messages, *, model, tools, tool_choice, temperature,
+                       timeout, verbose=False) -> dict:
+    """One OpenAI-compatible chat completion with optional `tools` (extended
+    envelope — see call_chat_tools)."""
+    from openai import OpenAI
+
+    client = OpenAI(base_url=BASE_URL, api_key=_api_key(), timeout=timeout)
+    kwargs: dict = {"model": model, "messages": messages}
+    if tools:
+        kwargs["tools"] = tools
+        kwargs["tool_choice"] = tool_choice
+    if temperature is not None:
+        kwargs["temperature"] = temperature
+    resp = client.chat.completions.create(**kwargs)
+    msg = resp.choices[0].message if resp.choices else None
+    content = (getattr(msg, "content", None) or "") if msg else ""
+    finish_reason = resp.choices[0].finish_reason if resp.choices else None
+    raw_calls = (getattr(msg, "tool_calls", None) or []) if msg else []
+    tool_calls = [
+        {"id": tc.id, "name": tc.function.name,
+         "arguments_raw": tc.function.arguments}
+        for tc in raw_calls
+    ]
+    # Re-send-safe assistant turn (built manually so no stray SDK fields like
+    # `refusal`/`audio` leak into the next request and 400 it).
+    assistant_message: dict = {"role": "assistant", "content": content}
+    if raw_calls:
+        assistant_message["tool_calls"] = [
+            {"id": tc.id, "type": "function",
+             "function": {"name": tc.function.name,
+                          "arguments": tc.function.arguments}}
+            for tc in raw_calls
+        ]
+    if verbose and content:
+        print(content, end="", flush=True)
+    usage = None
+    if getattr(resp, "usage", None) is not None:
+        try:
+            usage = resp.usage.model_dump()
+        except Exception:
+            usage = {"prompt_tokens": getattr(resp.usage, "prompt_tokens", 0),
+                     "completion_tokens": getattr(resp.usage, "completion_tokens", 0)}
+    return {
+        "content": content,
+        "model": model,
+        "usage": usage,
+        "cost_usd": estimate_cost(usage, model),
+        "tool_calls": tool_calls,
+        "assistant_message": assistant_message,
+        "finish_reason": finish_reason,
+        "reasoning_chars": 0,
+        "tool_call_count": len(tool_calls),
+        "search_results": [],
+        "last_chunk": {},
+    }
 
 
 def estimate_cost(usage: dict | None, model: str) -> float:
