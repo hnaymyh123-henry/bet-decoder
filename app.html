@@ -1787,9 +1787,7 @@
   .workbench {
     display: grid;
     grid-template-columns: 1fr 340px;
-    grid-template-areas:
-      "canvas  feed"
-      "synth   synth";
+    grid-template-areas: "canvas feed";
     gap: 28px;
     padding: 28px 0 56px;
     align-items: start;
@@ -2075,6 +2073,14 @@
   .card-page .cp-synth input { accent-color: var(--accent); cursor: pointer; }
   .card-page .cp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
   .card-page .cp-col { min-width: 0; }
+  /* Hero row: THE BET skeleton (left) + price chart (right), paired at the top. */
+  .card-page .cp-hero2 { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; align-items: start; margin-bottom: 22px; }
+  .card-page .cp-hero2 .cp-hero-l, .card-page .cp-hero2 .cp-hero-r { min-width: 0; }
+  .card-page .cp-hero2 .cp-bet { margin-bottom: 0; }
+  .card-page .cp-hero2 .price-chart-wrap { margin-bottom: 0; }
+  @media (max-width: 1024px) { .card-page .cp-hero2 { grid-template-columns: 1fr; gap: 18px; } }
+  /* Tree sits right under the hero row in the single-column dossier. */
+  .card-page .cp-tree { margin-bottom: 22px; }
   .card-page .cp-right .price-chart-wrap { margin-bottom: 14px; }
   .card-page .bc-discuss { border-top: 2px solid var(--ink); margin-top: 18px; padding: 14px 0 0; }
   .card-page .bc-risks { margin-top: 14px; }
@@ -2097,6 +2103,21 @@
   .card-page .cp-bet .cb-text b { color: var(--ink); font-weight: 600; }
   .card-page .cp-bet .cb-core { color: var(--accent); font-weight: 600; }
   .card-page .cp-bet .cb-detail { font-family: var(--mono); font-size: 11px; color: var(--ink-4); margin-top: 7px; letter-spacing: 0.02em; line-height: 1.5; }
+  /* WHY digest: a summary of the deep analysis, so THE BET balances the price chart. */
+  .card-page .cp-bet .cb-why { margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line); }
+  .card-page .cp-bet .cb-why.dim { color: var(--ink-4); font-size: 11.5px; line-height: 1.6; }
+  .card-page .cp-bet .cb-why-h { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 7px; }
+  .card-page .cp-bet .cb-why-reg { font-family: var(--mono); font-size: 11px; color: var(--ink-2); margin-bottom: 6px; }
+  .card-page .cp-bet .cb-why-reg b { color: var(--ink); font-weight: 600; }
+  .card-page .cp-bet .cb-why-tally { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); margin-bottom: 7px; letter-spacing: 0.01em; }
+  .card-page .cp-bet .cb-why-tally b.up { color: var(--positive); font-weight: 600; }
+  .card-page .cp-bet .cb-why-tally b.dn { color: var(--negative); font-weight: 600; }
+  .card-page .cp-bet .cb-why-tally .div { color: var(--accent); font-weight: 600; }
+  .card-page .cp-bet .cb-why-rat { font-size: 12.5px; color: var(--ink-3); line-height: 1.6; margin-bottom: 8px; }
+  .card-page .cp-bet .cb-why-pt { font-size: 12.5px; color: var(--ink-2); line-height: 1.55; margin-top: 5px; }
+  .card-page .cp-bet .cb-why-pt .k { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; margin-right: 7px; padding: 1px 5px; border: 1px solid var(--line); }
+  .card-page .cp-bet .cb-why-pt .k.bull { color: var(--positive); border-color: var(--positive); }
+  .card-page .cp-bet .cb-why-pt .k.bear { color: var(--negative); border-color: var(--negative); }
 
   /* ============ DEEP ANALYSIS (elevated, complete market-narrative) ============ */
   .card-page .cp-deep { margin-bottom: 22px; }
@@ -2126,6 +2147,7 @@
   .card-page .md-cite { font-family: var(--mono); font-size: 8px; color: var(--ink-5); }
   .card-page .da-sec { margin-bottom: 14px; }
   .card-page .da-sec-h { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
+  .card-page .da-sec-sub { font-size: 11.5px; color: var(--ink-4); line-height: 1.6; margin: -3px 0 11px; }
   .card-page .xb { border-left: 2px solid var(--line-2); padding: 7px 11px; margin-bottom: 5px; background: var(--paper-2); }
   .card-page .xb.lean-bull { border-left-color: var(--positive); }
   .card-page .xb.lean-bear { border-left-color: var(--negative); }
@@ -2328,6 +2350,18 @@
   }
   .af-status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 1.4s ease-in-out infinite; }
   .af-status.done .dot { background: var(--positive); animation: none; }
+  /* Agent panel: sticky right column; header + scrollable full-activity body + pinned ask. */
+  .wb-feed { position: sticky; top: 16px; align-self: start; }
+  .wb-feed .ap-wrap { display: flex; flex-direction: column; max-height: calc(100vh - 88px); border: 1px solid var(--rule); background: var(--paper); padding: 14px 15px 0; }
+  .wb-feed .ap-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: 12px; }
+  .wb-feed .ap-body .bc-turn .msg { font-size: 12.5px; }
+  .wb-feed .ap-seclab { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin: 16px 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--line); }
+  .wb-feed .ap-body > .ap-seclab:first-child { margin-top: 0; }
+  .wb-feed .ap-foot { flex: 0 0 auto; border-top: 1px solid var(--rule); padding-top: 12px; margin-top: 6px; }
+  .wb-feed .ap-foot .bc-chips { margin-bottom: 10px; }
+  .wb-feed .ap-ask { margin: 0 0 14px; }
+  .wb-feed .af-placeholder { margin-bottom: 12px; }
+  @media (max-width: 1024px) { .wb-feed { position: static; } .wb-feed .ap-wrap { max-height: none; } }
 
   /* ---- Synthesis panel (bottom, expandable) ---- */
   .wb-synth { border-top: 1px solid var(--rule); padding-top: 0; }
@@ -2459,9 +2493,6 @@
     <div class="wb-canvas" id="wb-canvas">
       <div class="canvas-head">
         <div class="ttl">Decoded bets <span class="ct" id="card-count">0 cards</span></div>
-        <div class="actions">
-          <button class="synth-btn" id="synth-btn" disabled>Synthesize · <span id="synth-sel-count">0</span> selected</button>
-        </div>
       </div>
       <div class="wb-tabs" id="tab-bar"><!-- scenario tabs injected here --></div>
       <div class="card-grid" id="card-grid">
@@ -2473,46 +2504,13 @@
       </div>
     </div>
 
-    <!-- ZONE 2 · ACTIVITY FEED — consumes M5 SSE activity stream -->
-    <aside class="wb-feed" id="wb-feed">
-      <div class="af-head">
-        <div class="lbl">Module 5 · Activity</div>
-        <div class="title">Agent Activity Stream</div>
-      </div>
-      <span class="powered">Powered by MiroMind Deep Research</span>
-      <div class="af-placeholder" id="af-placeholder">
-        <strong>Live agent feed idle.</strong><br><br>
-        When you decode a bet or synthesize cards, the agent's decision-level reasoning steps stream here in real time — tagged by kind (decision / computation / evidence / relation). Cached cards offer a "replay activity" entry.
-      </div>
-      <div class="af-stream" id="af-stream"></div>
-    </aside>
+    <!-- ZONE 2 · AGENT panel — sticky right column; unifies per-card chat (ask /
+         what-if / scenario chips) with the live reasoning stream (option B).
+         Bound to the active tab and populated by renderAgentPanel(). -->
+    <aside class="wb-feed" id="wb-feed"></aside>
 
-    <!-- ZONE 3 · SYNTHESIS PANEL — bottom, expandable -->
-    <section class="wb-synth" id="wb-synth">
-      <div class="synth-bar" id="synth-bar">
-        <div>
-          <div class="lbl">Module 3 · Cross-card synthesis</div>
-          <div class="title" id="synth-title">Synthesis</div>
-        </div>
-        <span class="chev" id="synth-chev">▸</span>
-      </div>
-      <div class="synth-content" id="synth-content">
-        <div class="synth-empty" id="synth-empty">
-          <strong>No synthesis yet.</strong>
-          Select 2 or more cards on the canvas, then press Synthesize. The relation engine compares what each bet implicitly believes and surfaces consensus, divergence, contradiction, shared-source, and drift.
-        </div>
-        <div id="synth-result" style="display:none">
-          <div class="synth-headline" id="synth-headline"></div>
-          <div class="synth-exhibit">
-            <span class="ex">Exhibit S.1</span>
-            <span class="et">Cross-card relation graph</span>
-            <span class="es" id="synth-relsrc">MiroThinker · chat mode</span>
-          </div>
-          <div id="synth-relations"></div>
-          <div class="synth-narrative" id="synth-narrative"></div>
-        </div>
-      </div>
-    </section>
+    <!-- Module 3 (cross-card synthesis) now lives on the PORTFOLIO page as its
+         deep-analysis layer (auto-run across holdings), not a manual bottom panel. -->
   </div>
 </div>
 
@@ -2704,6 +2702,7 @@ const state = {
   chat: {},             // card_id -> [{role:'you'|'agent', text, tools?}]
   revision: {},         // card_id -> a pending what-if revision proposal (from /ask)
   priceHistory: {},     // TICKER -> {points:[...]} | 'loading' | 'error' (lazy, cached)
+  synth: {},            // holding-set key -> SynthesisResult | 'loading' | 'error' (portfolio auto-synth)
   // --- tabbed workspace ---
   activeTab: null,      // active scenario card_id
   tabOrder: [],         // ordered tab card_ids (non-derived cards only)
@@ -3010,11 +3009,13 @@ function renderCanvas() {
     const n = state.cards.filter(c => !c.derived_from).length;
     count.textContent = n + (n === 1 ? ' card' : ' cards');
   }
+  renderAgentPanel();   // sticky right column, rebound to the active card (option B)
   bindCardEvents();
   renderSelectionUI();
   // The active single card's price chart is always-on → paint it (lazy + cached).
   const ac = _activeCard();
   if (ac && ac.card_kind !== 'portfolio') { ensurePriceHistory(ac.subject, ac.card_id); ensureDetail(ac.card_id); }
+  else if (ac && ac.card_kind === 'portfolio') { ensurePortfolioSynth(ac); }   // Module 3 auto-run
 }
 
 // ----- tab model: one tab per non-derived card; pinned sort to the front -----
@@ -3099,27 +3100,140 @@ function _singleWithDerived(card) {
   return renderSingleCard(card) + _derivedRail(card.card_id);
 }
 
-// Portfolio page: the full dashboard + a clickable constituents list (each decoded
-// holding links to its own tab; undecoded holdings are noted).
+// Portfolio page — mirrors the single-stock dossier: cp-head + KPIs → hero (THE
+// PORTFOLIO BET + WHY | weight composition) → 主题聚合 (the portfolio's "derivation":
+// holdings weighted into theme-level bets) → 跨持仓综合 (Module 3, auto-run across the
+// decoded holdings — the deep-analysis layer) → holdings table. Degrades gracefully
+// when weights/themes are missing. The right AGENT panel is shared (renderAgentPanel).
 function renderPortfolioPage(pf) {
+  const holdings = pf.holdings || [];
   const decoded = {};
-  state.cards.forEach(c => {
-    if (c.card_kind !== 'portfolio' && !c.derived_from) decoded[String(c.subject).toUpperCase()] = c.card_id;
-  });
-  const rows = (pf.holdings || []).map(h => {
-    const t = String(h.ticker || '').toUpperCase();
-    const cid = decoded[t];
-    const w = (h.weight_pct != null) ? Number(h.weight_pct).toFixed(1) + '%' : '—';
-    return '<div class="cp-hold' + (cid ? ' linked' : '') + '"' + (cid ? ' data-gotab="' + escapeHTML(cid) + '"' : '') + '>' +
-      '<span class="h-t">' + escapeHTML(t) + '</span>' +
-      '<span class="h-w num">' + w + '</span>' +
-      '<span class="h-s">' + (cid ? '已解码 · 点击查看 →' : '未解码') + '</span>' +
-    '</div>';
-  }).join('');
-  return '<div class="portfolio-page" data-card="' + escapeHTML(pf.card_id) + '">' +
-    renderPortfolioCard(pf) +
-    (rows ? '<div class="cp-constituents"><div class="cc-lab">组合内持仓 · 点已解码的跳到它的 tab</div>' + rows + '</div>' : '') +
+  state.cards.forEach(c => { if (c.card_kind !== 'portfolio' && !c.derived_from) decoded[String(c.subject).toUpperCase()] = c.card_id; });
+  const themes = [...(pf.theme_exposures || [])].sort((a, b) => (Number(b.exposure_pct) || 0) - (Number(a.exposure_pct) || 0));
+  const top = themes[0] || null;
+  const conc = themes.find(t => t.is_concentration_risk) || null;
+  const hasWeights = holdings.some(h => h.weight_pct != null);
+
+  const kpi = (lab, val, hot) => '<span class="kpi"><span class="lab">' + lab + '</span><span class="val' + (hot ? ' hot' : '') + '">' + val + '</span></span>';
+  const kpis = kpi('持仓', holdings.length + ' 只', false) +
+    (top ? kpi('主导主题', Math.round(top.exposure_pct || 0) + '%', !!conc) : '') +
+    (conc ? kpi('集中度', '高', true) : '');
+
+  // hero-left: THE PORTFOLIO BET + WHY (deterministic, from the weighted theme aggregation)
+  const betCore = top ? ('押在 ' + escapeHTML(top.theme) + '(' + Math.round(top.exposure_pct || 0) + '%)') : '尚无主题聚合数据';
+  const why = conc
+    ? ('看似分散持有 ' + holdings.length + ' 只票,实际在<b>押同一个赌注</b> —— ' + escapeHTML(conc.theme) + ' 占 ' + Math.round(conc.exposure_pct || 0) + '%。')
+    : (top ? ('分散在 ' + themes.length + ' 个主题,最大暴露 ' + escapeHTML(top.theme) + ' ' + Math.round(top.exposure_pct || 0) + '%。')
+           : '把组合里的持仓解码成单股卡后,系统会按权重把它们的隐含假设聚合到主题级,显示你实际在押什么。');
+  const betBox = '<div class="cp-bet"><div class="cb-lab">你的钱在 BET 什么 · THE PORTFOLIO BET</div>' +
+    '<div class="cb-text">这个组合实际 <span class="cb-core">' + betCore + '</span></div>' +
+    '<div class="cb-why"><div class="cb-why-rat' + (top ? '' : ' dim') + '">' + why + '</div></div>' +
   '</div>';
+
+  // hero-right: weight composition (what's actually in here)
+  const hsorted = [...holdings].sort((a, b) => (Number(b.weight_pct) || 0) - (Number(a.weight_pct) || 0));
+  const wtotal = hsorted.reduce((s, h) => s + (Number(h.weight_pct) || 0), 0) || 1;
+  const nH = hsorted.length;
+  const wOp = i => (1 - (i / Math.max(1, nH)) * 0.72).toFixed(2);
+  let weightInner;
+  if (hasWeights) {
+    const wsegs = hsorted.map((h, i) => '<div class="pf-wseg" style="width:' + ((Number(h.weight_pct) || 0) / wtotal * 100) + '%;opacity:' + wOp(i) + '" title="' + escapeHTML(h.ticker) + ' ' + (h.weight_pct != null ? h.weight_pct + '%' : '') + '"></div>').join('');
+    const wlegend = hsorted.map((h, i) => '<span class="pf-wleg"><span class="sw" style="opacity:' + wOp(i) + '"></span>' + escapeHTML(h.ticker) + ' <span class="wt">' + (h.weight_pct != null ? h.weight_pct + '%' : '—') + '</span></span>').join('');
+    weightInner = '<div class="pf-weights" style="padding:14px 2px 6px"><div class="pf-wbar">' + wsegs + '</div><div class="pf-wlegend">' + wlegend + '</div></div>';
+  } else {
+    weightInner = '<div class="pc-empty">未提供持仓权重(等权 / 未指定)</div>';
+  }
+  const weightBox = '<div class="price-chart-wrap"><div class="pc-head"><span class="lbl">持仓权重构成</span><span class="title">' + nH + ' 只</span><span class="src">composition</span></div>' + weightInner + '</div>';
+
+  // 主题聚合 — the portfolio's "derivation": holdings → weighted theme-level bets
+  const themeBars = themes.map((t, i) => {
+    const pct = Number(t.exposure_pct) || 0;
+    const tier = i === 0 ? '' : (i === 1 ? 't2' : (i === 2 ? 't3' : 't4'));
+    return '<div class="pf-theme ' + tier + '"><div class="pf-theme-top"><span class="pf-theme-name">' + escapeHTML(t.theme) +
+      (t.is_concentration_risk ? '<span class="risk-tag">集中</span>' : '') + '</span><span class="pf-theme-pct">' + Math.round(pct) + '%</span></div>' +
+      '<div class="pf-bar"><div class="fill" style="width:' + Math.min(100, pct) + '%"></div></div>' +
+      ((t.contributing_tickers || []).length ? '<div class="pf-contrib">' + escapeHTML((t.contributing_tickers || []).join(' · ')) + '</div>' : '') + '</div>';
+  }).join('');
+  const concHtml = conc ? '<div class="pf-conc"><span class="lab">⚠ 集中风险 · AHA</span>你的仓位高度集中在 <strong>' + escapeHTML(conc.theme) + '</strong>(' + Math.round(conc.exposure_pct || 0) + '%) —— 看似分散 ' + (conc.contributing_tickers || []).length + ' 只,实际<strong>押同一个赌注</strong>。</div>' : '';
+  const aggSec = '<div class="cp-tree"><div class="cp-sec-lab">你的钱实际在 BET 什么 · 把各持仓隐含假设按权重聚合到主题级</div>' +
+    (themeBars || '<div class="da-empty">尚无主题暴露数据 —— 需要先把持仓解码出隐含主题(单股卡)。</div>') + concHtml + '</div>';
+
+  // 跨持仓综合 (Module 3, auto-run on view) — the portfolio's deep-analysis layer
+  const synthSec = '<div class="cp-deep"><div class="cp-sec-lab">跨持仓综合 · CROSS-HOLDING SYNTHESIS — 你的持仓是不是在押同一批假设</div>' +
+    _portfolioSynthHtml(pf, decoded) + '</div>';
+
+  // holdings table (constituents → their tabs)
+  const rows = hsorted.map(h => {
+    const cid = decoded[String(h.ticker || '').toUpperCase()];
+    const w = (h.weight_pct != null) ? Number(h.weight_pct).toFixed(1) + '%' : '—';
+    return '<tr' + (cid ? ' class="linked" data-gotab="' + escapeHTML(cid) + '"' : '') + '><td class="tk">' + escapeHTML(h.ticker) + '</td><td class="wt r">' + w + '</td><td class="r">' + (cid ? '已解码 →' : '未解码') + '</td></tr>';
+  }).join('');
+  const holdSec = '<div class="cp-support"><div class="cp-sup-main"><div class="cp-sec-lab">组合内持仓 · 点已解码的跳到它的 tab</div>' +
+    '<table class="pf-holdings"><thead><tr><th>标的</th><th class="r">权重</th><th class="r">单股卡</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+
+  return '<div class="bet-card card-page portfolio-page" data-card="' + escapeHTML(pf.card_id) + '">' +
+    '<div class="cp-head"><div class="cp-id"><div class="cp-subj">' + escapeHTML(pf.subject) +
+      '<span class="bc-badge">Portfolio · ' + holdings.length + ' 持仓</span></div>' +
+      '<div class="cp-source">' + escapeHTML(pf.source_ref || '') + '</div></div>' +
+      '<div class="cp-kpis">' + kpis + '</div></div>' +
+    '<div class="cp-hero2"><div class="cp-hero-l">' + betBox + '</div><div class="cp-hero-r">' + weightBox + '</div></div>' +
+    aggSec + synthSec + holdSec +
+  '</div>';
+}
+
+// Cross-holding synthesis section state (Module 3 auto-run, cached in state.synth).
+function _portfolioSynthHtml(pf, decoded) {
+  const ids = (pf.holdings || []).map(h => decoded[String(h.ticker || '').toUpperCase()]).filter(Boolean);
+  if (ids.length < 2) {
+    return '<div class="da-empty">把组合里 ≥2 个持仓也解码成单股卡(点下方持仓,或在上方 Decode),这里会自动比对它们的隐含假设,标出同源 / 分歧 / 矛盾。当前已解码 ' + ids.length + ' / ' + (pf.holdings || []).length + ' 个持仓。</div>';
+  }
+  const st = state.synth[ids.slice().sort().join('|')];
+  if (!st || st === 'loading') return '<div class="da-loading">跨持仓综合运行中…(关系引擎在比对各持仓的隐含假设)</div>';
+  if (st === 'error') return '<div class="da-empty">跨持仓综合暂不可用(未联网 / 无 API key)。持仓已解码 + 联网后,这里给出它们之间的同源 / 分歧关系。</div>';
+  return _renderRelations(st);
+}
+
+// Render a SynthesisResult into the portfolio deep-analysis section (reuses the
+// relation-table styling that the retired bottom panel used).
+function _renderRelations(res) {
+  const rels = (res && res.relations) || [];
+  const hasHl = res && res.headline_insight && res.headline_insight.text;
+  if (!hasHl && !rels.length) {
+    return '<div class="da-empty">未发现显著跨持仓关系 —— 这些持仓之间没有强到值得标注的共识 / 分歧 / 矛盾 / 同源 / 漂移。</div>';
+  }
+  let h = '';
+  if (hasHl) h += '<div class="da-headline">' + res.headline_insight.text + '</div>';   // server text may carry sanctioned <strong>
+  if (rels.length) {
+    h += '<table class="rel-table"><thead><tr><th>关系</th><th>配对</th><th class="c">强度</th><th>共享假设 / 细节</th></tr></thead><tbody>' +
+      rels.map(rl => '<tr><td><span class="rtype ' + escapeHTML(rl.type) + '">' + escapeHTML(rl.type) + '</span></td>' +
+        '<td class="pair">' + escapeHTML(shortId(rl.card_a)) + ' ↔ ' + escapeHTML(shortId(rl.card_b)) + '</td>' +
+        '<td class="c"><span class="strength ' + escapeHTML(rl.strength) + '">' + escapeHTML(rl.strength) + '</span></td>' +
+        '<td>' + escapeHTML(rl.shared_assumption || '') + (rl.detail ? '<br><span style="color:var(--ink-4);font-size:11px">' + escapeHTML(rl.detail) + '</span>' : '') + '</td></tr>').join('') +
+      '</tbody></table>';
+  }
+  if (res && res.narrative) h += '<div class="da-rationale" style="margin-top:12px">' + escapeHTML(res.narrative) + '</div>';
+  return h;
+}
+
+// Auto-run cross-holding synthesis when the portfolio page is viewed (cached by
+// holding-set, fired once per set; server also caches → ~1 LLM call per unique set).
+async function ensurePortfolioSynth(pf) {
+  const decoded = {};
+  state.cards.forEach(c => { if (c.card_kind !== 'portfolio' && !c.derived_from) decoded[String(c.subject).toUpperCase()] = c.card_id; });
+  const ids = (pf.holdings || []).map(h => decoded[String(h.ticker || '').toUpperCase()]).filter(Boolean);
+  if (ids.length < 2) return;
+  const key = ids.slice().sort().join('|');
+  if (state.synth[key]) return;                  // cached / loading / error → never re-fire
+  state.synth[key] = 'loading';
+  try {
+    const r = await fetch('/api/synthesize', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ card_ids: ids, lang: state.lang })
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    state.synth[key] = await r.json();
+  } catch (e) { state.synth[key] = 'error'; }
+  renderCanvas();
 }
 
 // Narrative premium = share of price the DCF base business value fails to
@@ -3238,15 +3352,13 @@ function renderDeepAnalysis(c) {
   const reg = full && full.sentiment_regime || {};
   const regime = regimeLabel(sum.regime || reg.label);
   const bull = full ? full.bull_case : null, bear = full ? full.bear_case : null;
-  const headline = sum.headline || (full && full.headline) || '';
-  const rationale = reg.rationale || sum.regime_rationale || '';
+  // The regime headline + rationale now lead THE BET box (the summary), so here we
+  // keep only a slim regime badge + counts — not a duplicate banner.
   let html = '<div class="cp-deep">' + lab +
-    '<div class="da-banner">' +
+    '<div class="da-banner slim">' +
       '<div class="da-regime"><span class="da-reg-badge">' + escapeHTML(regime) + '</span>' +
         '<span class="da-bb">多 ' + (sum.bull_count != null ? sum.bull_count : (bull ? bull.length : 0)) +
         ' · 空 ' + (sum.bear_count != null ? sum.bear_count : (bear ? bear.length : 0)) + '</span></div>' +
-      (headline ? '<div class="da-headline">' + escapeHTML(headline) + '</div>' : '') +
-      (rationale ? '<div class="da-rationale">' + escapeHTML(rationale) + '</div>' : '') +
     '</div>';
   if (bull || bear) {
     html += '<div class="da-debate">' +
@@ -3274,7 +3386,9 @@ function renderDeepAnalysis(c) {
         ? '<details class="xb ' + lean[1] + (S.diverges ? ' diverge' : '') + '"><summary>' + head + '</summary><div class="xb-body">' + detail + '</div></details>'
         : '<div class="xb ' + lean[1] + (S.diverges ? ' diverge' : '') + '">' + head + '</div>';
     }
-    html += '<div class="da-sec"><div class="da-sec-h">逐假设交叉验证 · 叙事 vs 独立证据</div>' + rows + '</div>';
+    html += '<div class="da-sec"><div class="da-sec-h">逐假设交叉验证 · 把推导树的每个隐含数字,对质市场叙事 vs 独立证据</div>' +
+      '<div class="da-sec-sub">每一行 = 上方推导树倒推出的一个隐含假设 —— 左是市场叙事偏向,右是独立证据的判断;⚠ = 两者分歧(价格在押叙事、但证据不支持)。</div>' +
+      rows + '</div>';
   }
   const ca = (full && full.contested_axis) || [];
   if (ca.length) {
@@ -3560,7 +3674,51 @@ function _betHeadline(c) {
         '<span class="cb-core">' + escapeHTML(bs.core) + '</span></div>' +
       (bs.detail ? '<div class="cb-detail">' + escapeHTML(bs.detail) + '</div>' : '')
     : '<div class="cb-text">数据不足,暂无法判定市场在 bet 什么。</div>';
-  return '<div class="cp-bet"><div class="cb-lab">市场在 bet 什么 · THE BET</div>' + body + '</div>';
+  return '<div class="cp-bet"><div class="cb-lab">市场在 bet 什么 · THE BET</div>' + body + _betWhy(c) + '</div>';
+}
+
+// A compact WHY digest under THE BET — a summary of the deep analysis below (market
+// regime + the crux rationale + the single strongest bull & bear), so the box
+// carries real substance and balances the price chart beside it. Falls back to an
+// honest "not researched" note when no market-narrative coverage exists.
+function _betWhy(c) {
+  const sum = c.market_narrative || {};
+  const full = ((c.decode_detail || {}).market_narrative || {}).full || null;
+  const cov = sum.coverage || (full && full.coverage);
+  if (!cov || cov === 'unavailable' || cov === 'unparseable') {
+    return '<div class="cb-why dim">深度分析未联网 —— 对这张卡运行 deep research 后,这里汇总市场为何这么定价(情绪 · 核心多空)。</div>';
+  }
+  const reg = (full && full.sentiment_regime) || {};
+  const regime = (typeof regimeLabel === 'function') ? regimeLabel(sum.regime || reg.label) : (sum.regime || reg.label || '');
+  const bn = sum.bull_count != null ? sum.bull_count : ((full && full.bull_case) ? full.bull_case.length : 0);
+  const sn = sum.bear_count != null ? sum.bear_count : ((full && full.bear_case) ? full.bear_case.length : 0);
+  const rationale = reg.rationale || sum.regime_rationale || sum.headline || (full && full.headline) || '';
+  const bull0 = (full && full.bull_case && full.bull_case[0]) ? (full.bull_case[0].claim || '') : '';
+  const bear0 = (full && full.bear_case && full.bear_case[0]) ? (full.bear_case[0].claim || '') : '';
+  // Auditable conclusion: derive an evidence tally from the per-assumption cross-check
+  // (not just the LLM regime label) — N 个隐含假设里证据撑/空/分歧各多少。This is the
+  // conclusion's provenance: the regime is the narrative read, this is the evidence read.
+  const binds = sum.bindings || (full && full.assumption_bindings) || [];
+  let _sup = 0, _ag = 0, _neu = 0, _div = 0;
+  binds.forEach(b => {
+    const v = b && (b.evidence_verdict || '');
+    if (v === 'bull') _sup++; else if (v === 'bear') _ag++; else if (v === 'mixed') _neu++;
+    if (b && b.diverges) _div++;
+  });
+  const tally = binds.length
+    ? '<div class="cb-why-tally">证据对账 · ' + binds.length + ' 个隐含假设:' +
+        (_sup ? '<b class="up">' + _sup + '</b> 撑 ' : '') + (_neu ? _neu + ' 中性 ' : '') +
+        (_ag ? '<b class="dn">' + _ag + '</b> 空 ' : '') +
+        (_div ? '· <span class="div">⚠ ' + _div + ' 处分歧</span>' : '· 无分歧') + '</div>'
+    : '';
+  return '<div class="cb-why">' +
+    '<div class="cb-why-h">为什么这么判断 · WHY</div>' +
+    '<div class="cb-why-reg">市场情绪(叙事) <b>' + escapeHTML(regime) + '</b> · 多 ' + bn + ' / 空 ' + sn + '</div>' +
+    tally +
+    (rationale ? '<div class="cb-why-rat">' + escapeHTML(rationale) + '</div>' : '') +
+    (bull0 ? '<div class="cb-why-pt"><span class="k bull">多方</span>' + escapeHTML(bull0) + '</div>' : '') +
+    (bear0 ? '<div class="cb-why-pt"><span class="k bear">空方</span>' + escapeHTML(bear0) + '</div>' : '') +
+  '</div>';
 }
 
 // ---- Multi-level DERIVATION TREE (the page hero) ----
@@ -3590,13 +3748,16 @@ function _dcfBuildup(bd) {
     ? (inp.shares >= 1e9 ? (inp.shares / 1e9).toFixed(2) + 'B' : (inp.shares / 1e6).toFixed(0) + 'M') : '—';
   const ndStr = (typeof inp.net_debt === 'number' && inp.net_debt < 0)
     ? '＋ 净现金 ' + _moneyB(-inp.net_debt) : '－ 净债 ' + _moneyB(inp.net_debt);
-  return '<details class="dcf-bd"><summary>DCF 建模底稿 · 在隐含增速下重对到现价</summary>' +
-    '<div class="bd-inp">营收 ' + _moneyB(inp.revenue) + ' · 隐含增速 ' + pct(inp.cagr) + ' · FCF 利润率 ' + pct(inp.margin) +
+  const sumLab = bd.summary_label || 'DCF 建模底稿 · 在隐含增速下重对到现价';
+  const cagrLab = bd.cagr_label || '隐含增速';
+  const reconLab = bd.reconcile_label || '现价';
+  return '<details class="dcf-bd"><summary>' + escapeHTML(sumLab) + '</summary>' +
+    '<div class="bd-inp">营收 ' + _moneyB(inp.revenue) + ' · ' + escapeHTML(cagrLab) + ' ' + pct(inp.cagr) + ' · FCF 利润率 ' + pct(inp.margin) +
       ' · WACC ' + pct(inp.wacc) + ' · 终值增速 ' + pct(inp.g) + '</div>' +
     '<table class="bd-tab"><thead><tr><th>年</th><th class="num">营收</th><th class="num">自由现金流</th><th class="num">折现</th><th class="num">现值 PV</th></tr></thead><tbody>' + rows + '</tbody></table>' +
     '<div class="bd-line">① 5 年 FCF 现值合计 = <b>' + _moneyB(bd.pv_fcf_sum) + '</b></div>' +
     '<div class="bd-line">② 终值(Gordon):末年 FCF ' + _moneyB(bd.terminal_fcf) + ' ÷ (WACC − g) = ' + _moneyB(bd.terminal_value) + ' → 折现 PV <b>' + _moneyB(bd.terminal_pv) + '</b></div>' +
-    '<div class="bd-bridge">③ 企业价值 ' + _moneyB(bd.ev) + ' ' + ndStr + ' = 股权 ' + _moneyB(bd.equity) + ' ÷ ' + sh + ' 股 = <span class="bd-ps">每股 ' + ps + '</span> ≈ 现价</div>' +
+    '<div class="bd-bridge">③ 企业价值 ' + _moneyB(bd.ev) + ' ' + ndStr + ' = 股权 ' + _moneyB(bd.equity) + ' ÷ ' + sh + ' 股 = <span class="bd-ps">每股 ' + ps + '</span> ≈ ' + escapeHTML(reconLab) + '</div>' +
   '</details>';
 }
 function renderDerivLevel(lv, branch, rev) {
@@ -3655,6 +3816,20 @@ function renderSingleCard(c) {
   const stale = c.trade_date && c.trade_date < todayISO();
   const kpi = (lab, val, hot) => '<span class="kpi"><span class="lab">' + lab + '</span><span class="val' + (hot ? ' hot' : '') + '">' + val + '</span></span>';
 
+  // Single-column dossier, top-to-bottom: a hero row (THE BET skeleton | price chart)
+  // → the reverse-derivation tree → the deep-analysis debate → the support row
+  // (decomposition + risks). The per-card conversation is NOT inline — it lives in
+  // the sticky right-hand AGENT panel (renderAgentPanel).
+  const priceChart = '<div class="price-chart-wrap">' +
+      '<div class="pc-head"><span class="lbl">价格走势</span><span class="title">' + escapeHTML(c.subject) + ' · 5 年月线</span><span class="src">yfinance</span></div>' +
+      '<div class="pc-host" data-pchost="' + escapeHTML(c.card_id) + '"><div class="pc-empty">加载 5 年价格走势…</div></div>' +
+      '<div class="pc-foot">实线 MKT 现价 · 虚线 DCF 基线 · 浅线 历史月收盘</div>' +
+    '</div>';
+  const hero2 = '<div class="cp-hero2"><div class="cp-hero-l">' + _betHeadline(c) + '</div>' +
+    '<div class="cp-hero-r">' + priceChart + '</div></div>';
+  const treeBlock = '<div class="cp-tree"><div class="cp-sec-lab">推导 · 上面这个 bet 是怎么从现价反解出来的</div>' +
+    renderDerivationTree(c) + '</div>';
+
   return '<div class="bet-card card-page' + (sel ? ' selected' : '') + '" data-card="' + escapeHTML(c.card_id) + '">' +
     '<div class="cp-head">' +
       '<div class="cp-id">' +
@@ -3666,29 +3841,17 @@ function renderSingleCard(c) {
         (dcf != null ? kpi('基线 DCF', dcf, false) : '') +
         (np != null ? kpi('叙事溢价', Math.round(np * 100) + '%', np >= 0.5) : '') +
       '</div>' +
-      '<label class="cp-synth' + (sel ? ' on' : '') + '"><input type="checkbox" data-selpage="' + escapeHTML(c.card_id) + '"' + (sel ? ' checked' : '') + '> 选入综合</label>' +
     '</div>' +
     (stale ? '<div class="bc-stale"><span class="dot"></span>基于 ' + escapeHTML(c.trade_date) + ' 收盘 · 历史快照</div>' : '') +
-    _betHeadline(c) +
+    hero2 +
+    treeBlock +
     renderDeepAnalysis(c) +
-    '<div class="cp-tree">' +
-      '<div class="cp-sec-lab">推导 · 上面这个 bet 是怎么从现价反解出来的</div>' +
-      renderDerivationTree(c) +
-    '</div>' +
     '<div class="cp-support">' +
-      '<div class="cp-sup-main">' +
-        '<div class="price-chart-wrap">' +
-          '<div class="pc-head"><span class="lbl">价格走势</span><span class="title">' + escapeHTML(c.subject) + ' · 5 年月线</span><span class="src">yfinance</span></div>' +
-          '<div class="pc-host" data-pchost="' + escapeHTML(c.card_id) + '"><div class="pc-empty">加载 5 年价格走势…</div></div>' +
-          '<div class="pc-foot">实线 MKT 现价 · 虚线 DCF 基线 · 浅线 历史月收盘</div>' +
-        '</div>' +
-      '</div>' +
+      '<div class="cp-sup-main">' + renderDecomp(c) + '</div>' +
       '<div class="cp-sup-side">' +
-        renderDecomp(c) +
         (d.risks ? '<div class="bc-risks"><span class="lab">关键风险</span>' + escapeHTML(d.risks) + '</div>' : '') +
       '</div>' +
     '</div>' +
-    _discussBlock(c) +
   '</div>';
 }
 
@@ -3698,44 +3861,79 @@ function _fmtNum(v) {
   return Math.abs(v) < 1 ? (v * 100).toFixed(1) + '%' : v.toFixed(2);
 }
 
-// Per-card "讨论 / DISCUSS" thread (NEW): the conversational + revisable layer.
-// Originals only (a derived what-if card isn't itself re-interrogated). Turns are
-// distinguished by weight + mono label, NOT colored bubbles (design system §). A
-// pending what-if proposal renders a before→after exhibit + "save as derived card".
-function _discussBlock(c) {
-  if (c.card_kind !== 'single' || c.derived_from) return '';
-  const id = c.card_id;
-  const turns = (state.chat[id] || []).map(t =>
-    '<div class="bc-turn ' + (t.role === 'you' ? 'you' : 'agent') + '">' +
-      '<div class="who">' + (t.role === 'you' ? '你' : 'AGENT') + '</div>' +
-      '<div class="msg">' + escapeHTML(t.text) + '</div>' +
-      (t.tools ? '<div class="tools">▾ ' + escapeHTML(t.tools) + '</div>' : '') +
-    '</div>'
-  ).join('');
-  const rev = state.revision[id];
-  let whatif = '';
-  if (rev) {
-    const diff = (rev.diff && rev.diff[0]) || null;
-    const ov = Object.entries((rev.params && rev.params.overrides) || {})
-      .map(([k, v]) => k + '=' + v).join(' · ');
-    whatif = '<div class="bc-whatif">' +
-      '<div class="wh"><span>WHAT-IF · 修正提案</span><span class="ov">' + escapeHTML(ov) + '</span></div>' +
-      (diff
-        ? '<div class="wh-row"><span class="field">' + escapeHTML(String(diff.field || '隐含值')) + '</span>' +
-            '<span class="before">' + _fmtNum(diff.before) + '</span>' +
-            '<span class="arrow">→</span>' +
-            '<span class="after">' + _fmtNum(diff.after) + '</span></div>'
-        : '<div class="wh-row note">（这个假设下没有可解的对比）</div>') +
-      '<div class="wh-note">原卡不动 · 存成带溯源的衍生卡</div>' +
-      '<div class="wh-act"><button data-revsave="' + escapeHTML(id) + '">保存为衍生卡 →</button></div>' +
-    '</div>';
+// The right column is a sticky AGENT panel bound to the ACTIVE tab's card. Option B:
+// it unifies what used to be two overlapping surfaces — the per-card conversation
+// (ask / what-if / scenario chips) and the live reasoning stream (decode/ask SSE) —
+// into ONE place. Re-rendered on every renderCanvas so it always reflects the active
+// card; the live stream still targets #af-stream inside it (streamActivity unchanged).
+// Turns use weight + mono label, NOT colored bubbles (design system §).
+function renderAgentPanel() {
+  const feed = document.getElementById('wb-feed');
+  if (!feed) return;
+  const c = _activeCard();
+  const interactive = !!(c && c.card_kind === 'single' && !c.derived_from);
+  const subj = c ? escapeHTML(c.subject) : '';
+  const head = '<div class="af-head"><div class="lbl">Agent</div>' +
+      '<div class="title">' + (c ? subj : 'Agent Activity') + '</div></div>' +
+    '<span class="powered">Powered by MiroMind Deep Research</span>';
+
+  // Full agent activity (top of the panel): the reconstructed decode steps
+  // (decision / computation / evidence / relation) → the follow-up conversation →
+  // the live reasoning stream for in-flight asks (#af-stream).
+  let stream;
+  if (c) {
+    const acts = ((c._display || {}).activity) || [];
+    const actRows = acts.map(a =>
+      '<div class="af-event k-' + (a.kind || 'decision') + '">' +
+        '<div class="meta"><span class="kind">' + escapeHTML(a.kind || '') + '</span></div>' +
+        '<div class="txt">' + escapeHTML(a.text || '') + '</div></div>').join('');
+    const turns = interactive ? (state.chat[c.card_id] || []).map(t =>
+      '<div class="bc-turn ' + (t.role === 'you' ? 'you' : 'agent') + '">' +
+        '<div class="who">' + (t.role === 'you' ? '你' : 'AGENT') + '</div>' +
+        '<div class="msg">' + escapeHTML(t.text) + '</div>' +
+        (t.tools ? '<div class="tools">▾ ' + escapeHTML(t.tools) + '</div>' : '') +
+      '</div>').join('') : '';
+    stream =
+      (actRows
+        ? '<div class="ap-seclab">解码活动 · DECODE ACTIVITY</div>' + actRows
+        : '<div class="af-placeholder" id="af-placeholder"><strong>暂无解码活动。</strong><br><br>这张卡的解码记录会逐步列出(模式判定 · 估值计算 · 证据检索 · 叙事关系)。</div>') +
+      _whatifExhibit(c) +
+      (turns ? '<div class="ap-seclab">讨论 · DISCUSS</div>' + turns : '') +
+      '<div class="af-stream" id="af-stream"></div>';
+  } else {
+    stream = '<div class="af-placeholder" id="af-placeholder"><strong>Agent idle.</strong><br><br>' +
+      '解码一个 bet,或切到某张卡 —— 这里显示它的完整解码活动(decision / computation / evidence / relation),底部可追问、做 what-if。</div>' +
+      '<div class="af-stream" id="af-stream"></div>';
   }
-  return '<div class="bc-discuss">' +
-    '<div class="lab">讨论 / DISCUSS</div>' +
-    (turns || '<div class="bc-turn-empty">就这张卡追问,或点下面的情景假设 —— agent 会调工具回答、做 what-if。</div>') +
-    whatif +
-    renderScenarioChips(c) +
-    '<div class="bc-ask"><input type="text" data-askinput="' + escapeHTML(id) + '" placeholder="追问这张卡…"><button data-ask="' + escapeHTML(id) + '">问</button></div>' +
+  // Ask dialog pinned at the bottom: scenario chips + input.
+  const foot = interactive
+    ? '<div class="ap-foot bc-discuss">' + renderScenarioChips(c) +
+        '<div class="bc-ask ap-ask"><input type="text" data-askinput="' + escapeHTML(c.card_id) +
+        '" placeholder="追问 ' + subj + '…"><button data-ask="' + escapeHTML(c.card_id) + '">问</button></div>' +
+      '</div>'
+    : '';
+  feed.innerHTML = '<div class="ap-wrap">' + head +
+    '<div class="ap-body">' + stream + '</div>' + foot + '</div>';
+}
+
+// The pending what-if proposal (before→after) + "save as derived card", rendered
+// inside the AGENT panel. Extracted from the old inline discuss block.
+function _whatifExhibit(c) {
+  const rev = state.revision[c.card_id];
+  if (!rev) return '';
+  const diff = (rev.diff && rev.diff[0]) || null;
+  const ov = Object.entries((rev.params && rev.params.overrides) || {})
+    .map(([k, v]) => k + '=' + v).join(' · ');
+  return '<div class="bc-whatif">' +
+    '<div class="wh"><span>WHAT-IF · 修正提案</span><span class="ov">' + escapeHTML(ov) + '</span></div>' +
+    (diff
+      ? '<div class="wh-row"><span class="field">' + escapeHTML(String(diff.field || '隐含值')) + '</span>' +
+          '<span class="before">' + _fmtNum(diff.before) + '</span>' +
+          '<span class="arrow">→</span>' +
+          '<span class="after">' + _fmtNum(diff.after) + '</span></div>'
+      : '<div class="wh-row note">（这个假设下没有可解的对比）</div>') +
+    '<div class="wh-note">原卡不动 · 存成带溯源的衍生卡</div>' +
+    '<div class="wh-act"><button data-revsave="' + escapeHTML(c.card_id) + '">保存为衍生卡 →</button></div>' +
   '</div>';
 }
 
@@ -4097,11 +4295,6 @@ document.querySelectorAll('.composer .preset').forEach(b => {
     if (field) field.value = inp;
     decodeBet(src, inp);
   });
-});
-document.getElementById('synth-btn').addEventListener('click', synthesize);
-document.getElementById('synth-bar').addEventListener('click', () => {
-  const open = !document.getElementById('synth-content').classList.contains('open');
-  openSynthPanel(open);
 });
 document.getElementById('lang-zh').addEventListener('click', () => setLang('zh'));
 document.getElementById('lang-en').addEventListener('click', () => setLang('en'));

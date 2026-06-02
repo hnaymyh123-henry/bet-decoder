@@ -160,6 +160,85 @@ check("AC6 build-up RECONCILES to price (db _dcf_breakdown matches reverse_dcf, 
       bool(_bd) and abs(_bd["per_share"] - _anchor) / _anchor < 0.02,
       f"per_share={_bd and round(_bd['per_share'], 2)} vs anchor={_anchor}")
 
+# --- AC7: anchor-mode base value carries its OWN build-up (reconciles to BASE) -
+# An AI-composite, narrative-priced fixture routes to anchor mode. The
+# 基础业务价值 branch must carry a FORWARD DCF build-up (consensus CAGR) whose
+# per_share reconciles to base_business_value (NOT the price) — proving the
+# db-side base build-up mirrors decoder._base_business_value with no drift —
+# plus an explicit 现价−基础=溢价 bridge step and quantified theme rows (R1).
+_NV = decoder.Fundamentals(
+    ticker="NVDA", current_price=224.0, revenue_ttm=60e9, net_income_ttm=32e9,
+    ebitda_ttm=38e9, fcf_ttm=30e9, book_equity=43e9, eps_ttm=2.9,
+    shares_outstanding=24.4e9, net_debt=-10e9, beta=1.5, growth_rate=0.5,
+    industry="Semiconductors", tags=["GPU accelerator"])
+_nc = decoder.decode_bet("market", "NVDA", "zh",
+                         fundamentals_fn=lambda t: _NV, hunter=lambda *a, **k: None)
+_nam = (_nc.decode_detail or {}).get("anchor_mode") or {}
+_base_val = _nam.get("base_business_value")
+_nder = (db.build_card_display(_nc) or {}).get("derivations") or {}
+_nbr = _nder.get("branches", [])
+_basebr = next((b for b in _nbr if b.get("lens") == "base"), {})
+_baselv = next((lv for lv in _basebr.get("levels", []) if lv.get("kind") == "implied"), {})
+_bbd = _baselv.get("breakdown")
+_txts = " ".join(str(lv.get("text") or "") for b in _nbr for lv in b.get("levels", []))
+check("AC7 anchor mode triggered on the AI-composite fixture",
+      bool(_nam.get("components")) and isinstance(_base_val, (int, float)) and _base_val > 0,
+      f"mode={(_nc.decode_detail or {}).get('mode')} base={_base_val and round(_base_val,2)}")
+check("AC7 基础业务价值 branch carries a 5y build-up reconciling to BASE (not price)",
+      bool(_bbd) and len(_bbd.get("years") or []) == 5
+      and isinstance(_base_val, (int, float)) and _base_val > 0
+      and abs(_bbd["per_share"] - _base_val) / _base_val < 0.02,
+      f"per_share={_bbd and round(_bbd['per_share'], 2)} vs base={_base_val and round(_base_val, 2)}")
+check("AC7 base build-up labels reconcile to 基础业务价值 (not 现价)",
+      bool(_bbd) and _bbd.get("reconcile_label") == "基础业务价值"
+      and _bbd.get("cagr_label") == "共识增速")
+check("AC7 explicit 现价−基础=溢价 bridge step present in the tree",
+      "− 基础" in _txts and "叙事/期权溢价" in _txts, _txts[:90])
+check("AC7 consensus-assumptions step precedes the base value (deeper chain)",
+      "共识假设" in _txts and "前向 DCF 折现" in _txts)
+check("AC7 base node carries an interpretive 估值地板 line (richer tree)",
+      "估值地板" in _txts)
+check("AC7 quantified theme-exposure row present (R1)",
+      "主题暴露:" in _txts)
+
+# --- AC8: _display carries a reconstructed decode ACTIVITY log (full agent activity)
+# rendered in the AGENT panel — built from persisted decode_detail, kind-tagged, and
+# HONEST (a deterministic decode must not be labelled an autonomous agent).
+_nact = ((db.build_card_display(_nc) or {}).get("activity")) or []
+_akinds = {a.get("kind") for a in _nact}
+_atext = " ".join(a.get("text", "") for a in _nact)
+check("AC8 _display.activity reconstructs the decode steps (non-empty, kind-tagged)",
+      len(_nact) >= 4 and {"decision", "computation"} <= _akinds,
+      f"n={len(_nact)} kinds={sorted(_akinds)}")
+check("AC8 activity covers mode + base value + 对账 (anchor card)",
+      "解码模式" in _atext and "基础业务价值" in _atext and "对账" in _atext)
+check("AC8 activity is honest — deterministic card NOT labelled '自主选择'",
+      "自主选择" not in _atext)
+
+# --- AC9: portfolio theme aggregation + equal-weight default (R1) --------------
+# A portfolio of two AI-composite legs (no weights in the input) must apply an
+# equal-weight default and aggregate the legs' anchor-mode theme exposures into
+# weighted, card-level theme rows (concentration flag + contributing tickers).
+# Previously deferred ("#3") — the portfolio page is empty without it.
+_pf = decoder.decode_bet(
+    "portfolio", "AAA,BBB", "zh",
+    fundamentals_fn=lambda t: decoder.Fundamentals(
+        ticker=t, current_price=224.0, revenue_ttm=60e9, net_income_ttm=32e9,
+        ebitda_ttm=38e9, fcf_ttm=30e9, book_equity=43e9, eps_ttm=2.9,
+        shares_outstanding=24.4e9, net_debt=-10e9, beta=1.5, growth_rate=0.5,
+        industry="Semiconductors", tags=["GPU accelerator"]),
+    hunter=lambda *a, **k: None)
+_pw = [(h.ticker, h.weight_pct) for h in (_pf.holdings or [])]
+_pte = _pf.theme_exposures or []
+check("AC9 portfolio equal-weight default applied (string input carries no weights)",
+      len(_pw) == 2 and all(abs((w or 0) - 50.0) < 0.1 for _, w in _pw), f"{_pw}")
+check("AC9 portfolio theme aggregation produced weighted rows from anchor legs",
+      bool(_pte) and any(getattr(t, "theme", None) for t in _pte),
+      f"themes={[(getattr(t, 'theme', None), getattr(t, 'exposure_pct', None)) for t in _pte]}")
+check("AC9 aggregated theme flags concentration + lists both contributing tickers",
+      any(getattr(t, "is_concentration_risk", False)
+          and len(getattr(t, "contributing_tickers", []) or []) == 2 for t in _pte))
+
 print("=" * 72)
 print(f"RESULT: {_passed} passed, {_failed} failed")
 print("=" * 72)

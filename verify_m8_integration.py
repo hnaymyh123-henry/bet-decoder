@@ -117,14 +117,14 @@ check("SMOKE GET /api/health 200 + {status:ok}",
 r_root = client.get("/")
 root_html = r_root.text
 workbench_markers = [
-    'class="workbench"', 'id="wb-canvas"', 'id="wb-feed"', 'id="wb-synth"',
-    'id="card-grid"', 'id="synth-btn"',
+    'class="workbench"', 'id="wb-canvas"', 'id="wb-feed"',
+    'id="card-grid"', 'id="tab-bar"',
 ]
 present = [m for m in workbench_markers if m in root_html]
 check("SMOKE GET / 200 + content-type HTML",
       r_root.status_code == 200 and "text/html" in r_root.headers.get("content-type", ""),
       f"{r_root.status_code} {r_root.headers.get('content-type')}")
-check("SMOKE GET / body carries workbench DOM markers (3-zone layout)",
+check("SMOKE GET / body carries workbench DOM markers (canvas + feed + tabs)",
       len(present) >= 5, f"{len(present)}/{len(workbench_markers)} markers: {present}")
 
 

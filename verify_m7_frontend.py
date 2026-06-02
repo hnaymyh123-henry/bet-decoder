@@ -82,15 +82,15 @@ def main() -> int:
         f"status={status} bytes={len(body)}",
     )
 
-    # AC: three-zone layout — DOM structure exists.
+    # AC: workbench layout — canvas (tabs) + sticky AGENT feed. The bottom synth
+    # panel is retired (synthesis moved to the portfolio page).
     has_canvas = 'id="wb-canvas"' in body and 'class="wb-canvas"' in body
     has_feed = 'id="wb-feed"' in body and 'class="wb-feed"' in body
-    has_synth = 'id="wb-synth"' in body and 'class="wb-synth"' in body
-    grid_areas = 'grid-template-areas' in body and '"canvas' in body and 'synth' in body
+    grid_areas = 'grid-template-areas' in body and '"canvas feed"' in body
     check(
-        "three-zone layout (canvas + feed + bottom synth panel)",
-        has_canvas and has_feed and has_synth and grid_areas,
-        f"canvas={has_canvas} feed={has_feed} synth={has_synth} grid_areas={grid_areas}",
+        "workbench layout (canvas + sticky AGENT feed; bottom synth panel retired)",
+        has_canvas and has_feed and grid_areas,
+        f"canvas={has_canvas} feed={has_feed} grid_areas={grid_areas}",
     )
 
     # AC: main flow wiring — composer input + source-type select + decode → /api/decode → card grid.
@@ -129,10 +129,30 @@ def main() -> int:
     check("derivation tree hero + DCF build-up worksheet (renderDerivationTree + _dcfBuildup)",
           deriv, f"deriv_present={deriv}")
 
+    # AC: top hero row pairs THE BET skeleton with the price chart (cp-hero2); the
+    # tree sits under it; the sticky right-hand AGENT panel shows the FULL decode
+    # activity (reconstructed _display.activity, kind-tagged) on top with the
+    # ask/scenario-chip dialog pinned at the bottom (no inline discuss block). The
+    # DCF build-up reconcile tail stays configurable (base build-up → 基础业务价值).
+    panel = ("function renderAgentPanel" in body and "renderAgentPanel();" in body
+             and "ap-wrap" in body and "ap-ask" in body and "ap-foot" in body
+             and ".wb-feed { position: sticky" in body
+             and "cp-hero2" in body and "cp-hero-l" in body
+             and "_display || {}).activity" in body and "ap-seclab" in body
+             and "解码活动" in body
+             and "function _discussBlock" not in body   # inline discuss removed
+             and "bd.reconcile_label" in body and "bd.cagr_label" in body)
+    check("hero row (THE BET + price chart) + sticky AGENT panel showing full decode activity (option B)",
+          panel, f"panel={panel}")
+
     # AC: every card leads with ONE consistent "what is the market betting?" headline
     # (THE BET), computed server-side (_bet_statement) — implied growth or narrative premium.
     thebet = ("function _betHeadline" in body and 'class="cp-bet"' in body
-              and "市场在 bet 什么" in body and "bet_statement" in body)
+              and "市场在 bet 什么" in body and "bet_statement" in body
+              and "function _betWhy" in body and "cb-why" in body
+              and "为什么这么判断" in body
+              # auditable conclusion derived from the cross-check (evidence tally)
+              and "cb-why-tally" in body and "证据对账" in body)
     check("unified THE BET headline (consistent decode answer on every card)",
           thebet, f"thebet_present={thebet}")
 
@@ -140,20 +160,23 @@ def main() -> int:
     # + contested axes + catalysts, lazy-hydrated from market_narrative.full + markdown.
     deepa = ("function renderDeepAnalysis" in body and "renderDeepAnalysis(c)" in body
              and 'class="cp-deep"' in body and "function ensureDetail" in body
-             and "function _md" in body and "da-debate" in body and "da-sec" in body)
+             and "function _md" in body and "da-debate" in body and "da-sec" in body
+             # cross-check explicitly framed as the bridge from the derivation tree
+             and "da-sec-sub" in body and "把推导树的每个隐含数字" in body)
     check("deep-analysis section: bull/bear debate + cross-check, lazy-hydrated + markdown",
           deepa, f"deep_present={deepa}")
 
-    # AC: synthesis flow — select >=2 cards → synth btn → POST /api/synthesize → headline+graph+narrative.
-    has_synth_btn = 'id="synth-btn"' in body
-    gating = "size < 2" in body or "ids.length < 2" in body or "n < 2" in body
-    posts_synth = "fetch('/api/synthesize'" in body
-    renders_synth = ('id="synth-headline"' in body and 'id="synth-relations"' in body
-                     and 'id="synth-narrative"' in body and "function renderSynthesis" in body)
+    # AC: synthesis (Module 3) now lives on the PORTFOLIO page as its deep-analysis
+    # layer — auto-run across the decoded holdings, NOT a manual bottom panel.
+    pf_synth = ("function ensurePortfolioSynth" in body and "function _portfolioSynthHtml" in body
+                and "function _renderRelations" in body and "fetch('/api/synthesize'" in body
+                and "state.synth" in body and "ids.length < 2" in body
+                and "rel-table" in body and "跨持仓综合" in body)
+    manual_gone = ('id="synth-btn"' not in body and 'id="wb-synth"' not in body)
     check(
-        "synthesis flow: select >=2 → POST /api/synthesize → headline + graph + narrative",
-        has_synth_btn and gating and posts_synth and renders_synth,
-        f"btn={has_synth_btn} gate>=2={gating} post={posts_synth} render={renders_synth}",
+        "synthesis = portfolio deep-analysis, auto-run across holdings (manual panel retired)",
+        pf_synth and manual_gone,
+        f"pf_synth={pf_synth} manual_gone={manual_gone}",
     )
 
     # AC: activity feed — EventSource on M5 SSE endpoint, kind-tagged styling, replay path.
@@ -168,11 +191,12 @@ def main() -> int:
         f"eventsource={has_es} kind_css={kind_styles} kind_render={kind_render} replay={replay_path}",
     )
 
-    # AC: graceful empty state for synthesis with no significant relation (headline=null).
-    empty_state = ('id="synth-empty"' in body and "hasHeadline" in body
-                   and "rels.length === 0" in body)
+    # AC: graceful states for the portfolio's cross-holding synthesis — <2 holdings,
+    # loading, error, and no-significant-relation all degrade honestly (no blank/error).
+    empty_state = ("ids.length < 2" in body and "'loading'" in body
+                   and "'error'" in body and "未发现显著跨持仓关系" in body)
     check(
-        "synthesis empty state (headline=null → graceful, no blank/error)",
+        "cross-holding synthesis graceful states (<2 / loading / error / no-relation)",
         empty_state,
         f"empty_handling={empty_state}",
     )

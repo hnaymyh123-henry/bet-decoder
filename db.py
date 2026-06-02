@@ -1296,6 +1296,13 @@ def _dcf_breakdown(revenue, cagr, margin, wacc, g, net_debt, shares) -> dict | N
     }
 
 
+# Mirrors the FIXED consensus revenue CAGR in decoder._lens_dcf (the forward DCF
+# that yields baseline_dcf_price = the anchor-mode base business value). Pinned
+# here so the base-value build-up reconciles to `base`; if decoder's constant
+# drifts, the reconciliation guard in verify_decode_detail_persistence.py flags it.
+_CONSENSUS_BASE_CAGR = 0.15
+
+
 def _build_derivations(dd: dict) -> dict | None:
     """Multi-level derivation tree from REAL computed numbers (no fabrication):
     root 现价 → a branch per lens (or base/premium for anchor) → mechanical chain →
@@ -1323,24 +1330,81 @@ def _build_derivations(dd: dict) -> dict | None:
 
     if am.get("components"):
         base = am.get("base_business_value")
+        # The base business value IS the consensus DCF baseline (a forward DCF at
+        # the fixed consensus CAGR). Mirror it with _dcf_breakdown using the
+        # consensus params persisted on the DCF cross-lens, so the worksheet
+        # reconciles to `base` — no re-decode, works on cards already in the DB.
+        dcf_ref = next((r for r in (dd.get("cross_lenses") or [])
+                        if isinstance(r, dict) and r.get("lens") == "dcf"
+                        and isinstance(r.get("baseline_dcf_price"), (int, float))), None)
         if isinstance(base, (int, float)):
+            base_pct = max(0, round(base / anchor * 100)) if anchor else 0
+            base_levels = []
+            bbd = None
+            if dcf_ref is not None:
+                w = dcf_ref.get("consensus_wacc")
+                tg = dcf_ref.get("consensus_terminal_growth")
+                m = dcf_ref.get("consensus_terminal_fcf_margin")
+                # Always-visible consensus-assumptions step (parallels the DCF branch's
+                # 固定共识 node) — the inputs the base forward-DCF holds fixed.
+                aparts = [f"营收增速 {_pct1(_CONSENSUS_BASE_CAGR)}(共识·前向)"]
+                if isinstance(w, (int, float)): aparts.append(f"WACC {_pct1(w)}")
+                if isinstance(tg, (int, float)): aparts.append(f"终值增速 {_pct1(tg)}")
+                if isinstance(m, (int, float)): aparts.append(f"FCF 利润率 {_pct1(m)}")
+                base_levels.append({"kind": "assume",
+                                    "text": "共识假设:" + " · ".join(aparts) + " → 前向 DCF 折现"})
+                bbd = _dcf_breakdown(fund.get("revenue_ttm"), _CONSENSUS_BASE_CAGR, m, w, tg,
+                                     fund.get("net_debt"), fund.get("shares_outstanding"))
+                if bbd:
+                    bbd["summary_label"] = "DCF 建模底稿 · 共识增速前向折现 → 基础业务价值"
+                    bbd["cagr_label"] = "共识增速"
+                    bbd["reconcile_label"] = "基础业务价值"
+            base_levels.append({"kind": "implied", "label": "基础业务价值", "impl": _money_big(base),
+                                "impl_num": base,
+                                "text": f"前向折现现金流 → 占现价 {base_pct}%",
+                                "breakdown": bbd})
+            base_levels.append({"kind": "imply",
+                                "text": "= 估值地板:即使不相信任何增长叙事,业务本身折现就值这么多"})
             branches.append({"lens": "base", "label": "基础业务价值(保守 DCF)", "primary": True,
-                "levels": [{"kind": "implied", "label": "基础业务价值", "impl": _money_big(base),
-                            "impl_num": base,
-                            "text": f"按共识增速折现 → 占现价 {max(0, round(base / anchor * 100))}%"}]})
-        for comp in am["components"]:
+                             "levels": base_levels})
+        gap = (max(0.0, anchor - base) if isinstance(base, (int, float)) and anchor else None)
+        # theme_exposures may be dicts (reloaded card) OR ThemeExposure dataclasses
+        # (freshly decoded, pre-round-trip) — normalize both to dicts.
+        themes = [(te if isinstance(te, dict) else {
+                       "theme": getattr(te, "theme", None),
+                       "exposure_pct": getattr(te, "exposure_pct", None),
+                       "is_concentration_risk": getattr(te, "is_concentration_risk", None)})
+                  for te in (am.get("theme_exposures") or [])]
+        for ci, comp in enumerate(am["components"]):
             amt = comp.get("implied_amount")
-            levels = [{"kind": "implied", "label": comp.get("lens_label") or comp.get("lens") or "成分",
-                       "impl": (_money_big(amt) if isinstance(amt, (int, float)) else "—"),
-                       "impl_num": amt if isinstance(amt, (int, float)) else None, "ev": _ev(bi),
-                       "text": (f"= 现价里 {round(amt / anchor * 100)}% 的溢价"
-                                if isinstance(amt, (int, float)) else "")}]
+            levels = []
+            # Bridge: make the 现价 − 基础 = 溢价 arithmetic an explicit derivation step.
+            if ci == 0 and gap is not None:
+                levels.append({"kind": "compute",
+                               "text": f"现价 {_money_big(anchor)} − 基础 {_money_big(base)} "
+                                       f"= 叙事/期权溢价 {_money_big(gap)}(占现价 {round(gap / anchor * 100)}%)"})
+            levels.append({"kind": "implied", "label": comp.get("lens_label") or comp.get("lens") or "成分",
+                           "impl": (_money_big(amt) if isinstance(amt, (int, float)) else "—"),
+                           "impl_num": amt if isinstance(amt, (int, float)) else None, "ev": _ev(bi),
+                           "text": (f"= 现价里 {round(amt / anchor * 100)}% 的溢价"
+                                    if isinstance(amt, (int, float)) else "")})
             bi += 1
             if comp.get("claim"):
                 levels.append({"kind": "imply", "text": "claim:" + str(comp["claim"])})
             if comp.get("implied_assumption"):
                 levels.append({"kind": "imply", "text": "要兑现:" + str(comp["implied_assumption"])})
-            if comp.get("theme"):
+            # Theme exposures (R1): quantified rows replace the bare theme label.
+            if ci == 0 and any(t.get("theme") for t in themes):
+                for te in themes:
+                    if not te.get("theme"):
+                        continue
+                    pctv = te.get("exposure_pct")
+                    conc = " · ⚠ 集中风险" if te.get("is_concentration_risk") else ""
+                    levels.append({"kind": "imply",
+                                   "text": "主题暴露:" + str(te.get("theme"))
+                                           + (f" 占现价 {round(pctv)}%" if isinstance(pctv, (int, float)) else "")
+                                           + conc})
+            elif comp.get("theme"):
                 levels.append({"kind": "imply", "text": "主题:" + str(comp["theme"])})
             branches.append({"lens": comp.get("lens") or "comp",
                              "label": comp.get("lens_label") or comp.get("lens") or "成分", "levels": levels})
@@ -1468,6 +1532,96 @@ def _bet_statement(dd: dict) -> dict | None:
     return None
 
 
+_REGIME_ZH = {"optimistic": "偏乐观", "mixed": "分歧", "cautious": "谨慎",
+              "pessimistic": "偏悲观", "neutral": "中性", "euphoric": "亢奋"}
+
+
+def _build_activity(dd: dict) -> list[dict]:
+    """Reconstruct the decode's activity log from the persisted decode_detail — the
+    real decision / computation / evidence / relation steps the decode performed, in
+    order. Always available (no live job_id needed), so the AGENT panel shows the
+    full activity for any reloaded card. Honest: every line is a persisted result,
+    never fabricated; a deterministic decode is NOT labelled as an autonomous agent."""
+    out: list[dict] = []
+
+    def add(kind: str, text: str) -> None:
+        if text:
+            out.append({"kind": kind, "text": text})
+
+    anchor = dd.get("anchor_price")
+    fund = dd.get("fundamentals") or {}
+    am = dd.get("anchor_mode") or {}
+    agentic = bool(dd.get("agentic"))
+    auton = " · agent 自主选择" if agentic else ""
+
+    if am.get("components"):
+        add("decision", "解码模式:锚定复合体(传统估值锚 + 叙事/期权溢价)" + auton)
+    else:
+        add("decision", "解码模式:传统多 lens 反解" + auton)
+    if dd.get("reason"):
+        add("decision", "判定依据:" + str(dd["reason"]))
+
+    if isinstance(fund.get("revenue_ttm"), (int, float)):
+        bits = [f"营收 TTM {_money_big(fund['revenue_ttm'])}"]
+        if isinstance(fund.get("fcf_ttm"), (int, float)):
+            bits.append(f"FCF {_money_big(fund['fcf_ttm'])}")
+        sh = fund.get("shares_outstanding")
+        if isinstance(sh, (int, float)) and sh > 0:
+            bits.append(f"股数 {sh / 1e9:.1f}B 股" if sh >= 1e9 else f"股数 {sh / 1e6:.0f}M 股")
+        add("computation", "读取基本面:" + " · ".join(bits))
+
+    if am.get("components"):
+        base = am.get("base_business_value")
+        if isinstance(base, (int, float)) and anchor:
+            add("computation", f"前向 DCF(共识增速)→ 基础业务价值 {_money_big(base)}"
+                f"(占现价 {max(0, round(base / anchor * 100))}%)")
+        for comp in am["components"]:
+            amt = comp.get("implied_amount")
+            if isinstance(amt, (int, float)):
+                add("decision", f"叙事/期权成分:{comp.get('lens_label') or comp.get('lens') or '成分'} → "
+                    f"{_money_big(amt)}" + (f"(占现价 {round(amt / anchor * 100)}%)" if anchor else ""))
+        recon = am.get("reconciliation") or {}
+        if isinstance(recon.get("anchor"), (int, float)) and isinstance(recon.get("sum"), (int, float)):
+            add("computation", f"对账:基础 + 成分 = {_money_big(recon['sum'])} ≈ 现价 "
+                f"{_money_big(recon['anchor'])}" + ("(通过)" if recon.get("reconciled") else "(残差超容差)"))
+        for te in (am.get("theme_exposures") or []):
+            th = te.get("theme") if isinstance(te, dict) else getattr(te, "theme", None)
+            pctv = te.get("exposure_pct") if isinstance(te, dict) else getattr(te, "exposure_pct", None)
+            if th:
+                add("relation", f"主题暴露:{th}" + (f" 占现价 {round(pctv)}%" if isinstance(pctv, (int, float)) else ""))
+    else:
+        prim = dd.get("primary_lens")
+        if isinstance(prim, dict):
+            add("decision", f"主 lens:{prim.get('lens_label') or prim.get('lens')} → "
+                f"{prim.get('implied_label') or '隐含值'} = "
+                f"{_fmt_implied(prim.get('implied_value'), prim.get('unit') or '')}")
+        for r in (dd.get("cross_lenses") or []):
+            if isinstance(r, dict) and (not isinstance(prim, dict) or r.get("lens") != prim.get("lens")):
+                add("computation", f"交叉验证 {r.get('lens_label') or r.get('lens')}:"
+                    f"{_fmt_implied(r.get('implied_value'), r.get('unit') or '')}")
+
+    evd = dd.get("evidence") or {}
+    fc, ac = evd.get("found_count"), evd.get("assumption_count")
+    if isinstance(fc, int):
+        t = (f"证据检索:{ac} 个假设" if isinstance(ac, int) else "证据检索")
+        t += f" · {fc} 条独立来源" + ("(诚实留空)" if fc == 0 else "")
+        add("evidence", t)
+
+    mn = (dd.get("market_narrative") or {}).get("summary") or {}
+    cov = mn.get("coverage")
+    if cov and cov not in ("unavailable", "unparseable"):
+        reg = _REGIME_ZH.get(mn.get("regime"), mn.get("regime") or "—")
+        add("relation", f"市场叙事:{reg} · 多 {mn.get('bull_count', '?')} / 空 {mn.get('bear_count', '?')}")
+        ndiv = sum(1 for b in (mn.get("bindings") or []) if isinstance(b, dict) and b.get("diverges"))
+        if ndiv:
+            add("relation", f"⚠ 叙事-证据分歧 {ndiv} 处(详见深度分析)")
+    elif cov:
+        add("relation", "市场叙事:材料不足 / 未联网 — 诚实留空")
+
+    add("decision", "组装 BetCard 完成")
+    return out
+
+
 def build_card_display(card: BetCard) -> dict | None:
     """Project decode_detail → the compact `_display` the front-end's renderSingleCard
     reads (baseline_dcf / anchor / bets / risks / chain), so a real OR reloaded single
@@ -1565,7 +1719,8 @@ def build_card_display(card: BetCard) -> dict | None:
     return {"baseline_dcf": base_dcf, "anchor": anchor, "bets": bets,
             "risks": risks, "chain": chain, "decomp": decomp,
             "derivations": _build_derivations(dd),
-            "bet_statement": _bet_statement(dd)}
+            "bet_statement": _bet_statement(dd),
+            "activity": _build_activity(dd)}
 
 
 def card_from_json(data: dict) -> BetCard:

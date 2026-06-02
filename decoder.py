@@ -1607,6 +1607,48 @@ def _assemble_anchor_card(ticker, src_ref, anchor, f, emit, lang,
 
 # --- Portfolio aggregate-card path -----------------------------------------
 
+# A theme is a portfolio-level concentration risk when, after weighting, it
+# carries this share of the WHOLE portfolio's value (not a single stock's).
+_PORTFOLIO_CONC_PCT = 40.0
+
+
+def _aggregate_portfolio_themes(holdings: list, per_ticker: dict) -> list:
+    """R1 (portfolio): weight each anchor-mode leg's theme exposures into card-level
+    theme rows. A leg's `exposure_pct` is the share of THAT stock's price the theme
+    carries; the portfolio-level exposure is Σ (normalized weight_i × exposure_i).
+    Honest: only legs that decoded into anchor mode contribute; traditional legs
+    add nothing. None when no leg carries a theme."""
+    if not holdings:
+        return []
+    n = len(holdings)
+    wmap = {h.ticker: (h.weight_pct if h.weight_pct is not None else 100.0 / n) for h in holdings}
+    wtotal = sum(wmap.values()) or 100.0
+    agg: dict = {}                       # theme -> {"pct": float, "tickers": set}
+    for h in holdings:
+        pt = per_ticker.get(h.ticker) or {}
+        am = pt.get("anchor_mode") if isinstance(pt, dict) else None
+        if not am:
+            continue
+        wfrac = wmap[h.ticker] / wtotal
+        for te in (am.get("theme_exposures") or []):
+            theme = te.get("theme") if isinstance(te, dict) else getattr(te, "theme", None)
+            ep = te.get("exposure_pct") if isinstance(te, dict) else getattr(te, "exposure_pct", None)
+            if not theme or not isinstance(ep, (int, float)):
+                continue
+            d = agg.setdefault(theme, {"pct": 0.0, "tickers": set()})
+            d["pct"] += wfrac * ep       # this leg's weighted contribution to the theme
+            d["tickers"].add(h.ticker)
+    rows: list = []
+    for theme, d in sorted(agg.items(), key=lambda kv: -kv[1]["pct"]):
+        pct = round(d["pct"], 2)
+        rows.append(db.ThemeExposure(
+            theme=theme, exposure_pct=pct,
+            contributing_tickers=sorted(d["tickers"]),
+            is_concentration_risk=(pct >= _PORTFOLIO_CONC_PCT),
+        ))
+    return rows
+
+
 def _decode_portfolio(source_input, lang, emit,
                       fundamentals_fn, *, llm=None, conn=None, hunter=None) -> db.BetCard:
     holdings_spec = _parse_portfolio(source_input)
@@ -1653,6 +1695,16 @@ def _decode_portfolio(source_input, lang, emit,
         except Exception:
             pass
 
+    # Equal-weight default when no weights were supplied (a plain comma string
+    # carries none) so composition / weighting is always well-defined.
+    if holdings and all(h.weight_pct is None for h in holdings):
+        eq = round(100.0 / len(holdings), 2)
+        for h in holdings:
+            h.weight_pct = eq
+    # R1 (previously deferred): weight the legs' anchor-mode theme exposures into
+    # card-level theme rows + a portfolio-level concentration flag.
+    theme_rows = _aggregate_portfolio_themes(holdings, per_ticker)
+
     card = db.BetCard(
         subject=subject,
         source_type=SOURCE_PORTFOLIO,
@@ -1660,7 +1712,7 @@ def _decode_portfolio(source_input, lang, emit,
         source_ref=", ".join(h.ticker for h in holdings),
         bet=None,                       # portfolio carries no single scalar bet
         holdings=holdings,
-        theme_exposures=[],             # R1/theme aggregation arrives with #3
+        theme_exposures=theme_rows,     # R1 weighted theme aggregation
     )
     card.decode_detail = {              # type: ignore[attr-defined]
         "anchor_type": "portfolio",
