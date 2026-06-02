@@ -2098,6 +2098,66 @@
   .card-page .cp-bet .cb-core { color: var(--accent); font-weight: 600; }
   .card-page .cp-bet .cb-detail { font-family: var(--mono); font-size: 11px; color: var(--ink-4); margin-top: 7px; letter-spacing: 0.02em; line-height: 1.5; }
 
+  /* ============ DEEP ANALYSIS (elevated, complete market-narrative) ============ */
+  .card-page .cp-deep { margin-bottom: 22px; }
+  .card-page .cp-deep .da-empty { font-family: var(--mono); font-size: 11px; color: var(--ink-4); border: 1px dashed var(--line); padding: 14px 16px; letter-spacing: 0.02em; line-height: 1.6; }
+  .card-page .cp-deep .da-banner { border: 1px solid var(--line); background: var(--paper-2); padding: 13px 16px; margin-bottom: 14px; }
+  .card-page .cp-deep .da-regime { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+  .card-page .cp-deep .da-reg-badge { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--ink); border: 1px solid var(--ink); padding: 2px 9px; }
+  .card-page .cp-deep .da-bb { font-family: var(--mono); font-size: 10px; color: var(--ink-4); letter-spacing: 0.04em; }
+  .card-page .cp-deep .da-headline { font-size: 15px; color: var(--ink); font-weight: 500; line-height: 1.55; }
+  .card-page .cp-deep .da-rationale { font-size: 12px; color: var(--ink-3); margin-top: 7px; line-height: 1.6; }
+  .card-page .da-debate { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .card-page .da-col-h { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; padding-bottom: 6px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .card-page .da-col.bull .da-col-h { color: var(--positive); border-color: var(--positive); }
+  .card-page .da-col.bear .da-col-h { color: var(--negative); border-color: var(--negative); }
+  .card-page .da-point { border: 1px solid var(--line); border-left: 2px solid var(--ink-4); margin-bottom: 7px; }
+  .card-page .da-point.bull { border-left-color: var(--positive); }
+  .card-page .da-point.bear { border-left-color: var(--negative); }
+  .card-page .da-point > summary { font-size: 12px; color: var(--ink-2); padding: 8px 10px; cursor: pointer; list-style: none; line-height: 1.5; }
+  .card-page .da-point > summary::-webkit-details-marker { display: none; }
+  .card-page .da-point > summary::before { content: "▸ "; font-family: var(--mono); color: var(--ink-4); }
+  .card-page .da-point[open] > summary::before { content: "▾ "; }
+  .card-page .da-point[open] > summary { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--line); }
+  .card-page .da-body { padding: 9px 12px 11px; font-size: 11.5px; color: var(--ink-2); line-height: 1.65; }
+  .card-page .da-body p { margin: 0 0 7px; } .card-page .da-body p:last-child { margin-bottom: 0; }
+  .card-page .da-body ul { margin: 4px 0 7px; padding-left: 16px; } .card-page .da-body li { margin-bottom: 3px; }
+  .card-page .da-body strong { color: var(--ink); font-weight: 600; }
+  .card-page .md-cite { font-family: var(--mono); font-size: 8px; color: var(--ink-5); }
+  .card-page .da-sec { margin-bottom: 14px; }
+  .card-page .da-sec-h { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
+  .card-page .xb { border-left: 2px solid var(--line-2); padding: 7px 11px; margin-bottom: 5px; background: var(--paper-2); }
+  .card-page .xb.lean-bull { border-left-color: var(--positive); }
+  .card-page .xb.lean-bear { border-left-color: var(--negative); }
+  .card-page .xb.lean-mixed { border-left-color: var(--neutral); }
+  .card-page .xb.diverge { border-left-color: var(--accent); }
+  .card-page details.xb > summary { list-style: none; cursor: pointer; }
+  .card-page details.xb > summary::-webkit-details-marker { display: none; }
+  .card-page details.xb > summary::after { content: " ▾"; font-family: var(--mono); color: var(--ink-4); font-size: 9px; }
+  .card-page .xb-asm { font-size: 12px; color: var(--ink-2); }
+  .card-page .xb-iv { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--ink); margin-left: 8px; }
+  .card-page .xb-verd { font-family: var(--mono); font-size: 9.5px; margin-left: 8px; }
+  .card-page .xb-verd .mn-lean { color: var(--ink-3); }
+  .card-page .xb-verd .mn-ev { color: var(--ink-3); margin-left: 4px; }
+  .card-page .xb.diverge .xb-verd .mn-ev { color: var(--accent); }
+  .card-page .xb-body { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+  .card-page .xb-sup, .card-page .xb-thr, .card-page .xb-note { font-size: 11px; line-height: 1.6; margin-bottom: 6px; color: var(--ink-2); }
+  .card-page .xb-k { font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.08em; padding: 1px 5px; margin-right: 6px; border: 1px solid var(--line); }
+  .card-page .xb-sup .xb-k { color: var(--positive); border-color: var(--positive); }
+  .card-page .xb-thr .xb-k { color: var(--negative); border-color: var(--negative); }
+  .card-page .xb-note { color: var(--ink-3); }
+  .card-page .da-axis { padding: 8px 0; border-bottom: 1px dotted var(--line); }
+  .card-page .da-axis-t { font-size: 12.5px; color: var(--ink); font-weight: 500; }
+  .card-page .da-axis-w { font-size: 11px; color: var(--ink-3); margin-top: 4px; line-height: 1.6; }
+  .card-page .da-cat { padding: 7px 0; border-bottom: 1px dotted var(--line); }
+  .card-page .da-cat-top { display: flex; gap: 10px; align-items: baseline; }
+  .card-page .da-cat-d { font-family: var(--mono); font-size: 10px; color: var(--ink-3); white-space: nowrap; }
+  .card-page .da-cat-e { font-size: 12.5px; color: var(--ink); font-weight: 500; }
+  .card-page .da-cat-w { font-size: 11px; color: var(--ink-3); margin-top: 3px; line-height: 1.55; }
+  .card-page .da-src { font-family: var(--mono); font-size: 9.5px; color: var(--ink-4); margin-top: 6px; letter-spacing: 0.02em; }
+  .card-page .da-loading { font-family: var(--mono); font-size: 10px; color: var(--ink-5); margin-top: 8px; }
+  @media (max-width: 1024px) { .card-page .da-debate { grid-template-columns: 1fr; } }
+
   /* ============ Multi-level derivation tree (page hero) ============ */
   .card-page .cp-sec-lab { font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 14px; }
   .card-page .cp-tree { margin-bottom: 4px; }
@@ -2938,7 +2998,7 @@ function renderCanvas() {
   renderSelectionUI();
   // The active single card's price chart is always-on → paint it (lazy + cached).
   const ac = _activeCard();
-  if (ac && ac.card_kind !== 'portfolio') ensurePriceHistory(ac.subject, ac.card_id);
+  if (ac && ac.card_kind !== 'portfolio') { ensurePriceHistory(ac.subject, ac.card_id); ensureDetail(ac.card_id); }
 }
 
 // ----- tab model: one tab per non-derived card; pinned sort to the front -----
@@ -3098,6 +3158,127 @@ function renderNarrativeZone(mn) {
     binds +
     (sqLine ? '<div class="mn-sq">' + escapeHTML(sqLine) + '</div>' : '') +
   '</div>';
+}
+
+// ---- Tiny, SAFE markdown → HTML (escape FIRST, then format) ----
+function _mdInline(s) { return s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>'); }
+function _md(s) {
+  if (!s) return '';
+  let t = escapeHTML(String(s)).replace(/\[\d+(?:[,\]\[]\d+)*\]/g, '<sup class="md-cite">$&</sup>');
+  const lines = t.split('\n');
+  let html = '', ul = false;
+  const closeUl = () => { if (ul) { html += '</ul>'; ul = false; } };
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) { closeUl(); continue; }
+    const b = line.match(/^[-*]\s+(.*)$/);
+    if (b) { if (!ul) { html += '<ul>'; ul = true; } html += '<li>' + _mdInline(b[1]) + '</li>'; }
+    else { closeUl(); html += '<p>' + _mdInline(line) + '</p>'; }
+  }
+  closeUl();
+  return html;
+}
+
+// ---- Lazy-hydrate the FULL decode_detail (rich market_narrative.full + evidence)
+// for the active card. The boot list (/api/cards) only carries the compact summary;
+// the rich blob is in card_to_json_full (GET /api/cards/{id}). One fetch per card. ----
+async function ensureDetail(cardId) {
+  if (!cardId || String(cardId).startsWith('fix')) return;   // fixtures have no server detail
+  const card = state.cards.find(c => c.card_id === cardId);
+  if (!card || card._hydrated) return;
+  const mnFull = ((card.decode_detail || {}).market_narrative || {}).full;
+  if (mnFull) { card._hydrated = true; return; }              // already rich
+  if (state.offline) return;
+  card._hydrated = true;                                      // guard: one attempt
+  try {
+    const r = await fetch('/api/cards/' + encodeURIComponent(cardId));
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const full = await r.json();
+    if (full && full.decode_detail) card.decode_detail = full.decode_detail;
+    if (full && full._display) card._display = full._display;
+    if (full && full.market_narrative) card.market_narrative = full.market_narrative;
+    renderCanvas();                                           // re-render with the rich data
+  } catch (e) { card._hydrated = false; }                     // allow a later retry
+}
+
+// ---- DEEP ANALYSIS (the elevated, complete, visualized market-narrative section) ----
+function _daPoints(items, side) {
+  if (!items || !items.length) return '<div class="da-empty-col">—</div>';
+  return items.map(it => {
+    const body = _md(it.body_md || '');
+    return '<details class="da-point ' + side + '"><summary>' + escapeHTML(it.claim || '') + '</summary>' +
+      (body ? '<div class="da-body">' + body + '</div>' : '') + '</details>';
+  }).join('');
+}
+function renderDeepAnalysis(c) {
+  const sum = c.market_narrative || {};
+  const full = ((c.decode_detail || {}).market_narrative || {}).full || null;
+  const cov = sum.coverage || (full && full.coverage);
+  const lab = '<div class="cp-sec-lab">深度分析 · DEEP ANALYSIS — 市场为什么这么 bet,多空怎么吵</div>';
+  if (!cov || cov === 'unavailable' || cov === 'unparseable') {
+    return '<div class="cp-deep">' + lab +
+      '<div class="da-empty">市场叙事材料不足 / 未联网 —— 对这张卡运行联网 deep research(MiroMind)后,这里会填上多空论战、逐假设支撑/反驳、争议焦点与催化剂。</div></div>';
+  }
+  const reg = full && full.sentiment_regime || {};
+  const regime = regimeLabel(sum.regime || reg.label);
+  const bull = full ? full.bull_case : null, bear = full ? full.bear_case : null;
+  const headline = sum.headline || (full && full.headline) || '';
+  const rationale = reg.rationale || sum.regime_rationale || '';
+  let html = '<div class="cp-deep">' + lab +
+    '<div class="da-banner">' +
+      '<div class="da-regime"><span class="da-reg-badge">' + escapeHTML(regime) + '</span>' +
+        '<span class="da-bb">多 ' + (sum.bull_count != null ? sum.bull_count : (bull ? bull.length : 0)) +
+        ' · 空 ' + (sum.bear_count != null ? sum.bear_count : (bear ? bear.length : 0)) + '</span></div>' +
+      (headline ? '<div class="da-headline">' + escapeHTML(headline) + '</div>' : '') +
+      (rationale ? '<div class="da-rationale">' + escapeHTML(rationale) + '</div>' : '') +
+    '</div>';
+  if (bull || bear) {
+    html += '<div class="da-debate">' +
+      '<div class="da-col bull"><div class="da-col-h">看多 · BULL (' + (bull ? bull.length : 0) + ')</div>' + _daPoints(bull, 'bull') + '</div>' +
+      '<div class="da-col bear"><div class="da-col-h">看空 · BEAR (' + (bear ? bear.length : 0) + ')</div>' + _daPoints(bear, 'bear') + '</div>' +
+    '</div>';
+  }
+  const fb = (full && full.assumption_bindings) || [], sb = sum.bindings || [];
+  const n = Math.max(fb.length, sb.length);
+  if (n) {
+    let rows = '';
+    for (let i = 0; i < n; i++) {
+      const F = fb[i] || {}, S = sb[i] || {};
+      const lean = _LEAN[F.where_price_leans || S.leans] || [(F.where_price_leans || S.leans || ''), ''];
+      const ev = S.evidence_verdict ? (_VERDICT[S.evidence_verdict] || S.evidence_verdict) : '';
+      const asm = F.assumption_text || S.assumption || '';
+      const iv = F.implied_value ? '<span class="xb-iv">' + escapeHTML(String(F.implied_value)) + '</span>' : '';
+      const head = '<span class="xb-asm">' + escapeHTML(asm) + '</span>' + iv +
+        '<span class="xb-verd"><span class="mn-lean">叙事 ' + escapeHTML(lean[0]) + '</span>' +
+        (ev ? '<span class="mn-ev">· 证据 ' + escapeHTML(ev) + (S.diverges ? ' ⚠' : '') + '</span>' : '') + '</span>';
+      const detail = (F.supported_by ? '<div class="xb-sup"><span class="xb-k">支撑</span>' + _md(F.supported_by) + '</div>' : '') +
+        (F.threatened_by ? '<div class="xb-thr"><span class="xb-k">反驳</span>' + _md(F.threatened_by) + '</div>' : '') +
+        ((F.note || S.note) ? '<div class="xb-note">' + escapeHTML(F.note || S.note) + '</div>' : '');
+      rows += detail
+        ? '<details class="xb ' + lean[1] + (S.diverges ? ' diverge' : '') + '"><summary>' + head + '</summary><div class="xb-body">' + detail + '</div></details>'
+        : '<div class="xb ' + lean[1] + (S.diverges ? ' diverge' : '') + '">' + head + '</div>';
+    }
+    html += '<div class="da-sec"><div class="da-sec-h">逐假设交叉验证 · 叙事 vs 独立证据</div>' + rows + '</div>';
+  }
+  const ca = (full && full.contested_axis) || [];
+  if (ca.length) {
+    html += '<div class="da-sec"><div class="da-sec-h">争议焦点 · 多空在吵什么</div>' +
+      ca.map(a => '<div class="da-axis"><div class="da-axis-t">' + escapeHTML(a.axis || '') + '</div>' +
+        (a.why_it_matters ? '<div class="da-axis-w">' + escapeHTML(a.why_it_matters) + '</div>' : '') + '</div>').join('') + '</div>';
+  }
+  const cat = (full && full.catalysts) || [];
+  if (cat.length) {
+    html += '<div class="da-sec"><div class="da-sec-h">催化剂 · 接下来看什么</div>' +
+      cat.map(e => '<div class="da-cat"><div class="da-cat-top"><span class="da-cat-d">' + escapeHTML(e.date || '') + '</span>' +
+        '<span class="da-cat-e">' + escapeHTML(e.event || '') + '</span></div>' +
+        (e.why_it_matters ? '<div class="da-cat-w">' + escapeHTML(e.why_it_matters) + '</div>' : '') + '</div>').join('') + '</div>';
+  }
+  const sq = sum.source_quality || (full && full.source_quality) || {};
+  const byt = sq.by_tier || {};
+  const tierStr = ['A', 'B', 'C', 'D'].filter(t => byt[t]).map(t => t + '×' + byt[t]).join(' · ');
+  if (tierStr) html += '<div class="da-src">信源 ' + escapeHTML(tierStr) + ' · ' + (sq.unverified_claims || 0) + ' 条未经一手核实</div>';
+  if (!full) html += '<div class="da-loading">加载完整多空论证…</div>';
+  return html + '</div>';
 }
 
 // ---- Reverse-derivation FLOW DIAGRAM (replaces the thin decision-chain list) ----
@@ -3425,7 +3606,6 @@ function renderSingleCard(c) {
   const anchor = d.anchor != null ? ('$' + Number(d.anchor).toLocaleString('en-US', { maximumFractionDigits: 2 })) : '—';
   const np = narrativePremiumPct(c, d);
   const stale = c.trade_date && c.trade_date < todayISO();
-  const narrativeHtml = renderNarrativeZone(c.market_narrative);
   const kpi = (lab, val, hot) => '<span class="kpi"><span class="lab">' + lab + '</span><span class="val' + (hot ? ' hot' : '') + '">' + val + '</span></span>';
 
   return '<div class="bet-card card-page' + (sel ? ' selected' : '') + '" data-card="' + escapeHTML(c.card_id) + '">' +
@@ -3443,6 +3623,7 @@ function renderSingleCard(c) {
     '</div>' +
     (stale ? '<div class="bc-stale"><span class="dot"></span>基于 ' + escapeHTML(c.trade_date) + ' 收盘 · 历史快照</div>' : '') +
     _betHeadline(c) +
+    renderDeepAnalysis(c) +
     '<div class="cp-tree">' +
       '<div class="cp-sec-lab">推导 · 上面这个 bet 是怎么从现价反解出来的</div>' +
       renderDerivationTree(c) +
@@ -3457,7 +3638,6 @@ function renderSingleCard(c) {
       '</div>' +
       '<div class="cp-sup-side">' +
         renderDecomp(c) +
-        narrativeHtml +
         (d.risks ? '<div class="bc-risks"><span class="lab">关键风险</span>' + escapeHTML(d.risks) + '</div>' : '') +
       '</div>' +
     '</div>' +

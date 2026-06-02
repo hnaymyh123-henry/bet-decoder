@@ -135,6 +135,14 @@ def main() -> int:
     check("unified THE BET headline (consistent decode answer on every card)",
           thebet, f"thebet_present={thebet}")
 
+    # AC: DEEP ANALYSIS section — elevated bull/bear debate + per-assumption cross-check
+    # + contested axes + catalysts, lazy-hydrated from market_narrative.full + markdown.
+    deepa = ("function renderDeepAnalysis" in body and "renderDeepAnalysis(c)" in body
+             and 'class="cp-deep"' in body and "function ensureDetail" in body
+             and "function _md" in body and "da-debate" in body and "da-sec" in body)
+    check("deep-analysis section: bull/bear debate + cross-check, lazy-hydrated + markdown",
+          deepa, f"deep_present={deepa}")
+
     # AC: synthesis flow — select >=2 cards → synth btn → POST /api/synthesize → headline+graph+narrative.
     has_synth_btn = 'id="synth-btn"' in body
     gating = "size < 2" in body or "ids.length < 2" in body or "n < 2" in body
