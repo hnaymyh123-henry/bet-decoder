@@ -1794,23 +1794,14 @@
   }
   .wb-canvas { grid-area: canvas; min-width: 0; }
   .wb-feed   { grid-area: feed; }
-  .wb-synth  { grid-area: synth; min-width: 0; }
 
-  /* Canvas header (count + synthesize CTA) */
+  /* Canvas header (decoded-bets count) */
   .canvas-head {
     display: flex; justify-content: space-between; align-items: baseline;
     border-bottom: 1px solid var(--rule); padding-bottom: 10px; margin-bottom: 20px;
   }
   .canvas-head .ttl { font-size: 13px; font-weight: 500; letter-spacing: -0.01em; }
   .canvas-head .ttl .ct { font-family: var(--mono); color: var(--ink-3); margin-left: 8px; font-size: 11.5px; }
-  .canvas-head .actions { display: flex; gap: 10px; align-items: center; }
-  .canvas-head .synth-btn {
-    background: var(--paper); border: 1px solid var(--ink); color: var(--ink);
-    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase;
-    padding: 8px 14px; cursor: pointer; font-weight: 500;
-  }
-  .canvas-head .synth-btn:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
-  .canvas-head .synth-btn:disabled { opacity: 0.35; cursor: default; }
 
   /* Card grid: a vertical stack of blocks — each portfolio + its holdings group,
      then a grid of standalone bets. */
@@ -2084,16 +2075,6 @@
   .card-page .cp-right .price-chart-wrap { margin-bottom: 14px; }
   .card-page .bc-discuss { border-top: 2px solid var(--ink); margin-top: 18px; padding: 14px 0 0; }
   .card-page .bc-risks { margin-top: 14px; }
-
-  .portfolio-page .cp-constituents { margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--line); }
-  .portfolio-page .cc-lab { font-family: var(--mono); font-size: 9px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 9px; }
-  .portfolio-page .cp-hold { display: grid; grid-template-columns: 90px 64px 1fr; gap: 12px; padding: 8px 6px; border-bottom: 1px dotted var(--line); align-items: baseline; font-size: 12.5px; }
-  .portfolio-page .cp-hold .h-t { font-weight: 600; color: var(--ink); }
-  .portfolio-page .cp-hold .h-w { font-family: var(--mono); color: var(--ink-2); text-align: right; }
-  .portfolio-page .cp-hold .h-s { font-family: var(--mono); font-size: 10px; color: var(--ink-4); letter-spacing: 0.02em; }
-  .portfolio-page .cp-hold.linked { cursor: pointer; }
-  .portfolio-page .cp-hold.linked:hover { background: var(--paper-2); }
-  .portfolio-page .cp-hold.linked .h-s { color: var(--accent); }
   @media (max-width: 1024px) { .card-page .cp-cols { grid-template-columns: 1fr; } }
 
   /* ============ THE BET headline (the consistent decode answer) ============ */
@@ -2363,35 +2344,7 @@
   .wb-feed .af-placeholder { margin-bottom: 12px; }
   @media (max-width: 1024px) { .wb-feed { position: static; } .wb-feed .ap-wrap { max-height: none; } }
 
-  /* ---- Synthesis panel (bottom, expandable) ---- */
-  .wb-synth { border-top: 1px solid var(--rule); padding-top: 0; }
-  .synth-bar {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 14px 0; cursor: pointer;
-  }
-  .synth-bar .lbl { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
-  .synth-bar .title { font-size: 16px; font-weight: 500; letter-spacing: -0.01em; }
-  .synth-bar .chev { font-family: var(--mono); font-size: 13px; color: var(--ink-3); }
-  .synth-content { display: none; padding: 4px 0 36px; }
-  .synth-content.open { display: block; }
-  .synth-headline {
-    background: var(--ink); color: var(--paper); padding: 20px 24px; margin-bottom: 22px;
-  }
-  .synth-headline .lab { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-5); display: block; margin-bottom: 8px; }
-  .synth-headline .text { font-size: 17px; line-height: 1.5; font-weight: 400; }
-  .synth-headline .text strong { color: #FFD89B; font-weight: 600; }
-  .synth-empty {
-    border: 1px dashed var(--line); background: var(--paper-2); padding: 28px 24px;
-    text-align: center; color: var(--ink-3); font-size: 13px; line-height: 1.7;
-  }
-  .synth-empty strong { display: block; color: var(--ink-2); font-weight: 500; margin-bottom: 6px; }
-  .synth-exhibit {
-    display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: baseline;
-    border-bottom: 1px solid var(--line); padding-bottom: 7px; margin: 22px 0 12px;
-  }
-  .synth-exhibit .ex { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
-  .synth-exhibit .et { font-size: 12.5px; font-weight: 500; }
-  .synth-exhibit .es { font-family: var(--mono); font-size: 9.5px; color: var(--ink-4); }
+  /* ---- Cross-holding relation table (portfolio synthesis · _renderRelations) ---- */
   .rel-table { width: 100%; border-collapse: collapse; font-size: 12px; }
   .rel-table th {
     font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
@@ -2414,10 +2367,6 @@
   .rel-table .strength.strong { color: var(--accent); border-color: var(--accent); }
   .rel-table .strength.medium { color: var(--neutral); border-color: var(--neutral); }
   .rel-table .strength.weak { color: var(--ink-4); }
-  .synth-narrative {
-    max-width: 780px; font-size: 13px; line-height: 1.75; color: var(--ink-2);
-    border-left: 2px solid var(--line); padding-left: 16px; margin-top: 18px;
-  }
 
   /* ---- Responsive: collapse three-zone to single column < 1024px ---- */
   @media (max-width: 1024px) {
@@ -2431,7 +2380,6 @@
   }
   @media (max-width: 560px) {
     .pf-holdings { font-size: 11px; }
-    .synth-exhibit { grid-template-columns: 1fr; gap: 4px; }
   }
 </style>
 </head>
@@ -2674,21 +2622,6 @@ const FIXTURE_CARDS = {
   }
 };
 
-const FIXTURE_SYNTH = {
-  headline_insight: {
-    text: "你的组合和 NVDA 的市场定价 <strong>押的是同一个赌注</strong>:hyperscaler AI capex 持续高位。",
-    relation_id: "r1"
-  },
-  relations: [
-    { id: "r1", type: "same-source", card_a: "fix_nvda", card_b: "fix_pf", strength: "strong",
-      shared_assumption: "hyperscaler AI capex 持续高位", detail: "NVDA 单股 bet 与组合 76% 仓位共享同一前提", comparable: true },
-    { id: "r2", type: "consensus", card_a: "fix_nvda", card_b: "fix_cost", strength: "medium",
-      shared_assumption: "低折现率环境", detail: "两者隐含 WACC 都低于各自 CAPM 基线", comparable: true }
-  ],
-  narrative: "你以为持有多家不同公司分散了风险,实际上 NVDA 的市场 bet 和你组合的 76% 仓位依赖同一件事 (r1)。同时两张单股卡都隐含偏低的折现率假设 (r2),意味着一旦利率上行,它们会同步承压。",
-  generated_at: "2026-05-29T00:00:00Z"
-};
-
 /* ============================================================
    STATE
    ============================================================ */
@@ -2915,7 +2848,6 @@ function removeCard(cardId) {
   // best-effort server delete (ignore failure / fixture ids)
   fetch('/api/cards/' + encodeURIComponent(cardId), { method: 'DELETE' }).catch(() => {});
   renderCanvas();
-  renderSelectionUI();
 }
 
 /* ============================================================
@@ -3011,7 +2943,6 @@ function renderCanvas() {
   }
   renderAgentPanel();   // sticky right column, rebound to the active card (option B)
   bindCardEvents();
-  renderSelectionUI();
   // The active single card's price chart is always-on → paint it (lazy + cached).
   const ac = _activeCard();
   if (ac && ac.card_kind !== 'portfolio') { ensurePriceHistory(ac.subject, ac.card_id); ensureDetail(ac.card_id); }
@@ -3961,82 +3892,7 @@ function renderDerivedCard(c) {
   '</div>';
 }
 
-function renderPortfolioCard(c) {
-  const sel = state.selected.has(c.card_id);
-  const themes = (c.theme_exposures || []).map((t, i) => {
-    const pct = Number(t.exposure_pct || 0);
-    return '<div class="pf-theme t' + (i + 1) + '">' +
-      '<div class="pf-theme-top">' +
-        '<span class="pf-theme-name">' + escapeHTML(t.theme) +
-          (t.is_concentration_risk ? '<span class="risk-tag">集中风险</span>' : '') + '</span>' +
-        '<span class="pf-theme-pct">' + pct + '%</span>' +
-      '</div>' +
-      '<div class="pf-bar"><div class="fill" style="width:' + Math.max(0, Math.min(100, pct)) + '%"></div></div>' +
-      '<div class="pf-contrib">贡献: ' + escapeHTML((t.contributing_tickers || []).join(' · ')) + '</div>' +
-    '</div>';
-  }).join('');
-  const conc = (c.theme_exposures || []).find(t => t.is_concentration_risk);
-  const concHtml = conc ? '<div class="pf-conc"><span class="lab">⚠ 集中风险 (Aha)</span>' +
-    '你的仓位高度集中在 <strong>' + escapeHTML(conc.theme) + '</strong> (' + Number(conc.exposure_pct || 0) + '%) — ' +
-    '看似分散持有 ' + (conc.contributing_tickers || []).length + ' 只票, 实际在<strong>押同一个赌注</strong>。</div>' : '';
-  const holdings = (c.holdings || []).map(h =>
-    '<tr><td class="tk">' + escapeHTML(h.ticker) + '</td><td class="wt r">' + (h.weight_pct != null ? h.weight_pct + '%' : '—') + '</td>' +
-    '<td class="r" style="font-family:var(--mono);color:var(--ink-4);font-size:10px">' + (h.run_id != null ? '→ run ' + h.run_id : '') + '</td></tr>'
-  ).join('');
-  const exp = state.expanded[c.card_id] || {};
-
-  // Holdings weight composition: stacked bar + legend, sorted by weight, monochrome
-  // oxblood ramp (opacity by rank). Answers "what's actually in here, and how much".
-  const hsorted = [...(c.holdings || [])].sort((a, b) => (Number(b.weight_pct) || 0) - (Number(a.weight_pct) || 0));
-  const wtotal = hsorted.reduce((s, h) => s + (Number(h.weight_pct) || 0), 0) || 100;
-  const nH = hsorted.length;
-  const wOpacity = (i) => (1 - (i / Math.max(1, nH)) * 0.72).toFixed(2);
-  const wsegs = hsorted.map((h, i) =>
-    '<div class="pf-wseg" style="width:' + ((Number(h.weight_pct) || 0) / wtotal * 100) + '%;opacity:' + wOpacity(i) + '"' +
-    ' title="' + escapeHTML(h.ticker) + ' ' + (h.weight_pct != null ? h.weight_pct + '%' : '') + '"></div>'
-  ).join('');
-  const wlegend = hsorted.map((h, i) =>
-    '<span class="pf-wleg"><span class="sw" style="opacity:' + wOpacity(i) + '"></span>' +
-    escapeHTML(h.ticker) + ' <span class="wt">' + (h.weight_pct != null ? h.weight_pct + '%' : '—') + '</span></span>'
-  ).join('');
-  const weightBar = nH ? '<div class="pf-weights">' +
-      '<div class="pf-wlab">持仓权重构成 · ' + nH + ' 只</div>' +
-      '<div class="pf-wbar">' + wsegs + '</div>' +
-      '<div class="pf-wlegend">' + wlegend + '</div>' +
-    '</div>' : '';
-
-  return '<div class="bet-card portfolio' + (sel ? ' selected' : '') + '" data-card="' + escapeHTML(c.card_id) + '">' +
-    '<div class="bc-head">' +
-      '<label class="bc-sel"><input type="checkbox" data-sel="' + escapeHTML(c.card_id) + '"' + (sel ? ' checked' : '') + '></label>' +
-      '<div class="bc-id">' +
-        '<div class="bc-subj">' + escapeHTML(c.subject) + '<span class="bc-badge">Portfolio · ' + (c.holdings || []).length + ' 持仓</span></div>' +
-        '<div class="bc-source">' + escapeHTML(c.source_ref || '') + '</div>' +
-      '</div>' +
-      '<button class="bc-del" data-del="' + escapeHTML(c.card_id) + '" title="Remove">✕</button>' +
-    '</div>' +
-    '<div class="pf-body">' +
-      weightBar +
-      '<div class="pf-seclab">你的钱实际在 BET 什么</div>' +
-      '<div class="pf-secsub">把各持仓的隐含假设, 按权重聚合到主题级</div>' +
-      (themes || '<div class="bc-intro">无主题暴露数据。</div>') +
-      concHtml +
-    '</div>' +
-    (holdings ? '<div class="bc-foot"><button class="tlink" data-chain="' + escapeHTML(c.card_id) + '">▾ 按持仓展开</button></div>' +
-      '<div class="bc-expand' + (exp.chain ? ' open' : '') + '" data-chainbody="' + escapeHTML(c.card_id) + '"><h4>持仓明细</h4>' +
-      '<table class="pf-holdings"><thead><tr><th>标的</th><th class="r">权重</th><th class="r">单股卡</th></tr></thead><tbody>' + holdings + '</tbody></table></div>' : '') +
-  '</div>';
-}
-
 function bindCardEvents() {
-  // Portfolio card's own select checkbox → drives state.selected (full re-render so
-  // the tab dot + synth btn update).
-  document.querySelectorAll('[data-sel]').forEach(cb => {
-    cb.addEventListener('change', () => {
-      const id = cb.getAttribute('data-sel');
-      if (cb.checked) state.selected.add(id); else state.selected.delete(id);
-      renderCanvas();
-    });
-  });
   document.querySelectorAll('[data-del]').forEach(b => {
     b.addEventListener('click', () => removeCard(b.getAttribute('data-del')));
   });
@@ -4056,13 +3912,6 @@ function bindCardEvents() {
   // Suggested scenario chips → fire the existing askCard() (what-if / Q&A).
   document.querySelectorAll('[data-chip]').forEach(b =>
     b.addEventListener('click', () => askCard(b.getAttribute('data-chip'), b.getAttribute('data-chipq'))));
-  // Per-page "选入综合" toggle (single-card pages).
-  document.querySelectorAll('[data-selpage]').forEach(cb =>
-    cb.addEventListener('change', () => {
-      const id = cb.getAttribute('data-selpage');
-      if (cb.checked) state.selected.add(id); else state.selected.delete(id);
-      renderCanvas();
-    }));
   // --- Tabs: activate / dblclick-rename / drag-reorder / pin / close ---
   document.querySelectorAll('.wb-tab[data-tab]').forEach(tab => {
     const id = tab.getAttribute('data-tab');
@@ -4087,133 +3936,6 @@ function bindCardEvents() {
 }
 
 /* ============================================================
-   SELECTION + SYNTHESIZE TRIGGER
-   ============================================================ */
-function renderSelectionUI() {
-  const n = state.selected.size;
-  const cnt = document.getElementById('synth-sel-count');
-  if (cnt) cnt.textContent = n;
-  const btn = document.getElementById('synth-btn');
-  if (btn) btn.disabled = n < 2 || state.busy;
-}
-
-async function synthesize() {
-  if (state.busy) { showToast('A decode/synthesis is already running.'); return; }
-  const ids = [...state.selected];
-  if (ids.length < 2) { showToast('Select at least 2 cards to synthesize.'); return; }
-  state.busy = true;
-  setStatus('Synthesizing ' + ids.length + ' cards…', 'synthesis');
-  setBusy(true);
-  openSynthPanel(true);
-
-  // Demo fixtures (fix_*) live only client-side, not in the server DB, so the real
-  // /api/synthesize would honestly return no relations for them. Short-circuit to
-  // the bundled demo synthesis so the workbench can show Module 3 without a live
-  // call. Real (server-backed) cards fall through to the API below, where an empty
-  // result still renders the honest "no significant relation" state.
-  if (ids.every(id => String(id).startsWith('fix_'))) {
-    const fx = JSON.parse(JSON.stringify(FIXTURE_SYNTH));
-    fx.card_ids = ids;
-    renderSynthesis(fx);
-    setStatus('Synthesized (demo fixture)', 'synthesis');
-    state.busy = false; setBusy(false); renderSelectionUI();
-    return;
-  }
-
-  let result = null;
-  try {
-    const r = await fetch('/api/synthesize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ card_ids: ids, lang: state.lang })
-    });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    result = await r.json();
-    setStatus('Synthesized via API', 'synthesis');
-  } catch (e) {
-    result = JSON.parse(JSON.stringify(FIXTURE_SYNTH));   // dev fixture
-    result.card_ids = ids;
-    setStatus('Synthesized (dev fixture)', 'synthesis');
-  }
-
-  renderSynthesis(result);
-  state.busy = false; setBusy(false);
-  renderSelectionUI();
-}
-
-/* ============================================================
-   SYNTHESIS PANEL RENDER — headline + relation graph + narrative.
-   headline_insight === null → honest empty state (M3 no-relation).
-   ============================================================ */
-function renderSynthesis(res) {
-  const empty = document.getElementById('synth-empty');
-  const wrap = document.getElementById('synth-result');
-  const rels = (res && res.relations) || [];
-  const hasHeadline = res && res.headline_insight && res.headline_insight.text;
-
-  if (!hasHeadline && rels.length === 0) {
-    // graceful empty state — no significant relation
-    if (wrap) wrap.style.display = 'none';
-    if (empty) {
-      empty.style.display = '';
-      empty.innerHTML = '<strong>未发现显著跨卡关系。</strong>' +
-        '这些 bet 之间没有强到值得标注的共识 / 分歧 / 矛盾 / 同源 / 漂移。换两张更相关的卡再试。';
-    }
-    return;
-  }
-
-  if (empty) empty.style.display = 'none';
-  if (wrap) wrap.style.display = '';
-
-  const hl = document.getElementById('synth-headline');
-  if (hl) {
-    if (hasHeadline) {
-      hl.style.display = '';
-      hl.innerHTML = '<span class="lab">Headline insight</span><span class="text">' +
-        (res.headline_insight.text) + '</span>';   // text may carry sanctioned <strong>
-    } else {
-      hl.style.display = 'none';
-    }
-  }
-
-  const relHost = document.getElementById('synth-relations');
-  if (relHost) {
-    if (rels.length) {
-      relHost.innerHTML =
-        '<table class="rel-table"><thead><tr>' +
-          '<th>Relation</th><th>Pair</th><th class="c">Strength</th><th>Shared assumption / detail</th>' +
-        '</tr></thead><tbody>' +
-        rels.map(rl =>
-          '<tr>' +
-            '<td><span class="rtype ' + escapeHTML(rl.type) + '">' + escapeHTML(rl.type) + '</span></td>' +
-            '<td class="pair">' + escapeHTML(shortId(rl.card_a)) + ' ↔ ' + escapeHTML(shortId(rl.card_b)) + '</td>' +
-            '<td class="c"><span class="strength ' + escapeHTML(rl.strength) + '">' + escapeHTML(rl.strength) + '</span></td>' +
-            '<td>' + escapeHTML(rl.shared_assumption || '') +
-              (rl.detail ? '<br><span style="color:var(--ink-4);font-size:11px">' + escapeHTML(rl.detail) + '</span>' : '') +
-            '</td>' +
-          '</tr>'
-        ).join('') +
-        '</tbody></table>';
-    } else {
-      relHost.innerHTML = '<div class="synth-empty" style="display:block">无可下钻关系明细。</div>';
-    }
-  }
-
-  const narr = document.getElementById('synth-narrative');
-  if (narr) {
-    narr.style.display = res && res.narrative ? '' : 'none';
-    narr.textContent = (res && res.narrative) || '';
-  }
-}
-
-function openSynthPanel(open) {
-  const content = document.getElementById('synth-content');
-  const chev = document.getElementById('synth-chev');
-  if (content) content.classList.toggle('open', open);
-  if (chev) chev.textContent = open ? '▾' : '▸';
-}
-
-/* ============================================================
    SMALL HELPERS
    ============================================================ */
 function setStatus(text, mode) {
@@ -4225,7 +3947,6 @@ function setStatus(text, mode) {
 function setBusy(on) {
   const btn = document.getElementById('decode-btn');
   if (btn) btn.disabled = !!on;
-  renderSelectionUI();
 }
 function badgeLabel(src) {
   return ({ market: 'Market', analyst_pt: 'Analyst PT', opinion: 'Opinion', portfolio: 'Portfolio' })[src] || src;

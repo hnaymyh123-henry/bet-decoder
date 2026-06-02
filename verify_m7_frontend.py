@@ -110,7 +110,7 @@ def main() -> int:
     # AC: tabbed workspace — one full-page 2-col dossier per scenario, switched via a
     # tab bar (replaces the old all-cards stacked grid). Both renderers still present.
     has_single = "function renderSingleCard" in body
-    has_pf = "function renderPortfolioCard" in body and "pf-theme" in body and "pf-holdings" in body
+    has_pf = "function renderPortfolioPage" in body and "pf-theme" in body and "pf-holdings" in body
     tabbed = ('id="tab-bar"' in body and "function renderTabBar" in body
               and "function activateTab" in body and "function renderPortfolioPage" in body
               and ".card-page .cp-support" in body and "state.activeTab" in body)
