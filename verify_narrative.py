@@ -168,6 +168,15 @@ check("AC7 no evidence brief → evidence None, no false agree/diverge",
       all(r["evidence"] is None and not r["agree"] and not r["diverges"] for r in no_ev),
       f"{[(r['label'][:10], r['evidence']) for r in no_ev]}")
 
+# --- AC8: tier classifier generalized (IR subdomains) + honest 'unverified' caveat
+check("AC8 IR subdomains tier to A (generalized beyond the host allowlist)",
+      C("https://ir.tesla.com/press") == "A" and C("https://investor.apple.com/x") == "A")
+check("AC8 newly-added reputable press tiers to B",
+      C("https://apnews.com/x") == "B" and C("https://www.forbes.com/x") == "B")
+_sq = (narrative.validate_narrative(json.loads(json.dumps(sample))) or {}).get("source_quality") or {}
+check("AC8 source_quality carries the honest 'claimed-host, unverified' caveat",
+      _sq.get("tier_basis") == "claimed_host_unverified")
+
 print("=" * 72)
 print(f"RESULT: {_passed} passed, {_failed} failed")
 print("=" * 72)

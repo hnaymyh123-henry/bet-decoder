@@ -283,6 +283,15 @@ def _normalize_brief(raw: Any, ticker: str, assumption: dict) -> dict:
     brief.setdefault("evidence_count", {"support": 0, "refute": 0, "neutral": 0})
     brief.setdefault("_meta", {"cost_usd": 0.0, "tool_call_count": 0})
     brief["_meta"].setdefault("fabricated", False)
+    # Mechanical self-consistency gate (no LLM): tag the brief with critic's verdict
+    # + issues (balance / recency / direction / overall_balance↔count consistency).
+    # Advisory — we TAG, never drop or rewrite overall_balance. Honest-empty briefs
+    # never reach here (no evidence_items), so the critic only judges real briefs.
+    try:
+        import critic
+        brief["critic"] = critic.validate_evidence_brief(brief)
+    except Exception:
+        brief["critic"] = {"verdict": "review", "issues": []}
     return brief
 
 

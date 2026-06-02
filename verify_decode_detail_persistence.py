@@ -191,11 +191,12 @@ check("AC7 基础业务价值 branch carries a 5y build-up reconciling to BASE (
       f"per_share={_bbd and round(_bbd['per_share'], 2)} vs base={_base_val and round(_base_val, 2)}")
 check("AC7 base build-up labels reconcile to 基础业务价值 (not 现价)",
       bool(_bbd) and _bbd.get("reconcile_label") == "基础业务价值"
-      and _bbd.get("cagr_label") == "共识增速")
+      and _bbd.get("cagr_label") == "基线增速(通用)")
 check("AC7 explicit 现价−基础=溢价 bridge step present in the tree",
       "− 基础" in _txts and "叙事/期权溢价" in _txts, _txts[:90])
-check("AC7 consensus-assumptions step precedes the base value (deeper chain)",
-      "共识假设" in _txts and "前向 DCF 折现" in _txts)
+check("AC7 baseline-assumptions step precedes base value, HONESTLY labeled (not '共识')",
+      "基线假设" in _txts and "前向 DCF 折现" in _txts and "非公司专属共识" in _txts
+      and "共识增速" not in _txts)
 check("AC7 base node carries an interpretive 估值地板 line (richer tree)",
       "估值地板" in _txts)
 check("AC7 quantified theme-exposure row present (R1)",

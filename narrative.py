@@ -216,6 +216,8 @@ _TIER_B_HOSTS = (
     "reuters.com", "bloomberg.com", "wsj.com", "ft.com", "cnbc.com", "yahoo.com",
     "kiplinger.com", "barrons.com", "marketwatch.com", "morningstar.com",
     "businessinsider.com", "economist.com", "nikkei.com", "indiatimes.com",
+    "apnews.com", "forbes.com", "fortune.com", "spglobal.com", "investors.com",
+    "theinformation.com", "axios.com", "techcrunch.com",
 )
 _TIER_D_HOSTS = (
     "x.com", "twitter.com", "instagram.com", "reddit.com", "tiktok.com",
@@ -245,7 +247,9 @@ def classify_source(source: dict | None) -> str:
         return "D"
     if _host_matches(host, _TIER_D_HOSTS):
         return "D"
-    if host.startswith("investor.") or _host_matches(host, _TIER_A_HOSTS):
+    # Generalize primary/IR detection beyond the (tiny, demo-biased) host list:
+    # most issuers' investor-relations live on investor.* / ir.* subdomains.
+    if host.startswith(("investor.", "ir.")) or _host_matches(host, _TIER_A_HOSTS):
         return "A"
     if _host_matches(host, _TIER_B_HOSTS):
         return "B"
@@ -309,6 +313,11 @@ def validate_narrative(parsed: dict | None) -> dict | None:
         "by_tier": counts,
         "unverified_claims": unverified,
         "total_claims": sum(counts.values()),
+        # HONEST caveat: tiers come from the source's CLAIMED host string, not from
+        # verified retrieval — we don't fetch the URL to confirm it is live or that
+        # its content actually supports the claim. A credible-looking host is tiered
+        # high even if the link is stale/fabricated. Treat as a hygiene signal, not proof.
+        "tier_basis": "claimed_host_unverified",
     }
     return parsed
 

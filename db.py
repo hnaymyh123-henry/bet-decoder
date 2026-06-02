@@ -1296,10 +1296,12 @@ def _dcf_breakdown(revenue, cagr, margin, wacc, g, net_debt, shares) -> dict | N
     }
 
 
-# Mirrors the FIXED consensus revenue CAGR in decoder._lens_dcf (the forward DCF
-# that yields baseline_dcf_price = the anchor-mode base business value). Pinned
-# here so the base-value build-up reconciles to `base`; if decoder's constant
-# drifts, the reconciliation guard in verify_decode_detail_persistence.py flags it.
+# The GENERIC baseline revenue CAGR for the base-business-value forward DCF.
+# ⚠ One-size-fits-all (mirrors decoder._lens_dcf), NOT the company's own analyst
+# consensus — the data layer has no reliable 5y revenue consensus, so we use a
+# generic baseline and surface the company's actual growth for contrast rather than
+# overclaiming "consensus". Pinned so the base-value build-up reconciles to `base`
+# (verify_decode_detail_persistence.py's reconciliation guard flags any drift).
 _CONSENSUS_BASE_CAGR = 0.15
 
 
@@ -1345,19 +1347,27 @@ def _build_derivations(dd: dict) -> dict | None:
                 w = dcf_ref.get("consensus_wacc")
                 tg = dcf_ref.get("consensus_terminal_growth")
                 m = dcf_ref.get("consensus_terminal_fcf_margin")
-                # Always-visible consensus-assumptions step (parallels the DCF branch's
-                # 固定共识 node) — the inputs the base forward-DCF holds fixed.
-                aparts = [f"营收增速 {_pct1(_CONSENSUS_BASE_CAGR)}(共识·前向)"]
-                if isinstance(w, (int, float)): aparts.append(f"WACC {_pct1(w)}")
+                # Always-visible assumptions step. HONEST labeling: the baseline CAGR is a
+                # single GENERIC value (not the company's own consensus — the data layer has
+                # no reliable 5y revenue consensus), and the discount rate is a CAPM cost of
+                # equity, not a debt-weighted WACC. We surface the company's actual growth
+                # for contrast rather than overclaiming "consensus".
+                aparts = [f"营收增速 {_pct1(_CONSENSUS_BASE_CAGR)}(通用基线,非公司专属共识)"]
+                if isinstance(w, (int, float)): aparts.append(f"贴现率 {_pct1(w)}(CAPM 权益成本)")
                 if isinstance(tg, (int, float)): aparts.append(f"终值增速 {_pct1(tg)}")
                 if isinstance(m, (int, float)): aparts.append(f"FCF 利润率 {_pct1(m)}")
                 base_levels.append({"kind": "assume",
-                                    "text": "共识假设:" + " · ".join(aparts) + " → 前向 DCF 折现"})
+                                    "text": "基线假设:" + " · ".join(aparts) + " → 前向 DCF 折现"})
+                g0 = fund.get("growth_rate")
+                if isinstance(g0, (int, float)):
+                    base_levels.append({"kind": "imply",
+                                        "text": f"对比:公司近一年实际增速 ≈ {g0 * 100:.0f}%"
+                                                f"(基线用通用 {_pct1(_CONSENSUS_BASE_CAGR)},未采用公司自身增速)"})
                 bbd = _dcf_breakdown(fund.get("revenue_ttm"), _CONSENSUS_BASE_CAGR, m, w, tg,
                                      fund.get("net_debt"), fund.get("shares_outstanding"))
                 if bbd:
-                    bbd["summary_label"] = "DCF 建模底稿 · 共识增速前向折现 → 基础业务价值"
-                    bbd["cagr_label"] = "共识增速"
+                    bbd["summary_label"] = "DCF 建模底稿 · 通用基线增速前向折现 → 基础业务价值"
+                    bbd["cagr_label"] = "基线增速(通用)"
                     bbd["reconcile_label"] = "基础业务价值"
             base_levels.append({"kind": "implied", "label": "基础业务价值", "impl": _money_big(base),
                                 "impl_num": base,
@@ -1427,16 +1437,16 @@ def _build_derivations(dd: dict) -> dict | None:
             levels = []
             w, tg, m = r.get("consensus_wacc"), r.get("consensus_terminal_growth"), r.get("consensus_terminal_fcf_margin")
             parts = []
-            if isinstance(w, (int, float)): parts.append(f"WACC {_pct1(w)}")
+            if isinstance(w, (int, float)): parts.append(f"贴现率 {_pct1(w)}(CAPM 权益成本)")
             if isinstance(tg, (int, float)): parts.append(f"终值增速 {_pct1(tg)}")
             if isinstance(m, (int, float)): parts.append(f"FCF 利润率 {_pct1(m)}")
             if parts:
-                levels.append({"kind": "assume", "text": "固定共识:" + " · ".join(parts) + " → 只解营收增速"})
+                levels.append({"kind": "assume", "text": "固定其余假设:" + " · ".join(parts) + " → 只解营收增速"})
             bl = r.get("baseline_dcf_price")
             if isinstance(bl, (int, float)):
                 expl = round(min(bl, anchor) / anchor * 100) if anchor else None
                 levels.append({"kind": "baseline",
-                               "text": f"基线 DCF(按共识增速)= ${bl:,.2f} → 解释现价 {expl}%"})
+                               "text": f"基线 DCF(按通用基线增速 {_pct1(_CONSENSUS_BASE_CAGR)})= ${bl:,.2f} → 解释现价 {expl}%"})
             if iv is not None:
                 levels.append({"kind": "implied", "label": r.get("implied_label") or "隐含 5 年营收 CAGR",
                                "impl": _fmt_implied(iv, unit), "impl_num": iv, "unit": unit,
@@ -1573,7 +1583,7 @@ def _build_activity(dd: dict) -> list[dict]:
     if am.get("components"):
         base = am.get("base_business_value")
         if isinstance(base, (int, float)) and anchor:
-            add("computation", f"前向 DCF(共识增速)→ 基础业务价值 {_money_big(base)}"
+            add("computation", f"前向 DCF(通用基线增速)→ 基础业务价值 {_money_big(base)}"
                 f"(占现价 {max(0, round(base / anchor * 100))}%)")
         for comp in am["components"]:
             amt = comp.get("implied_amount")

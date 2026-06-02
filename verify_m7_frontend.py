@@ -166,6 +166,25 @@ def main() -> int:
     check("deep-analysis section: bull/bear debate + cross-check, lazy-hydrated + markdown",
           deepa, f"deep_present={deepa}")
 
+    # AC: honest "method & limits" disclosure on every card (no overclaiming) —
+    # baseline growth is generic (not company consensus), discount rate is CAPM
+    # cost of equity, dilution not modeled, cross-check is two LLM passes, etc.
+    limits = ("function _methodLimits" in body and "cp-limits" in body
+              and "方法与局限" in body and "_methodLimits(c)" in body
+              and "_methodLimits(pf)" in body and "非公司专属共识" in body
+              and "CAPM 权益成本" in body)
+    check("method & limits disclosure (honest caveats, single + portfolio)",
+          limits, f"limits={limits}")
+
+    # AC: demo-quality polish — visible, clickable, tiered source citations (the
+    # research receipts) + staggered "reveal" so the decode activity plays in.
+    cites = ("function _citationsBlock" in body and "function _domain" in body
+             and "da-sources" in body and "da-cite" in body and "ct-tier" in body
+             and 'rel="noopener noreferrer"' in body
+             and "af-reveal" in body and "@keyframes afReveal" in body)
+    check("visible source citations + live-feeling activity reveal (demo polish)",
+          cites, f"cites={cites}")
+
     # AC: synthesis (Module 3) now lives on the PORTFOLIO page as its deep-analysis
     # layer — auto-run across the decoded holdings, NOT a manual bottom panel.
     pf_synth = ("function ensurePortfolioSynth" in body and "function _portfolioSynthHtml" in body

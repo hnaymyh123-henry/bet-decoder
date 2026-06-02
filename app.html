@@ -2159,6 +2159,22 @@
   .card-page .da-cat-w { font-size: 11px; color: var(--ink-3); margin-top: 3px; line-height: 1.55; }
   .card-page .da-src { font-family: var(--mono); font-size: 9.5px; color: var(--ink-4); margin-top: 6px; letter-spacing: 0.02em; }
   .card-page .da-loading { font-family: var(--mono); font-size: 10px; color: var(--ink-5); margin-top: 8px; }
+  /* Visible source citations — credibility receipts for the deep-research demo. */
+  .card-page .da-sources { margin-top: 10px; }
+  .card-page .da-sources > summary { font-family: var(--mono); font-size: 9.5px; color: var(--ink-4); letter-spacing: 0.02em; cursor: pointer; list-style: none; }
+  .card-page .da-sources > summary::-webkit-details-marker { display: none; }
+  .card-page .da-sources > summary::before { content: "▸ "; color: var(--ink-4); }
+  .card-page .da-sources[open] > summary::before { content: "▾ "; }
+  .card-page .da-cites { margin-top: 8px; display: flex; flex-direction: column; }
+  .card-page .da-cite { display: grid; grid-template-columns: 18px auto auto 1fr; gap: 9px; align-items: baseline; padding: 6px 6px; border-bottom: 1px dotted var(--line); font-size: 11.5px; color: var(--ink-2); text-decoration: none; }
+  .card-page a.da-cite:hover { background: var(--paper-2); }
+  .card-page .da-cite .ct-tier { font-family: var(--mono); font-size: 8.5px; text-align: center; border: 1px solid var(--line); color: var(--ink-3); }
+  .card-page .da-cite .ct-tier.tA { color: var(--positive); border-color: var(--positive); }
+  .card-page .da-cite .ct-tier.tB { color: var(--ink); border-color: var(--ink-3); }
+  .card-page .da-cite .ct-tier.tD { color: var(--accent); border-color: var(--accent); }
+  .card-page .da-cite .ct-pub { font-family: var(--mono); font-size: 10px; color: var(--ink); font-weight: 600; white-space: nowrap; }
+  .card-page .da-cite .ct-date { font-family: var(--mono); font-size: 9.5px; color: var(--ink-4); white-space: nowrap; }
+  .card-page .da-cite .ct-title { color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   @media (max-width: 1024px) { .card-page .da-debate { grid-template-columns: 1fr; } }
 
   /* ============ Multi-level derivation tree (page hero) ============ */
@@ -2212,6 +2228,14 @@
   .card-page .cp-support { display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; align-items: start; margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
   .card-page .cp-support .cp-sup-main, .card-page .cp-support .cp-sup-side { min-width: 0; }
   @media (max-width: 1024px) { .card-page .cp-support { grid-template-columns: 1fr; } }
+  /* Method & limits disclosure — honest caveats, collapsed. */
+  .card-page .cp-limits { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .card-page .cp-limits > summary { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); cursor: pointer; list-style: none; }
+  .card-page .cp-limits > summary::-webkit-details-marker { display: none; }
+  .card-page .cp-limits > summary::before { content: "▸ "; color: var(--ink-4); }
+  .card-page .cp-limits[open] > summary::before { content: "▾ "; }
+  .card-page .cp-limits ul { margin: 10px 0 0; padding-left: 18px; }
+  .card-page .cp-limits li { font-size: 12px; color: var(--ink-3); line-height: 1.65; margin-bottom: 6px; }
 
   /* ---- NEW: per-card discuss thread + what-if exhibit + derived card ---- */
   .bet-card .bc-discuss { border-top: 2px solid var(--ink); padding: 13px 16px 14px; background: var(--paper); }
@@ -2310,6 +2334,10 @@
   .wb-feed .af-placeholder strong { color: var(--ink-2); font-weight: 500; }
   .af-stream { display: flex; flex-direction: column; }
   .af-event { padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 11.5px; line-height: 1.55; }
+  /* Staggered reveal — the reconstructed decode activity "plays in" like the agent working it. */
+  @keyframes afReveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .wb-feed .af-event.af-reveal { opacity: 0; animation: afReveal 0.32s ease-out forwards; animation-delay: calc(var(--evi, 0) * 0.07s); }
+  @media (prefers-reduced-motion: reduce) { .wb-feed .af-event.af-reveal { opacity: 1; animation: none; } }
   .af-event .meta { display: flex; gap: 8px; align-items: baseline; margin-bottom: 3px; }
   .af-event .kind {
     font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.1em; text-transform: uppercase;
@@ -3108,7 +3136,7 @@ function renderPortfolioPage(pf) {
       '<div class="cp-source">' + escapeHTML(pf.source_ref || '') + '</div></div>' +
       '<div class="cp-kpis">' + kpis + '</div></div>' +
     '<div class="cp-hero2"><div class="cp-hero-l">' + betBox + '</div><div class="cp-hero-r">' + weightBox + '</div></div>' +
-    aggSec + synthSec + holdSec +
+    aggSec + synthSec + holdSec + _methodLimits(pf) +
   '</div>';
 }
 
@@ -3334,12 +3362,51 @@ function renderDeepAnalysis(c) {
         '<span class="da-cat-e">' + escapeHTML(e.event || '') + '</span></div>' +
         (e.why_it_matters ? '<div class="da-cat-w">' + escapeHTML(e.why_it_matters) + '</div>' : '') + '</div>').join('') + '</div>';
   }
-  const sq = sum.source_quality || (full && full.source_quality) || {};
-  const byt = sq.by_tier || {};
-  const tierStr = ['A', 'B', 'C', 'D'].filter(t => byt[t]).map(t => t + '×' + byt[t]).join(' · ');
-  if (tierStr) html += '<div class="da-src">信源 ' + escapeHTML(tierStr) + ' · ' + (sq.unverified_claims || 0) + ' 条未经一手核实</div>';
+  html += _citationsBlock(full, sum.source_quality || (full && full.source_quality) || {});
   if (!full) html += '<div class="da-loading">加载完整多空论证…</div>';
   return html + '</div>';
+}
+
+// Visible source citations — the credibility payoff for a Deep-Research demo. Gathers
+// every cited source across the narrative's claim lists, dedups by URL, tiers + sorts,
+// and renders a clickable list (publisher · date · title). Honest: shows the tier mix +
+// unverified count + the "claimed-host, unverified" caveat. Only http(s) URLs link out.
+function _domain(u) {
+  try { return new URL(u).hostname.replace(/^www\./, ''); } catch (_) { return ''; }
+}
+function _citationsBlock(full, sq) {
+  const byt = (sq && sq.by_tier) || {};
+  const tierStr = ['A', 'B', 'C', 'D'].filter(t => byt[t]).map(t => t + '×' + byt[t]).join(' · ');
+  const pools = [];
+  if (full) {
+    const reg = full.sentiment_regime;
+    if (reg && reg.sources) pools.push.apply(pools, reg.sources);
+    ['bull_case', 'bear_case', 'assumption_bindings', 'contested_axis', 'catalysts'].forEach(k =>
+      (full[k] || []).forEach(it => { if (it && it.sources) pools.push.apply(pools, it.sources); }));
+    if (full.sources) pools.push.apply(pools, full.sources);
+  }
+  const seen = {}, srcs = [];
+  pools.forEach(s => { if (s && s.url && !seen[s.url]) { seen[s.url] = 1; srcs.push(s); } });
+  const rank = { A: 3, B: 2, C: 1, D: 0 };
+  srcs.sort((a, b) => (rank[b.tier] || 0) - (rank[a.tier] || 0) ||
+    String(b.date || '').localeCompare(String(a.date || '')));
+  const caveat = (sq && sq.tier_basis === 'claimed_host_unverified') ? ' · 按声称来源分级,未验真' : '';
+  const head = '信源 ' + srcs.length + ' 条' + (tierStr ? ' · ' + tierStr : '') +
+    ' · ' + ((sq && sq.unverified_claims) || 0) + ' 条未经一手核实' + caveat;
+  if (!srcs.length) return '<div class="da-src">' + escapeHTML(head) + '</div>';
+  const rows = srcs.map(s => {
+    const safe = (typeof s.url === 'string' && /^https?:\/\//i.test(s.url)) ? s.url : null;
+    const tier = (rank[s.tier] != null) ? s.tier : 'C';
+    const inner = '<span class="ct-tier t' + escapeHTML(tier) + '">' + escapeHTML(tier) + '</span>' +
+      '<span class="ct-pub">' + escapeHTML(s.publisher || _domain(s.url) || '来源') + '</span>' +
+      (s.date ? '<span class="ct-date">' + escapeHTML(s.date) + '</span>' : '') +
+      '<span class="ct-title">' + escapeHTML(s.title || '') + '</span>';
+    return safe
+      ? '<a class="da-cite" href="' + escapeHTML(safe) + '" target="_blank" rel="noopener noreferrer">' + inner + '</a>'
+      : '<div class="da-cite">' + inner + '</div>';
+  }).join('');
+  return '<details class="da-sources"><summary>' + escapeHTML(head) + '</summary>' +
+    '<div class="da-cites">' + rows + '</div></details>';
 }
 
 // ---- Reverse-derivation FLOW DIAGRAM (replaces the thin decision-chain list) ----
@@ -3684,7 +3751,7 @@ function _dcfBuildup(bd) {
   const reconLab = bd.reconcile_label || '现价';
   return '<details class="dcf-bd"><summary>' + escapeHTML(sumLab) + '</summary>' +
     '<div class="bd-inp">营收 ' + _moneyB(inp.revenue) + ' · ' + escapeHTML(cagrLab) + ' ' + pct(inp.cagr) + ' · FCF 利润率 ' + pct(inp.margin) +
-      ' · WACC ' + pct(inp.wacc) + ' · 终值增速 ' + pct(inp.g) + '</div>' +
+      ' · 贴现率(CAPM) ' + pct(inp.wacc) + ' · 终值增速 ' + pct(inp.g) + '</div>' +
     '<table class="bd-tab"><thead><tr><th>年</th><th class="num">营收</th><th class="num">自由现金流</th><th class="num">折现</th><th class="num">现值 PV</th></tr></thead><tbody>' + rows + '</tbody></table>' +
     '<div class="bd-line">① 5 年 FCF 现值合计 = <b>' + _moneyB(bd.pv_fcf_sum) + '</b></div>' +
     '<div class="bd-line">② 终值(Gordon):末年 FCF ' + _moneyB(bd.terminal_fcf) + ' ÷ (WACC − g) = ' + _moneyB(bd.terminal_value) + ' → 折现 PV <b>' + _moneyB(bd.terminal_pv) + '</b></div>' +
@@ -3783,7 +3850,29 @@ function renderSingleCard(c) {
         (d.risks ? '<div class="bc-risks"><span class="lab">关键风险</span>' + escapeHTML(d.risks) + '</div>' : '') +
       '</div>' +
     '</div>' +
+    _methodLimits(c) +
   '</div>';
+}
+
+// A collapsed "method & limits" disclosure — honest about what the model holds
+// fixed / can't do, so the card doesn't overclaim. Single vs portfolio variants.
+function _methodLimits(c) {
+  const pf = c.card_kind === 'portfolio';
+  const items = pf
+    ? ['主题暴露 = 各持仓隐含主题按权重聚合的启发式,集中度阈值为经验值。',
+       '跨持仓综合的关系与叙事来自 LLM 研究,非独立数据源。',
+       '各持仓继承单股卡同一套 DCF 局限:基线增速用通用 15%(非公司专属共识)、贴现率为 CAPM 权益成本(非债务加权 WACC)、未建模股权激励稀释。',
+       '信源分级基于来源声称的 host,未做检索验真。']
+    : ['基线增速:用通用 15%,非公司专属共识(数据层暂无可靠 5 年营收共识)—— 高于公司实际增速时高估基础价值、低于时低估。',
+       '贴现率:CAPM 权益成本(rf 4.5% + β×5.5%,β 截断 1.5),非债务加权 WACC。',
+       '未建模股权激励(SBC)稀释 → 对高 SBC 公司每股价值偏高。',
+       '终值(2.5% 永续)占估值比重高,结果对终值假设敏感。',
+       '蒙特卡洛区间用通用扰动范围,是敏感性带、非校准概率分布。',
+       '交叉验证:叙事倾向与证据判定来自同一模型的两次研究,非独立神谕。',
+       '信源分级基于来源声称的 host,未做检索验真(可能失效 / 不符)。',
+       '未做校准 / 回测;数值仅供推理透明,不构成投资建议。'];
+  return '<details class="cp-limits"><summary>方法与局限 · METHOD &amp; LIMITS</summary><ul>' +
+    items.map(t => '<li>' + escapeHTML(t) + '</li>').join('') + '</ul></details>';
 }
 
 // Format a what-if before/after value: 18.5% (fraction) / 54.20 (level) / pass-through.
@@ -3814,8 +3903,8 @@ function renderAgentPanel() {
   let stream;
   if (c) {
     const acts = ((c._display || {}).activity) || [];
-    const actRows = acts.map(a =>
-      '<div class="af-event k-' + (a.kind || 'decision') + '">' +
+    const actRows = acts.map((a, i) =>
+      '<div class="af-event af-reveal k-' + (a.kind || 'decision') + '" style="--evi:' + i + '">' +
         '<div class="meta"><span class="kind">' + escapeHTML(a.kind || '') + '</span></div>' +
         '<div class="txt">' + escapeHTML(a.text || '') + '</div></div>').join('');
     const turns = interactive ? (state.chat[c.card_id] || []).map(t =>
