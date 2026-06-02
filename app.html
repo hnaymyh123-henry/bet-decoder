@@ -2090,6 +2090,14 @@
   .portfolio-page .cp-hold.linked .h-s { color: var(--accent); }
   @media (max-width: 1024px) { .card-page .cp-cols { grid-template-columns: 1fr; } }
 
+  /* ============ THE BET headline (the consistent decode answer) ============ */
+  .card-page .cp-bet { border: 1px solid var(--rule); border-left: 3px solid var(--accent); background: var(--paper-2); padding: 13px 17px; margin-bottom: 20px; }
+  .card-page .cp-bet .cb-lab { font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 8px; }
+  .card-page .cp-bet .cb-text { font-size: 16px; color: var(--ink-2); line-height: 1.55; }
+  .card-page .cp-bet .cb-text b { color: var(--ink); font-weight: 600; }
+  .card-page .cp-bet .cb-core { color: var(--accent); font-weight: 600; }
+  .card-page .cp-bet .cb-detail { font-family: var(--mono); font-size: 11px; color: var(--ink-4); margin-top: 7px; letter-spacing: 0.02em; line-height: 1.5; }
+
   /* ============ Multi-level derivation tree (page hero) ============ */
   .card-page .cp-sec-lab { font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 14px; }
   .card-page .cp-tree { margin-bottom: 4px; }
@@ -3343,6 +3351,21 @@ async function ensurePriceHistory(ticker, cardId) {
   _paintChart(cardId, card);
 }
 
+// THE BET — the one consistent headline every card leads with, answering "what is
+// the market betting at this price?" (implied growth; or narrative premium for
+// narrative-priced names). Computed server-side in _display.bet_statement.
+function _betHeadline(c) {
+  const d = c._display || {};
+  const bs = d.bet_statement;
+  const px = (d.anchor != null) ? ('$' + Number(d.anchor).toLocaleString('en-US', { maximumFractionDigits: 2 })) : '现价';
+  const body = bs
+    ? '<div class="cb-text">在 <b>' + px + '</b>,市场 bet <b>' + escapeHTML(c.subject) + '</b> ' +
+        '<span class="cb-core">' + escapeHTML(bs.core) + '</span></div>' +
+      (bs.detail ? '<div class="cb-detail">' + escapeHTML(bs.detail) + '</div>' : '')
+    : '<div class="cb-text">数据不足,暂无法判定市场在 bet 什么。</div>';
+  return '<div class="cp-bet"><div class="cb-lab">市场在 bet 什么 · THE BET</div>' + body + '</div>';
+}
+
 // ---- Multi-level DERIVATION TREE (the page hero) ----
 // Renders _display.derivations: root 现价 → a branch per lens (or base/premium for
 // anchor) → mechanical chain (固定共识 → 基线DCF → 反解) → implied value (band ruler)
@@ -3419,8 +3442,9 @@ function renderSingleCard(c) {
       '<label class="cp-synth' + (sel ? ' on' : '') + '"><input type="checkbox" data-selpage="' + escapeHTML(c.card_id) + '"' + (sel ? ' checked' : '') + '> 选入综合</label>' +
     '</div>' +
     (stale ? '<div class="bc-stale"><span class="dot"></span>基于 ' + escapeHTML(c.trade_date) + ' 收盘 · 历史快照</div>' : '') +
+    _betHeadline(c) +
     '<div class="cp-tree">' +
-      '<div class="cp-sec-lab">推导 · 把现价反解成市场必须同时相信的假设</div>' +
+      '<div class="cp-sec-lab">推导 · 上面这个 bet 是怎么从现价反解出来的</div>' +
       renderDerivationTree(c) +
     '</div>' +
     '<div class="cp-support">' +

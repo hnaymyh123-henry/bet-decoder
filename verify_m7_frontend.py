@@ -128,6 +128,13 @@ def main() -> int:
     check("derivation tree hero: multi-level renderDerivationTree + .cp-tree + .dt branches",
           deriv, f"deriv_present={deriv}")
 
+    # AC: every card leads with ONE consistent "what is the market betting?" headline
+    # (THE BET), computed server-side (_bet_statement) — implied growth or narrative premium.
+    thebet = ("function _betHeadline" in body and 'class="cp-bet"' in body
+              and "市场在 bet 什么" in body and "bet_statement" in body)
+    check("unified THE BET headline (consistent decode answer on every card)",
+          thebet, f"thebet_present={thebet}")
+
     # AC: synthesis flow — select >=2 cards → synth btn → POST /api/synthesize → headline+graph+narrative.
     has_synth_btn = 'id="synth-btn"' in body
     gating = "size < 2" in body or "ids.length < 2" in body or "n < 2" in body

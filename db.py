@@ -1375,6 +1375,65 @@ def _build_derivations(dd: dict) -> dict | None:
     return {"root": root, "branches": branches} if branches else None
 
 
+def _bet_statement(dd: dict) -> dict | None:
+    """The ONE consistent headline every card leads with — 'what is the market
+    betting at this price?'. Anchored on the reverse-DCF implied growth (the
+    universal bet); narrative-priced names (DCF can't explain the price) state the
+    narrative-premium bet instead. All from real numbers — no fabrication."""
+    anchor = dd.get("anchor_price")
+    if not isinstance(anchor, (int, float)) or anchor <= 0:
+        return None
+    fund = dd.get("fundamentals") or {}
+    am = dd.get("anchor_mode") or {}
+    np_ = dd.get("narrative_premium")
+    dcf = None
+    for r in ([dd.get("primary_lens")] + list(dd.get("cross_lenses") or [])):
+        if isinstance(r, dict) and r.get("lens") == "dcf":
+            dcf = r
+            break
+    cagr = dcf.get("implied_value") if dcf else None
+
+    # Narrative-priced: anchor decomposition with a real premium, OR the DCF can't
+    # pin an implied growth (price outside the feasible range) → the bet IS the story.
+    if am.get("components") and (cagr is None or (isinstance(np_, (int, float)) and np_ >= 0.5)):
+        pct = round((np_ or 0) * 100)
+        theme = ""
+        tex = am.get("theme_exposures") or []
+        if tex and isinstance(tex[0], dict):
+            theme = tex[0].get("theme") or ""
+        if not theme:
+            for comp in am.get("components", []):
+                if comp.get("theme"):
+                    theme = comp["theme"]
+                    break
+        core = (theme + "兑现") if theme else "叙事兑现"
+        return {"kind": "narrative", "core": core,
+                "detail": f"现价 {pct}% 是 DCF 业务价值解释不了的溢价 —— 需要的增长远超常规估值能锚定的水平"}
+
+    if isinstance(cagr, (int, float)):
+        core = f"未来 5 年营收年增 ~{cagr * 100:.0f}%"
+        bits = []
+        g0 = fund.get("growth_rate")
+        if isinstance(g0, (int, float)):
+            bits.append(f"vs 近一年实际 {g0 * 100:.0f}%")
+        prim = dd.get("primary_lens")
+        if isinstance(prim, dict) and prim.get("unit") == "x" and isinstance(prim.get("implied_value"), (int, float)):
+            bits.append(f"把 {prim.get('implied_label') or prim.get('lens_label') or 'P/E'} 推到 {prim['implied_value']:.1f}x")
+        band = (dcf or {}).get("band") or {}
+        if isinstance(band.get("p25"), (int, float)) and isinstance(band.get("p75"), (int, float)):
+            bits.append(f"蒙特卡洛区间 {band['p25'] * 100:.0f}–{band['p75'] * 100:.0f}%")
+        return {"kind": "growth", "core": core, "detail": " · ".join(bits)}
+
+    # No DCF growth + not narrative → fall back to the primary multiple (still a bet).
+    prim = dd.get("primary_lens")
+    if isinstance(prim, dict) and isinstance(prim.get("implied_value"), (int, float)):
+        return {"kind": "multiple",
+                "core": f"{prim.get('implied_label') or prim.get('lens_label') or '估值'} "
+                        f"{_fmt_implied(prim['implied_value'], prim.get('unit') or '')}",
+                "detail": "DCF 无法在可行区间反解出增速 → 价格超出 DCF 可解释范围"}
+    return None
+
+
 def build_card_display(card: BetCard) -> dict | None:
     """Project decode_detail → the compact `_display` the front-end's renderSingleCard
     reads (baseline_dcf / anchor / bets / risks / chain), so a real OR reloaded single
@@ -1471,7 +1530,8 @@ def build_card_display(card: BetCard) -> dict | None:
             "parts": parts}
     return {"baseline_dcf": base_dcf, "anchor": anchor, "bets": bets,
             "risks": risks, "chain": chain, "decomp": decomp,
-            "derivations": _build_derivations(dd)}
+            "derivations": _build_derivations(dd),
+            "bet_statement": _bet_statement(dd)}
 
 
 def card_from_json(data: dict) -> BetCard:
