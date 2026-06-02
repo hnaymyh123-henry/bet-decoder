@@ -124,8 +124,9 @@ def main() -> int:
     # implied → sub-implication), computed server-side (_build_derivations) + rendered.
     deriv = ("function renderDerivationTree" in body and "function renderDerivLevel" in body
              and 'class="cp-tree"' in body and ".dt .dt-root" in body
-             and ".dt .dt-branches" in body and "renderDerivationTree(c)" in body)
-    check("derivation tree hero: multi-level renderDerivationTree + .cp-tree + .dt branches",
+             and ".dt .dt-branches" in body and "renderDerivationTree(c)" in body
+             and "function _dcfBuildup" in body and "dcf-bd" in body and "bd-tab" in body)
+    check("derivation tree hero + DCF build-up worksheet (renderDerivationTree + _dcfBuildup)",
           deriv, f"deriv_present={deriv}")
 
     # AC: every card leads with ONE consistent "what is the market betting?" headline

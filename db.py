@@ -1264,6 +1264,38 @@ def _multiple_compute_text(lens: str, anchor: float, fund: dict) -> str:
     return ""
 
 
+def _dcf_breakdown(revenue, cagr, margin, wacc, g, net_debt, shares) -> dict | None:
+    """The full DCF working AT THE IMPLIED CAGR — mirrors
+    reverse_dcf.dcf_equity_value_per_share line-for-line so `per_share` reconciles to
+    the market price the reverse-solve matched. Returns the 5-year projection +
+    Gordon terminal value + equity bridge for the derivation worksheet. None when
+    infeasible (wacc<=g) / inputs missing — never a fabricated sheet."""
+    vals = (revenue, cagr, margin, wacc, g, shares)
+    if not all(isinstance(x, (int, float)) for x in vals) or not shares or wacc <= g:
+        return None
+    nd = net_debt if isinstance(net_debt, (int, float)) else 0.0
+    years, rev, pv_sum = [], float(revenue), 0.0
+    for y in range(1, 6):
+        rev *= (1 + cagr)
+        fcf = rev * margin
+        disc = (1 + wacc) ** y
+        pv = fcf / disc
+        pv_sum += pv
+        years.append({"y": y, "revenue": rev, "fcf": fcf, "disc": disc, "pv": pv})
+    terminal_fcf = rev * margin * (1 + g)          # rev = year-5 revenue
+    terminal_value = terminal_fcf / (wacc - g)
+    terminal_pv = terminal_value / (1 + wacc) ** 5
+    ev = pv_sum + terminal_pv
+    equity = ev - nd
+    return {
+        "inputs": {"revenue": revenue, "cagr": cagr, "margin": margin, "wacc": wacc,
+                   "g": g, "net_debt": nd, "shares": shares},
+        "years": years, "pv_fcf_sum": pv_sum, "terminal_fcf": terminal_fcf,
+        "terminal_value": terminal_value, "terminal_pv": terminal_pv,
+        "ev": ev, "equity": equity, "per_share": equity / shares,
+    }
+
+
 def _build_derivations(dd: dict) -> dict | None:
     """Multi-level derivation tree from REAL computed numbers (no fabrication):
     root 现价 → a branch per lens (or base/premium for anchor) → mechanical chain →
@@ -1344,7 +1376,9 @@ def _build_derivations(dd: dict) -> dict | None:
             if iv is not None:
                 levels.append({"kind": "implied", "label": r.get("implied_label") or "隐含 5 年营收 CAGR",
                                "impl": _fmt_implied(iv, unit), "impl_num": iv, "unit": unit,
-                               "band": band_num, "ev": _ev(bi)})
+                               "band": band_num, "ev": _ev(bi),
+                               "breakdown": _dcf_breakdown(fund.get("revenue_ttm"), iv, m, w, tg,
+                                                           fund.get("net_debt"), fund.get("shares_outstanding"))})
                 rev, g0 = fund.get("revenue_ttm"), fund.get("growth_rate")
                 if isinstance(rev, (int, float)) and rev > 0:
                     rev5 = rev * ((1 + iv) ** 5)

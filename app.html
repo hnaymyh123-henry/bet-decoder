@@ -2188,6 +2188,22 @@
   .dt .dt-level.nosol .dl-impl { color: var(--neutral); font-size: 13px; }
   .dt .dt-level .dl-sub { font-size: 11px; color: var(--ink-3); margin-top: 4px; line-height: 1.5; }
   .dt .dt-level .dl-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 6px; }
+  /* DCF build-up worksheet (collapsed under the 反解 node) */
+  .dt .dcf-bd { margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 8px; }
+  .dt .dcf-bd > summary { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--ink-3); cursor: pointer; list-style: none; }
+  .dt .dcf-bd > summary::-webkit-details-marker { display: none; }
+  .dt .dcf-bd > summary::before { content: "▸ "; color: var(--ink-4); }
+  .dt .dcf-bd[open] > summary::before { content: "▾ "; }
+  .dt .dcf-bd[open] > summary { color: var(--ink-2); font-weight: 600; }
+  .dt .dcf-bd .bd-inp { font-family: var(--mono); font-size: 9.5px; color: var(--ink-4); margin: 8px 0; letter-spacing: 0.02em; line-height: 1.5; }
+  .dt .dcf-bd .bd-tab { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 10.5px; font-feature-settings: "tnum" 1; margin-bottom: 8px; }
+  .dt .dcf-bd .bd-tab th { text-align: left; font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-4); font-weight: 500; padding: 3px 6px; border-bottom: 1px solid var(--line); }
+  .dt .dcf-bd .bd-tab th.num, .dt .dcf-bd .bd-tab td.num { text-align: right; }
+  .dt .dcf-bd .bd-tab td { padding: 3px 6px; color: var(--ink-2); border-bottom: 1px dotted var(--line); }
+  .dt .dcf-bd .bd-line { font-size: 11px; color: var(--ink-3); margin: 4px 0; line-height: 1.5; }
+  .dt .dcf-bd .bd-line b { font-family: var(--mono); color: var(--ink); }
+  .dt .dcf-bd .bd-bridge { font-size: 11px; color: var(--ink-2); margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--line); line-height: 1.6; }
+  .dt .dcf-bd .bd-ps { font-family: var(--mono); font-weight: 600; color: var(--accent); }
 
   /* ---- Supporting row (chart + decomp/narrative), below the hero ---- */
   .card-page .cp-support { display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; align-items: start; margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
@@ -3552,6 +3568,37 @@ function _betHeadline(c) {
 // anchor) → mechanical chain (固定共识 → 基线DCF → 反解) → implied value (band ruler)
 // → sub-implication. The implied level folds in the band ruler + evidence chip +
 // what-if stamp. Falls back to the one-hop flow diagram if no derivations present.
+function _moneyB(v) {
+  if (typeof v !== 'number' || isNaN(v)) return '—';
+  const a = Math.abs(v);
+  if (a >= 1e12) return '$' + (v / 1e12).toFixed(2) + 'T';
+  if (a >= 1e9) return '$' + (v / 1e9).toFixed(1) + 'B';
+  if (a >= 1e6) return '$' + (v / 1e6).toFixed(0) + 'M';
+  return '$' + v.toLocaleString('en-US', { maximumFractionDigits: 0 });
+}
+// Full DCF working AT THE IMPLIED CAGR — collapsed under the 反解 node. The bridge
+// ends "…每股 ≈ 现价": at the implied growth, the whole DCF reconciles to the price.
+function _dcfBuildup(bd) {
+  if (!bd || !bd.years || !bd.years.length) return '';
+  const inp = bd.inputs || {};
+  const pct = (x) => (typeof x === 'number') ? (x * 100).toFixed(Math.abs(x) < 0.1 ? 1 : 0) + '%' : '—';
+  const rows = bd.years.map(r =>
+    '<tr><td>第' + r.y + '年</td><td class="num">' + _moneyB(r.revenue) + '</td><td class="num">' + _moneyB(r.fcf) +
+    '</td><td class="num">' + (typeof r.disc === 'number' ? '÷' + r.disc.toFixed(2) : '—') + '</td><td class="num">' + _moneyB(r.pv) + '</td></tr>').join('');
+  const ps = (typeof bd.per_share === 'number') ? ('$' + bd.per_share.toFixed(2)) : '—';
+  const sh = (typeof inp.shares === 'number')
+    ? (inp.shares >= 1e9 ? (inp.shares / 1e9).toFixed(2) + 'B' : (inp.shares / 1e6).toFixed(0) + 'M') : '—';
+  const ndStr = (typeof inp.net_debt === 'number' && inp.net_debt < 0)
+    ? '＋ 净现金 ' + _moneyB(-inp.net_debt) : '－ 净债 ' + _moneyB(inp.net_debt);
+  return '<details class="dcf-bd"><summary>DCF 建模底稿 · 在隐含增速下重对到现价</summary>' +
+    '<div class="bd-inp">营收 ' + _moneyB(inp.revenue) + ' · 隐含增速 ' + pct(inp.cagr) + ' · FCF 利润率 ' + pct(inp.margin) +
+      ' · WACC ' + pct(inp.wacc) + ' · 终值增速 ' + pct(inp.g) + '</div>' +
+    '<table class="bd-tab"><thead><tr><th>年</th><th class="num">营收</th><th class="num">自由现金流</th><th class="num">折现</th><th class="num">现值 PV</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+    '<div class="bd-line">① 5 年 FCF 现值合计 = <b>' + _moneyB(bd.pv_fcf_sum) + '</b></div>' +
+    '<div class="bd-line">② 终值(Gordon):末年 FCF ' + _moneyB(bd.terminal_fcf) + ' ÷ (WACC − g) = ' + _moneyB(bd.terminal_value) + ' → 折现 PV <b>' + _moneyB(bd.terminal_pv) + '</b></div>' +
+    '<div class="bd-bridge">③ 企业价值 ' + _moneyB(bd.ev) + ' ' + ndStr + ' = 股权 ' + _moneyB(bd.equity) + ' ÷ ' + sh + ' 股 = <span class="bd-ps">每股 ' + ps + '</span> ≈ 现价</div>' +
+  '</details>';
+}
 function renderDerivLevel(lv, branch, rev) {
   const kind = lv.kind || 'imply';
   if (kind === 'implied') {
@@ -3565,7 +3612,7 @@ function renderDerivLevel(lv, branch, rev) {
       '<div class="dl-top"><span class="dl-label">' + escapeHTML(lv.label || '') + '</span>' +
         '<span class="dl-impl">' + escapeHTML(lv.impl || '') + '</span></div>' +
       (lv.text ? '<div class="dl-sub">' + escapeHTML(lv.text) + '</div>' : '') +
-      bv.ruler + foot + _whatifStamp(b, rev) +
+      bv.ruler + foot + _whatifStamp(b, rev) + _dcfBuildup(lv.breakdown) +
     '</div>';
   }
   return '<div class="dt-level ' + escapeHTML(kind) + '">' +

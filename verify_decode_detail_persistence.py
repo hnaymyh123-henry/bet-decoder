@@ -136,6 +136,30 @@ check("AC5 _dump_detail(None/empty) → None; valid detail → JSON text",
       db._dump_detail(None) is None and db._dump_detail({}) is None
       and isinstance(db._dump_detail({"a": 1}), str))
 
+# --- AC6: DCF build-up worksheet reconciles to price (drift guard) ----------
+# A real decode of a solvable fixture (offline, fundamentals stubbed) → the DCF
+# branch carries a build-up whose per_share ≈ market price, proving db._dcf_breakdown
+# mirrors reverse_dcf (catches formula drift).
+import decoder  # noqa: E402
+
+_COST = decoder.Fundamentals(
+    ticker="COST", current_price=900.0, revenue_ttm=255e9, net_income_ttm=7.4e9,
+    ebitda_ttm=11e9, fcf_ttm=6e9, book_equity=23e9, eps_ttm=16.6,
+    shares_outstanding=0.443e9, net_debt=-5e9, beta=0.8, growth_rate=0.09,
+    industry="Discount Stores")
+_cc = decoder.decode_bet("market", "COST", "zh",
+                         fundamentals_fn=lambda t: _COST, hunter=lambda *a, **k: None)
+_der = (db.build_card_display(_cc) or {}).get("derivations") or {}
+_dcf = next((b for b in _der.get("branches", []) if b.get("lens") == "dcf"), {})
+_bd = next((lv.get("breakdown") for lv in _dcf.get("levels", [])
+            if lv.get("kind") == "implied"), None)
+_anchor = _cc.decode_detail["anchor_price"]
+check("AC6 DCF build-up present on the solvable DCF branch (5y projection + bridge)",
+      bool(_bd) and len(_bd.get("years") or []) == 5 and "per_share" in _bd)
+check("AC6 build-up RECONCILES to price (db _dcf_breakdown matches reverse_dcf, no drift)",
+      bool(_bd) and abs(_bd["per_share"] - _anchor) / _anchor < 0.02,
+      f"per_share={_bd and round(_bd['per_share'], 2)} vs anchor={_anchor}")
+
 print("=" * 72)
 print(f"RESULT: {_passed} passed, {_failed} failed")
 print("=" * 72)
