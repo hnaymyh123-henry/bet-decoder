@@ -1356,6 +1356,90 @@ def _attach_market_narrative(card, *, emit=None, lang: str = "zh",
                subject=card.subject, payload={"coverage": result.get("coverage")})
 
 
+# ===========================================================================
+# ONE-CALL research bundle: collapse N per-assumption evidence calls + the
+# separate market-narrative call into a SINGLE Deep Research call, then
+# distribute back into the same decode_detail['evidence'] / ['market_narrative']
+# shapes (so db + frontend are unchanged). research_bundle.py does the call+split.
+# ===========================================================================
+
+def _use_bundle(hunter, narrator) -> bool:
+    """True ONLY on the real-spend single-market path: no injected hunter/narrator
+    (stub-injected tests keep the legacy per-call path), flag on, not offline, and a
+    web-capable key present. So verify/offline runs are byte-identical to before;
+    only a live keyed decode collapses N+1 calls into one bundle call."""
+    import os
+    if hunter is not None or narrator is not None:
+        return False
+    if os.environ.get("BUNDLE_RESEARCH", "1").lower() in ("0", "false", "off", "no"):
+        return False
+    if os.environ.get("OFFLINE_MODE", "").lower() in ("1", "true", "yes"):
+        return False
+    try:
+        import client
+        return bool(client.api_key_present() and client.web_search_capable())
+    except Exception:
+        return False
+
+
+def _attach_research_bundle(card, *, emit=None, lang: str = "zh", conn=None,
+                            bundle_researcher=None) -> None:
+    """ONE Deep Research call → distribute to decode_detail['evidence'] +
+    ['market_narrative'] (shapes identical to the per-call path). Replaces N
+    per-assumption evidence calls + the separate narrative call. Never raises."""
+    detail = getattr(card, "decode_detail", None)
+    if detail is None:
+        return
+    if card.source_type != SOURCE_MARKET or card.card_kind != db.SINGLE:
+        detail.setdefault("evidence", _empty_evidence_section())
+        detail["market_narrative"] = {"coverage": "unavailable", "full": None,
+                                      "summary": {"coverage": "unavailable"}}
+        return
+    assumptions = evidence._implied_assumptions_from_card(card)
+    implied_block = _implied_assumptions_block(detail)
+    anchor_price = detail.get("anchor_price")
+    _safe_emit(emit, phase="research_bundle", kind="decision",
+               text=f"一次性深研 {card.subject}(逐条证据+多空叙事=单次 Deep Research)…",
+               subject=card.subject)
+    result = {"coverage": "unavailable", "full": None,
+              "summary": {"coverage": "unavailable"}}
+    try:
+        import research_bundle
+        env, _hit = research_bundle.research_bundle(
+            card.subject, current_price=anchor_price,
+            implied_assumptions=implied_block, lang=lang, conn=conn,
+            researcher=bundle_researcher)
+        ev_section, narr_env = research_bundle.split_bundle(
+            env, assumptions, ticker=card.subject, lang=lang)
+        detail["evidence"] = ev_section
+        result = narrative.build_card_narrative(narr_env)
+    except Exception as exc:
+        detail.setdefault("evidence", _empty_evidence_section())
+        result = {"coverage": "unavailable", "full": None,
+                  "summary": {"coverage": "unavailable"}, "error": str(exc)}
+    # cross-check the narrative lean vs the (now bundle-sourced) evidence verdict
+    try:
+        full = result.get("full")
+        if full:
+            rows = narrative.cross_check(detail.get("evidence") or {}, full)
+            by_label = {r["label"]: r for r in rows}
+            for b in (result.get("summary", {}).get("bindings") or []):
+                r = by_label.get(b.get("assumption"))
+                if r:
+                    b["narrative_verdict"] = r["narrative"]
+                    b["evidence_verdict"] = r["evidence"]
+                    b["diverges"] = r["diverges"]
+            result["cross_check"] = rows
+    except Exception:
+        pass
+    detail["market_narrative"] = result
+    ev = detail.get("evidence") or {}
+    _safe_emit(emit, phase="research_bundle", kind="computation",
+               text=(f"打包深研完成 coverage={result.get('coverage')} · "
+                     f"证据 {ev.get('found_count')}/{ev.get('assumption_count')}"),
+               subject=card.subject, payload={"coverage": result.get("coverage")})
+
+
 def _empty_evidence_section() -> dict:
     """The canonical empty evidence section — the single source of truth for the
     shape every card kind exposes at decode_detail['evidence']."""
@@ -1426,6 +1510,7 @@ def decode_bet(source_type: str,
                conn=None,
                hunter=None,
                narrator=None,
+               bundle_researcher=None,
                _plan_override=None
                ) -> db.BetCard:
     """Decode any bet source into a full BetCard (passive — does NOT store it).
@@ -1466,6 +1551,18 @@ def decode_bet(source_type: str,
         _attach_market_narrative(card, emit=emit, lang=lang, conn=conn, narrator=narrator)
         return card
     if source_type == SOURCE_MARKET:
+        # ONE-CALL path: package per-assumption evidence + market narrative into a
+        # SINGLE Deep Research call (research_bundle), then distribute. Used only on
+        # the real-spend path (no injected hunter/narrator, key present) or when a
+        # bundle_researcher is injected (offline test). Everything else (verify /
+        # offline / stub-injected) keeps the legacy per-assumption path unchanged.
+        if _use_bundle(hunter, narrator) or bundle_researcher is not None:
+            card = _decode_market(source_input, lang, emit, fundamentals_fn,
+                                  llm=llm, conn=conn, hunter=_SKIP_EVIDENCE,
+                                  plan_override=_plan_override)
+            _attach_research_bundle(card, emit=emit, lang=lang, conn=conn,
+                                    bundle_researcher=bundle_researcher)
+            return card
         card = _decode_market(source_input, lang, emit, fundamentals_fn,
                               llm=llm, conn=conn, hunter=hunter,
                               plan_override=_plan_override)

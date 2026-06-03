@@ -122,6 +122,42 @@ def _wwhtbt(implied_cagr, implied_rev_5y, implied_market_share, margin,
     return items
 
 
+def _verdict(ticker, br, probs, load_bearing, scenarios) -> str:
+    """One-sentence decode verdict — synthesizes rarity (base rate) + market
+    conviction (scenario probs) + nature (load-bearing driver) into the punchline
+    a PM would lead with. This is the logical spine the rest of the card supports."""
+    # rarity (outside view)
+    if br:
+        v, pct, share = br["verdict"], br["live"]["percentile"], br["live"]["share_ge_pct"]
+        if v == "top-tail":
+            rarity = (f"要求 {ticker} 跑出历史前 {max(1, 100 - pct)}%(仅 {share}% 同行"
+                      f"曾做到)的极端增速")
+        elif v == "above-median":
+            rarity = f"要求 {ticker} 跑出高于行业中位(第 {pct} 分位)的增速"
+        else:
+            rarity = f"只要求 {ticker} 跑出低于中位的温和增速"
+    else:
+        rarity = f"对 {ticker} 的定价已高到 DCF 无法解释(纯叙事)"
+    # market conviction (implied probabilities)
+    note = probs.get("note")
+    bn = probs.get("by_name") or {}
+    if note == "above_top":
+        conviction = "现价更冲出了我们最激进的 moonshot 情景 —— 市场在押一个尚未建模的更狂热故事"
+    elif bn:
+        top = max(bn, key=bn.get)
+        zh = next((s["name_zh"] for s in scenarios if s["name"] == top), top)
+        bull_share = (bn.get("bull", 0) + bn.get("moonshot", 0)) * 100
+        if top in ("moonshot", "bull"):
+            conviction = f"市场已把 {bn[top]*100:.0f}% 概率压在「{zh}」情景上(信心拥挤)"
+        else:
+            conviction = f"但市场自身只给 {bull_share:.0f}% 信心在牛市以上(并不狂热)"
+    else:
+        conviction = ""
+    nature = f";本质是一个「{load_bearing['label']}」bet" if load_bearing else ""
+    sep = "," if conviction else ""
+    return f"市场{rarity}{sep}{conviction}{nature}。"
+
+
 def build_xray(*, data: rdcf.CompanyData, fundamentals, implied_cagr,
                base_margin: float, wacc: float, sustained_growth=None,
                implied_rev_5y=None, implied_market_share=None) -> dict:
@@ -202,7 +238,10 @@ def build_xray(*, data: rdcf.CompanyData, fundamentals, implied_cagr,
     kelly = _kelly(scenarios, probs, price)
 
     headline = (br or {}).get("headline") if br else (scen_statement or "")
+    verdict = _verdict(getattr(data, "ticker", "该股"), br,
+                       {**probs, "statement_zh": scen_statement}, load_bearing, scenarios)
     return {
+        "verdict_zh": verdict,
         "base_rate": br,
         "scenarios": scenarios,
         "scenario_probs": {**probs, "statement_zh": scen_statement},

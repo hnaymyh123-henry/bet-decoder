@@ -2239,6 +2239,19 @@
 
   /* ============ X-RAY intelligence layer (base rate + scenario probs + kill) ============ */
   .card-page .cp-xray { margin-bottom: 22px; }
+  /* lead verdict (the punchline) + numbered logical spine */
+  .xr-verdict { display: flex; gap: 12px; background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 13px 16px; margin-bottom: 20px; align-items: baseline; }
+  .xr-verdict .xr-vlab { font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); font-weight: 600; white-space: nowrap; }
+  .xr-verdict .xr-vtext { font-size: 13.5px; color: var(--ink); line-height: 1.6; font-weight: 500; }
+  .xr-step, .xr-bridge { display: flex; gap: 13px; margin-bottom: 18px; }
+  .xr-snum { flex: none; width: 22px; height: 22px; border: 1px solid var(--ink); color: var(--ink); font-family: var(--mono); font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+  .xr-bridge .xr-snum { border-style: dashed; color: var(--ink-3); border-color: var(--line-2); }
+  .xr-sbody { flex: 1; min-width: 0; }
+  .xr-stitle { font-size: 13.5px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+  .xr-sread { font-size: 11.5px; color: var(--ink-4); line-height: 1.55; margin-bottom: 11px; }
+  .xr-step .xray-hero { margin-bottom: 0; }
+  .xr-note { font-size: 12.5px; color: var(--ink-2); line-height: 1.55; margin-top: 9px; }
+  .xr-note b { color: var(--accent); font-weight: 600; }
   .xray-hero { border: 1px solid var(--line); border-left: 2px solid var(--ink); background: var(--paper); padding: 13px 16px; margin-bottom: 14px; }
   .xray-hero .xr-top { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
   .xray-hero .xr-implied { font-size: 12px; color: var(--ink-3); }
@@ -2288,6 +2301,20 @@
   .xr-wwh tr.kill td.k { color: var(--accent); font-weight: 600; }
   .xr-wwh tr.kill td.v { text-align: left; font-family: inherit; color: var(--ink); white-space: normal; }
   .xr-kelly { font-family: var(--mono); font-size: 11px; color: var(--ink-4); margin-top: 9px; padding-left: 2px; }
+  /* portfolio → constituents' compact deep-decode (stacked below the dashboard) */
+  .pf-cx { border: 1px solid var(--line); border-left: 2px solid var(--ink); padding: 11px 14px; margin-bottom: 10px; background: var(--paper); }
+  .pf-cx.linked { cursor: pointer; }
+  .pf-cx.linked:hover { background: var(--paper-2); }
+  .pf-cx.undecoded { border-left-color: var(--line-2); color: var(--ink-4); font-family: var(--mono); font-size: 11.5px; }
+  .pf-cx.undecoded .wt { margin-left: 6px; }
+  .pf-cx-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+  .pf-cx-head .tk { font-size: 15px; font-weight: 600; color: var(--ink); }
+  .pf-cx-head .wt { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+  .pf-cx-head .go { margin-left: auto; font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-4); }
+  .pf-cx-verdict { font-size: 12.5px; color: var(--ink-2); line-height: 1.55; margin-bottom: 8px; }
+  .pf-cx-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pf-cx-tags .tag { font-family: var(--mono); font-size: 10px; color: var(--ink-3); border: 1px solid var(--line); padding: 2px 7px; }
+  .pf-cx-tags .tag.hot { color: var(--accent); border-color: var(--accent); }
 
   /* ---- NEW: per-card discuss thread + what-if exhibit + derived card ---- */
   .bet-card .bc-discuss { border-top: 2px solid var(--ink); padding: 13px 16px 14px; background: var(--paper); }
@@ -3198,8 +3225,43 @@ function renderPortfolioPage(pf) {
       '<div class="cp-source">' + escapeHTML(pf.source_ref || '') + '</div></div>' +
       '<div class="cp-kpis">' + kpis + '</div></div>' +
     '<div class="cp-hero2"><div class="cp-hero-l">' + betBox + '</div><div class="cp-hero-r">' + weightBox + '</div></div>' +
-    failedBanner + aggSec + synthSec + holdSec + _methodLimits(pf) +
+    failedBanner + aggSec + synthSec + holdSec + _pfConstituents(pf, decoded) + _methodLimits(pf) +
   '</div>';
+}
+
+// Portfolio → its constituents' deep decode, stacked BELOW the dashboard (parent →
+// constituents). Each block is a compact X-RAY of an already-decoded holding (verdict
+// + base-rate percentile + market-implied top scenario + the load-bearing driver);
+// click jumps to that holding's full single-card tab. Undecoded holdings show a hint.
+function _pfConstituents(pf, decoded) {
+  const holds = [...(pf.holdings || [])].sort((a, b) => (Number(b.weight_pct) || 0) - (Number(a.weight_pct) || 0));
+  if (!holds.length) return '';
+  const blocks = holds.map(h => {
+    const cid = decoded[String(h.ticker || '').toUpperCase()];
+    const card = cid ? state.cards.find(c => c.card_id === cid) : null;
+    const x = card ? (card._display || {}).xray : null;
+    const wt = (h.weight_pct != null) ? '<span class="wt">' + Number(h.weight_pct).toFixed(0) + '%</span>' : '';
+    if (!x) {
+      return '<div class="pf-cx undecoded">' + escapeHTML(h.ticker) + wt + ' · 未解码 —— 点上方持仓表解码后,这里给出它的深度 X 光结论</div>';
+    }
+    const br = x.base_rate || {}, sp = x.scenario_probs || {}, bn = sp.by_name || {};
+    const topN = Object.keys(bn).length ? Object.keys(bn).reduce((a, b) => (bn[a] >= bn[b] ? a : b)) : null;
+    const topZh = topN ? ((x.scenarios || []).find(s => s.name === topN) || {}).name_zh : null;
+    const pctStr = br.live ? ('第 ' + br.live.percentile + ' 分位 · 仅 ' + br.live.share_ge_pct + '% 同行达到')
+      : (sp.note === 'above_top' ? 'DCF 无解 · 纯叙事定价' : '');
+    const lb = x.load_bearing ? x.load_bearing.label : '';
+    const tag = (t, hot) => '<span class="tag' + (hot ? ' hot' : '') + '">' + escapeHTML(t) + '</span>';
+    return '<div class="pf-cx linked" data-gotab="' + escapeHTML(cid) + '">' +
+      '<div class="pf-cx-head"><span class="tk">' + escapeHTML(h.ticker) + '</span>' + wt + '<span class="go">展开完整解码 →</span></div>' +
+      (x.verdict_zh ? '<div class="pf-cx-verdict">' + escapeHTML(x.verdict_zh) + '</div>' : '') +
+      '<div class="pf-cx-tags">' +
+        (pctStr ? tag(pctStr, br.verdict === 'top-tail') : '') +
+        (topZh ? tag('市场押「' + topZh + '」' + Math.round((bn[topN] || 0) * 100) + '%') : '') +
+        (lb ? tag(lb + ' bet') : '') +
+      '</div></div>';
+  }).join('');
+  return '<div class="cp-support"><div class="cp-sup-main">' +
+    '<div class="cp-sec-lab">成分股深度解码 · 各持仓的 X 光结论(点开看完整逻辑链)</div>' + blocks + '</div></div>';
 }
 
 // Cross-holding synthesis section state (Module 3 auto-run, cached in state.synth).
@@ -3872,8 +3934,13 @@ function renderXray(c) {
   const fp = v => (v == null ? '—' : (v * 100).toFixed(0) + '%');
   const $ = v => '$' + Math.round(v).toLocaleString('en-US');
 
-  // --- base-rate hero (the headline Aha) ---
-  let hero = '';
+  // lead verdict — the punchline the numbered steps below substantiate
+  const verdict = x.verdict_zh
+    ? '<div class="xr-verdict"><span class="xr-vlab">解码结论</span><span class="xr-vtext">' + escapeHTML(x.verdict_zh) + '</span></div>'
+    : '';
+
+  // ① base rate (outside view)
+  let s1 = '';
   const br = x.base_rate;
   if (br) {
     const live = br.live || {}, au = br.authoritative || {};
@@ -3883,75 +3950,75 @@ function renderXray(c) {
       .map(q => '<div class="xray-quote">▸ ' + escapeHTML(q) + '</div>').join('');
     const cohortStr = (live.cohort && live.cohort !== 'all')
       ? ' · 同体量(' + escapeHTML(live.cohort) + ')仅 <b>' + live.cohort_share_ge_pct + '%</b>' : '';
-    hero = '<div class="xray-hero">' +
-      '<div class="xr-top">' +
-        '<span class="xr-implied">隐含 5 年营收增速 <b>' + fp(br.implied_cagr) + '</b></span>' +
-        '<span class="xr-pct' + (hot ? ' hot' : '') + '">' + pct + '<span class="u">th 分位</span></span>' +
-      '</div>' +
-      '<div class="xr-dist">' +
-        '<div class="axis"></div>' +
-        '<div class="fillbar" style="width:' + pos + '%"></div>' +
+    s1 = '<div class="xray-hero">' +
+      '<div class="xr-top"><span class="xr-implied">隐含 5 年营收增速 <b>' + fp(br.implied_cagr) + '</b></span>' +
+        '<span class="xr-pct' + (hot ? ' hot' : '') + '">' + pct + '<span class="u">th 分位</span></span></div>' +
+      '<div class="xr-dist"><div class="axis"></div><div class="fillbar" style="width:' + pos + '%"></div>' +
         '<div class="mk" style="left:' + pos + '%"><span class="cap">隐含 ' + fp(br.implied_cagr) + '</span></div>' +
-        '<div class="tick" style="left:1%">同行最低</div>' +
-        '<div class="tick" style="left:50%">中位 ' + fp(0.05) + '</div>' +
-        '<div class="tick" style="left:99%">最高</div>' +
-      '</div>' +
-      '<div class="xr-headline">大盘股第 <b>' + pct + '</b> 分位 · 仅 <b>' + live.share_ge_pct +
-        '%</b> 同行历史上达到过(n=' + live.n + ')' + cohortStr + '</div>' + quotes +
+        '<div class="tick" style="left:1%">同行最低</div><div class="tick" style="left:50%">中位 5%</div><div class="tick" style="left:99%">最高</div></div>' +
+      '<div class="xr-headline">大盘股第 <b>' + pct + '</b> 分位 · 仅 <b>' + live.share_ge_pct + '%</b> 同行历史上达到过(n=' + live.n + ')' + cohortStr + '</div>' + quotes +
     '</div>';
+  } else if ((x.scenario_probs || {}).note === 'above_top') {
+    s1 = '<div class="xr-envelope">DCF 反解无解 —— 现价高到任何可辩护的增速都撑不住,这是一个纯叙事定价的 bet。</div>';
   }
 
-  // --- max-entropy scenario probabilities ---
-  let scen = '';
+  // ② max-entropy scenario probabilities
+  let s2 = '';
   const sp = x.scenario_probs || {}, scenarios = x.scenarios || [];
   if (sp.by_name && Object.keys(sp.by_name).length) {
     const names = Object.keys(sp.by_name);
     const top = names.reduce((a, b) => (sp.by_name[a] >= sp.by_name[b] ? a : b), names[0]);
     const rows = scenarios.filter(s => sp.by_name[s.name] != null).map(s => {
       const p = sp.by_name[s.name], isTop = s.name === top;
-      return '<div class="xr-srow' + (isTop ? ' top' : '') + '">' +
-        '<div class="xr-stop">' +
-          '<span class="xr-sname">' + escapeHTML(s.name_zh) + '<span class="g">' + fp(s.growth) + ' 增速</span></span>' +
-          '<span><span class="xr-sval">≈' + (s.value != null ? $(s.value) : '—') + '&nbsp;&nbsp;</span><span class="xr-sp">' + fp(p) + '</span></span>' +
-        '</div>' +
-        '<div class="xr-sbar"><div class="fill" style="width:' + Math.min(100, p * 100).toFixed(0) + '%"></div></div>' +
-      '</div>';
+      return '<div class="xr-srow' + (isTop ? ' top' : '') + '"><div class="xr-stop">' +
+        '<span class="xr-sname">' + escapeHTML(s.name_zh) + '<span class="g">' + fp(s.growth) + ' 增速</span></span>' +
+        '<span><span class="xr-sval">≈' + (s.value != null ? $(s.value) : '—') + '&nbsp;&nbsp;</span><span class="xr-sp">' + fp(p) + '</span></span></div>' +
+        '<div class="xr-sbar"><div class="fill" style="width:' + Math.min(100, p * 100).toFixed(0) + '%"></div></div></div>';
     }).join('');
-    scen = '<div class="xr-scen"><div class="xr-lab">市场隐含情景概率 · 单价格 → max-entropy 概率单纯形</div>' +
-      rows + (sp.statement_zh ? '<div class="xr-note">→ ' + escapeHTML(sp.statement_zh) + '</div>' : '') + '</div>';
+    s2 = rows + (sp.statement_zh ? '<div class="xr-note">→ ' + escapeHTML(sp.statement_zh) + '</div>' : '');
   } else if (sp.statement_zh) {
-    scen = '<div class="xr-scen"><div class="xr-lab">市场隐含情景概率</div>' +
-      '<div class="xr-envelope">' + escapeHTML(sp.statement_zh) + '</div></div>';
+    s2 = '<div class="xr-envelope">' + escapeHTML(sp.statement_zh) + '</div>';
   }
 
-  // --- compact reads: load-bearing driver + implied CAP ---
+  // ③ nature: load-bearing driver + implied CAP
   const rcards = [];
   if (x.load_bearing && x.load_bearing.statement_zh)
-    rcards.push('<div class="xr-read"><div class="k">载荷驱动 · 这本质是什么 bet</div><div class="v">' +
-      escapeHTML(x.load_bearing.statement_zh) + '</div></div>');
+    rcards.push('<div class="xr-read"><div class="k">载荷驱动</div><div class="v">' + escapeHTML(x.load_bearing.statement_zh) + '</div></div>');
   if (x.implied_cap && x.implied_cap.statement_zh)
-    rcards.push('<div class="xr-read"><div class="k">隐含护城河久期 · MICAP</div><div class="v">' +
-      escapeHTML(x.implied_cap.statement_zh) + '</div></div>');
-  const reads = rcards.length ? '<div class="xr-reads">' + rcards.join('') + '</div>' : '';
+    rcards.push('<div class="xr-read"><div class="k">隐含护城河久期 · MICAP</div><div class="v">' + escapeHTML(x.implied_cap.statement_zh) + '</div></div>');
+  const s3 = rcards.length ? '<div class="xr-reads">' + rcards.join('') + '</div>' : '';
 
-  // --- what-would-have-to-be-true + kill line ---
-  let wwh = '';
+  // ⑤ falsification: what would have to be true + kill line
+  let s5 = '';
   const ww = x.wwhtbt || [];
   if (ww.length) {
     const trs = ww.map(w => {
       const cls = w.kind === 'kill' ? ' class="kill"' : (w.kind === 'flag' ? ' class="flag"' : '');
       return '<tr' + cls + '><td class="k">' + escapeHTML(w.label) + '</td><td class="v">' + escapeHTML(w.value) + '</td></tr>';
     }).join('');
-    wwh = '<div class="xr-wwh"><div class="xr-lab">要让这个价格成立,必须为真 · what would have to be true</div>' +
-      '<table>' + trs + '</table></div>';
+    s5 = '<div class="xr-wwh"><table>' + trs + '</table></div>';
   }
 
+  // ⑥ decision: half-Kelly sizing
   const k = x.kelly;
-  const kelly = (k && k.statement_zh) ? '<div class="xr-kelly">仓位(半 Kelly) · ' + escapeHTML(k.statement_zh) + '</div>' : '';
+  const s6 = (k && k.statement_zh) ? '<div class="xr-kelly">' + escapeHTML(k.statement_zh) + '</div>' : '';
 
-  return '<div class="cp-xray">' +
-    '<div class="cp-sec-lab">X 光 · 这个 bet 有多极端(base rate · 概率 · 可证伪)</div>' +
-    hero + scen + reads + wwh + kelly + '</div>';
+  const step = (n, title, read, body) => body
+    ? '<div class="xr-step"><div class="xr-snum">' + n + '</div><div class="xr-sbody">' +
+        '<div class="xr-stitle">' + title + '</div>' + (read ? '<div class="xr-sread">' + read + '</div>' : '') + body + '</div></div>'
+    : '';
+
+  const steps =
+    step('1', '这个 bet 押什么 · 有多稀有', '把反解出的隐含增速放进 70 年历史 base rate,看它在同行里的分位(外部视角)。', s1) +
+    step('2', '市场自己有多大信心', '把现价反解成 bear / base / bull / moonshot 的概率分布(单价格 → max-entropy 概率单纯形)。', s2) +
+    step('3', '这本质是一个什么 bet', '价格对哪个经营驱动最敏感(增速 vs 利润率),以及在为多少年护城河付费。', s3) +
+    '<div class="xr-bridge"><div class="xr-snum">4</div><div class="xr-sbody"><div class="xr-stitle">市场凭什么这么定价</div>' +
+      '<div class="xr-sread">↓ 见下方「多空论战」—— 隐含数字背后的真实叙事 + 逐条证据(诚实标注来源等级与分歧)。</div></div></div>' +
+    step('5', '要让价格成立,必须为真 · 什么会证伪', '把隐含数字翻译成可检验条件,并给出一条可证伪的 KILL 线。', s5) +
+    step('6', '据此该怎么下注', '由隐含胜率与赔率推出的半 Kelly 仓位(edge 噪声大,故折半)。', s6);
+
+  return '<div class="cp-xray"><div class="cp-sec-lab">X 光 · 深度解码 — 这个 bet 的本质、稀有度与可证伪性</div>' +
+    verdict + steps + '</div>';
 }
 
 // A single bet rendered as a FULL-PAGE 2-col research dossier (the active tab).
