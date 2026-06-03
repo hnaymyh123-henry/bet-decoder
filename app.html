@@ -2315,6 +2315,22 @@
   .pf-cx-tags { display: flex; flex-wrap: wrap; gap: 6px; }
   .pf-cx-tags .tag { font-family: var(--mono); font-size: 10px; color: var(--ink-3); border: 1px solid var(--line); padding: 2px 7px; }
   .pf-cx-tags .tag.hot { color: var(--accent); border-color: var(--accent); }
+  /* connective microcopy welding each beat to the next (one reading chain) */
+  .xr-flow-conn { display: flex; gap: 9px; align-items: baseline; margin: 2px 0 20px; padding-left: 3px; }
+  .xr-flow-conn .arr { font-family: var(--mono); font-size: 13px; color: var(--accent); line-height: 1; }
+  .xr-flow-conn .t { font-size: 12.5px; color: var(--ink-3); line-height: 1.6; }
+  .xr-flow-conn .t b { color: var(--ink); font-weight: 600; }
+  .card-page .cp-xray-end { margin-top: 6px; }
+  /* bottom AUDIT fold — derivation tree + decomp + risks + limits, collapsed */
+  .card-page .cp-audit { margin-top: 24px; border-top: 1px solid var(--ink); padding-top: 12px; }
+  .card-page .cp-audit > summary { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); cursor: pointer; list-style: none; }
+  .card-page .cp-audit > summary::-webkit-details-marker { display: none; }
+  .card-page .cp-audit > summary::before { content: "▸ "; color: var(--ink-4); }
+  .card-page .cp-audit[open] > summary::before { content: "▾ "; }
+  .card-page .cp-audit[open] > summary { color: var(--ink-2); font-weight: 600; }
+  .card-page .cp-audit-body { margin-top: 16px; }
+  .card-page .cp-audit-body .cp-tree { margin-bottom: 22px; }
+  .card-page .cp-audit-body .cp-limits { border-top: none; margin-top: 18px; }
 
   /* ---- NEW: per-card discuss thread + what-if exhibit + derived card ---- */
   .bet-card .bc-discuss { border-top: 2px solid var(--ink); padding: 13px 16px 14px; background: var(--paper); }
@@ -3927,10 +3943,12 @@ function renderDerivationTree(c) {
 // X-RAY intelligence layer: turns the reverse-DCF NUMBER into an analyst JUDGMENT —
 // base-rate percentile (outside view) + max-entropy scenario-probability simplex +
 // load-bearing driver + implied moat duration + what-would-have-to-be-true/kill.
-// Reads c._display.xray (intelligence.py). Empty string when absent (graceful).
-function renderXray(c) {
+// Reads c._display.xray (intelligence.py). Returns {verdict, top, bottom} fragments
+// so the card can place the DEBATE between the X-RAY's judgment (verdict+①②③) and
+// its conclusion (⑤ falsification + ⑥ size) — one continuous logic chain. Null absent.
+function _xrayFrags(c) {
   const x = (c._display || {}).xray;
-  if (!x) return '';
+  if (!x) return null;
   const fp = v => (v == null ? '—' : (v * 100).toFixed(0) + '%');
   const $ = v => '$' + Math.round(v).toLocaleString('en-US');
 
@@ -4008,17 +4026,33 @@ function renderXray(c) {
         '<div class="xr-stitle">' + title + '</div>' + (read ? '<div class="xr-sread">' + read + '</div>' : '') + body + '</div></div>'
     : '';
 
-  const steps =
+  // TOP = the judgment read BEFORE the debate; BOTTOM = the conclusion AFTER it.
+  // The old "④ 凭什么定价" bridge is gone — the real 多空论战 section now sits
+  // physically between top and bottom, so falsification(④)+size(⑤) land only
+  // after the reader has seen the evidence they depend on.
+  const top =
     step('1', '这个 bet 押什么 · 有多稀有', '把反解出的隐含增速放进 70 年历史 base rate,看它在同行里的分位(外部视角)。', s1) +
     step('2', '市场自己有多大信心', '把现价反解成 bear / base / bull / moonshot 的概率分布(单价格 → max-entropy 概率单纯形)。', s2) +
-    step('3', '这本质是一个什么 bet', '价格对哪个经营驱动最敏感(增速 vs 利润率),以及在为多少年护城河付费。', s3) +
-    '<div class="xr-bridge"><div class="xr-snum">4</div><div class="xr-sbody"><div class="xr-stitle">市场凭什么这么定价</div>' +
-      '<div class="xr-sread">↓ 见下方「多空论战」—— 隐含数字背后的真实叙事 + 逐条证据(诚实标注来源等级与分歧)。</div></div></div>' +
-    step('5', '要让价格成立,必须为真 · 什么会证伪', '把隐含数字翻译成可检验条件,并给出一条可证伪的 KILL 线。', s5) +
-    step('6', '据此该怎么下注', '由隐含胜率与赔率推出的半 Kelly 仓位(edge 噪声大,故折半)。', s6);
+    step('3', '这本质是一个什么 bet', '价格对哪个经营驱动最敏感(增速 vs 利润率),以及在为多少年护城河付费。', s3);
+  const bottom =
+    step('4', '要让价格成立,必须为真 · 什么会证伪', '把上方论战暴露的分歧翻成可检验条件,并给出一条可证伪的 KILL 线。', s5) +
+    step('5', '据此该怎么下注', '由隐含胜率与赔率推出的半 Kelly 仓位(edge 噪声大,故折半)。', s6);
+  return { verdict, top, bottom };
+}
 
-  return '<div class="cp-xray"><div class="cp-sec-lab">X 光 · 深度解码 — 这个 bet 的本质、稀有度与可证伪性</div>' +
-    verdict + steps + '</div>';
+// X-RAY split around the debate (one continuous chain). TOP: 解码结论 + ①②③.
+function renderXrayTop(c) {
+  const f = _xrayFrags(c);
+  if (!f || (!f.top && !f.verdict)) return '';
+  return '<div class="cp-xray"><div class="cp-sec-lab">X 光 · 先读这个 bet:押什么、有多极端、是什么</div>' +
+    f.verdict + f.top + '</div>';
+}
+// BOTTOM: ④ 证伪 + ⑤ 下注 — rendered only AFTER renderDeepAnalysis.
+function renderXrayBottom(c) {
+  const f = _xrayFrags(c);
+  if (!f || !f.bottom) return '';
+  return '<div class="cp-xray cp-xray-end"><div class="cp-sec-lab">读完论战 → 收口:什么会击穿它、该押多重</div>' +
+    f.bottom + '</div>';
 }
 
 // A single bet rendered as a FULL-PAGE 2-col research dossier (the active tab).
@@ -4052,8 +4086,6 @@ function renderSingleCard(c) {
     '</div>';
   const hero2 = '<div class="cp-hero2"><div class="cp-hero-l">' + _betHeadline(c) + '</div>' +
     '<div class="cp-hero-r">' + priceChart + '</div></div>';
-  const treeBlock = '<div class="cp-tree"><div class="cp-sec-lab">推导 · 上面这个 bet 是怎么从现价反解出来的</div>' +
-    renderDerivationTree(c) + '</div>';
 
   return '<div class="bet-card card-page' + (sel ? ' selected' : '') + '" data-card="' + escapeHTML(c.card_id) + '">' +
     '<div class="cp-head">' +
@@ -4069,17 +4101,35 @@ function renderSingleCard(c) {
     '</div>' +
     (stale ? '<div class="bc-stale"><span class="dot"></span>基于 ' + escapeHTML(c.trade_date) + ' 收盘 · 历史快照</div>' : '') +
     hero2 +
-    treeBlock +
-    renderXray(c) +
+    // ONE continuous reading chain (adversarial-experiment-converged):
+    // 押什么/多稀有/信心/本质 → [为什么:真实多空论战] → 什么会证伪/怎么下注 → 审计折叠
+    renderXrayTop(c) +
+    _flowConn('押什么、多拥挤、是什么都清楚了 —— 但市场<b>凭什么</b>敢这么押?进真实战场,听控辩双方当庭举证。') +
     renderDeepAnalysis(c) +
-    '<div class="cp-support">' +
-      '<div class="cp-sup-main">' + renderDecomp(c) + '</div>' +
-      '<div class="cp-sup-side">' +
-        (d.risks ? '<div class="bc-risks"><span class="lab">关键风险</span>' + escapeHTML(d.risks) + '</div>' : '') +
-      '</div>' +
-    '</div>' +
-    _methodLimits(c) +
+    _flowConn('看完真实多空与证据分歧 —— 这注的<b>生死线</b>是什么?又该<b>押多重</b>?') +
+    renderXrayBottom(c) +
+    _auditFold(c) +
   '</div>';
+}
+
+// Connective microcopy that welds one beat to the next — makes the next section feel
+// inevitable instead of stacked. Sanctioned inline <b> for the load-bearing word.
+function _flowConn(html) {
+  return '<div class="xr-flow-conn"><span class="arr">↓</span><span class="t">' + html + '</span></div>';
+}
+
+// The AUDIT fold — derivation tree + price decomposition + risks + method limits all
+// demoted into ONE collapsed disclosure at the very bottom. These are the "show your
+// work" layer (HOW the number was derived), not part of the argument spine, so they
+// no longer break the reading flow up top. Open it to audit; ignore it to just read.
+function _auditFold(c) {
+  const d = c._display || {};
+  const tree = '<div class="cp-tree"><div class="cp-sec-lab">反解推导 · 这个 bet 怎么从现价倒推出来的</div>' +
+    renderDerivationTree(c) + '</div>';
+  const risks = d.risks
+    ? '<div class="bc-risks"><span class="lab">关键风险</span>' + escapeHTML(d.risks) + '</div>' : '';
+  return '<details class="cp-audit"><summary>审计 · 反解推导 / 价格分解 / 风险 / 方法局限</summary>' +
+    '<div class="cp-audit-body">' + tree + renderDecomp(c) + risks + _methodLimits(c) + '</div></details>';
 }
 
 // A collapsed "method & limits" disclosure — honest about what the model holds
