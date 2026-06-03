@@ -2348,6 +2348,13 @@
   .rt-arrow { font-family: var(--mono); font-size: 11px; color: var(--ink-4); }
   .rt-a { font-family: var(--mono); font-size: 12px; color: var(--ink); font-weight: 500; font-feature-settings: "tnum" 1; }
   .rt-a.hot { color: var(--accent); font-weight: 600; }
+  .rt-node.jump { cursor: pointer; }
+  .rt-node.jump:hover { background: var(--paper-2); }
+  .rt-node.jump:hover .rt-q { color: var(--ink); }
+  .rt-jarr { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--ink-5); padding-left: 8px; }
+  .rt-node.jump:hover .rt-jarr { color: var(--accent); }
+  .rt-flash { animation: rtflash 1.3s ease-out; }
+  @keyframes rtflash { 0% { background: var(--accent-soft); } 100% { background: transparent; } }
   @media (max-width: 1024px) { .rt-q { min-width: 64px; } }
 
   /* ---- NEW: per-card discuss thread + what-if exhibit + derived card ---- */
@@ -3463,7 +3470,7 @@ function renderDeepAnalysis(c) {
   const cov = sum.coverage || (full && full.coverage);
   const lab = '<div class="cp-sec-lab">深度分析 · DEEP ANALYSIS — 市场为什么这么 bet,多空怎么吵</div>';
   if (!cov || cov === 'unavailable' || cov === 'unparseable') {
-    return '<div class="cp-deep">' + lab +
+    return '<div class="cp-deep" id="rtb-' + escapeHTML(c.card_id || '') + '-debate">' + lab +
       '<div class="da-empty">市场叙事材料不足 / 未联网 —— 对这张卡运行联网 deep research(MiroMind)后,这里会填上多空论战、逐假设支撑/反驳、争议焦点与催化剂。</div></div>';
   }
   const reg = full && full.sentiment_regime || {};
@@ -3471,7 +3478,7 @@ function renderDeepAnalysis(c) {
   const bull = full ? full.bull_case : null, bear = full ? full.bear_case : null;
   // The regime headline + rationale now lead THE BET box (the summary), so here we
   // keep only a slim regime badge + counts — not a duplicate banner.
-  let html = '<div class="cp-deep">' + lab +
+  let html = '<div class="cp-deep" id="rtb-' + escapeHTML(c.card_id || '') + '-debate">' + lab +
     '<div class="da-banner slim">' +
       '<div class="da-regime"><span class="da-reg-badge">' + escapeHTML(regime) + '</span>' +
         '<span class="da-bb">多 ' + (sum.bull_count != null ? sum.bull_count : (bull ? bull.length : 0)) +
@@ -4039,8 +4046,9 @@ function _xrayFrags(c) {
   const k = x.kelly;
   const s6 = (k && k.statement_zh) ? '<div class="xr-kelly">' + escapeHTML(k.statement_zh) + '</div>' : '';
 
-  const step = (n, title, read, body) => body
-    ? '<div class="xr-step"><div class="xr-snum">' + n + '</div><div class="xr-sbody">' +
+  const cid = c.card_id || '';
+  const step = (n, title, read, body, anchor) => body
+    ? '<div class="xr-step"' + (anchor ? ' id="rtb-' + escapeHTML(cid) + '-' + anchor + '"' : '') + '><div class="xr-snum">' + n + '</div><div class="xr-sbody">' +
         '<div class="xr-stitle">' + title + '</div>' + (read ? '<div class="xr-sread">' + read + '</div>' : '') + body + '</div></div>'
     : '';
 
@@ -4049,12 +4057,12 @@ function _xrayFrags(c) {
   // physically between top and bottom, so falsification(④)+size(⑤) land only
   // after the reader has seen the evidence they depend on.
   const top =
-    step('1', '这个 bet 押什么 · 有多稀有', '把反解出的隐含增速放进 70 年历史 base rate,看它在同行里的分位(外部视角)。', s1) +
-    step('2', '市场自己有多大信心', '把现价反解成 bear / base / bull / moonshot 的概率分布(单价格 → max-entropy 概率单纯形)。', s2) +
-    step('3', '这本质是一个什么 bet', '价格对哪个经营驱动最敏感(增速 vs 利润率),以及在为多少年护城河付费。', s3);
+    step('1', '这个 bet 押什么 · 有多稀有', '把反解出的隐含增速放进 70 年历史 base rate,看它在同行里的分位(外部视角)。', s1, 'rarity') +
+    step('2', '市场自己有多大信心', '把现价反解成 bear / base / bull / moonshot 的概率分布(单价格 → max-entropy 概率单纯形)。', s2, 'conviction') +
+    step('3', '这本质是一个什么 bet', '价格对哪个经营驱动最敏感(增速 vs 利润率),以及在为多少年护城河付费。', s3, 'nature');
   const bottom =
-    step('4', '要让价格成立,必须为真 · 什么会证伪', '把上方论战暴露的分歧翻成可检验条件,并给出一条可证伪的 KILL 线。', s5) +
-    step('5', '据此该怎么下注', '由隐含胜率与赔率推出的半 Kelly 仓位(edge 噪声大,故折半)。', s6);
+    step('4', '要让价格成立,必须为真 · 什么会证伪', '把上方论战暴露的分歧翻成可检验条件,并给出一条可证伪的 KILL 线。', s5, 'falsify') +
+    step('5', '据此该怎么下注', '由隐含胜率与赔率推出的半 Kelly 仓位(edge 噪声大,故折半)。', s6, 'size');
   return { verdict, top, bottom };
 }
 
@@ -4127,17 +4135,18 @@ function _reasoningTree(c) {
       : (x.kelly.verdict === 'no_edge' ? 'Kelly ≤ 0 · 不建仓'
         : String(x.kelly.statement_zh || '').slice(0, 26));
   }
-  const node = (n, q, a, hot) => '<div class="rt-node"><span class="rt-n' + (hot ? ' hot' : '') + '">' + n + '</span>' +
+  const cid = c.card_id || '';
+  const node = (n, q, a, hot, anchor) => '<div class="rt-node jump" data-rtjump="rtb-' + escapeHTML(cid) + '-' + anchor + '"><span class="rt-n' + (hot ? ' hot' : '') + '">' + n + '</span>' +
     '<span class="rt-q">' + q + '</span><span class="rt-arrow">→</span>' +
-    '<span class="rt-a' + (hot ? ' hot' : '') + '">' + escapeHTML(a) + '</span></div>';
+    '<span class="rt-a' + (hot ? ' hot' : '') + '">' + escapeHTML(a) + '</span><span class="rt-jarr">›</span></div>';
   return '<div class="cp-rtree">' + lab +
     '<div class="rt">' +
       '<div class="rt-root"><span class="rt-root-lab">现价</span><span class="rt-root-val">' + px + '</span>' +
         (rootSub ? '<span class="rt-root-sub">' + escapeHTML(rootSub) + '</span>' : '') + '</div>' +
       '<div class="rt-branches">' +
-        node('1', '有多稀有', a1, hot1) + node('2', '市场多大信心', a2, hot2) +
-        node('3', '本质什么 bet', a3, false) + node('4', '凭什么 · 多空论战', a4, hot4) +
-        node('5', '什么会证伪', a5, hot5) + node('6', '该怎么下注', a6, false) +
+        node('1', '有多稀有', a1, hot1, 'rarity') + node('2', '市场多大信心', a2, hot2, 'conviction') +
+        node('3', '本质什么 bet', a3, false, 'nature') + node('4', '凭什么 · 多空论战', a4, hot4, 'debate') +
+        node('5', '什么会证伪', a5, hot5, 'falsify') + node('6', '该怎么下注', a6, false, 'size') +
       '</div>' +
     '</div></div>';
 }
@@ -4386,6 +4395,15 @@ function bindCardEvents() {
   // Portfolio constituent row → jump to that holding's tab.
   document.querySelectorAll('[data-gotab]').forEach(el =>
     el.addEventListener('click', () => activateTab(el.getAttribute('data-gotab'))));
+  // Reasoning-tree node → smooth-scroll to its detailed section + brief highlight.
+  document.querySelectorAll('[data-rtjump]').forEach(el =>
+    el.addEventListener('click', () => {
+      const t = document.getElementById(el.getAttribute('data-rtjump'));
+      if (!t) return;
+      t.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      t.classList.add('rt-flash');
+      setTimeout(() => t.classList.remove('rt-flash'), 1300);
+    }));
 }
 
 /* ============================================================
