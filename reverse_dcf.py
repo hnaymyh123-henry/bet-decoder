@@ -356,11 +356,17 @@ def format_historical_context_md(context: dict, consensus: dict | None = None) -
 
 
 def dcf_equity_value_per_share(a: Assumptions, data: CompanyData,
-                               growth_path: list[float] | None = None) -> float:
+                               growth_path: list[float] | None = None,
+                               years: int = 5) -> float:
     """`growth_path` (optional per-year growth rates) lets a scenario FADE growth
     year-by-year (e.g. momentum: current rate → GDP); when None, the constant
-    `a.revenue_cagr_5y` is used — Tier-1 behavior, unchanged."""
-    years = 5
+    `a.revenue_cagr_5y` is used — Tier-1 behavior, unchanged.
+
+    `years` (default 5, backward-compatible) is the explicit-forecast horizon —
+    the number of years the company grows at `a.revenue_cagr_5y` (or `growth_path`)
+    before the Gordon terminal. Parameterizing it lets us reverse-solve the
+    market-implied COMPETITIVE ADVANTAGE PERIOD (how many years of growth the price
+    buys) instead of fixing the horizon at 5."""
     revenue = data.revenue_ttm
     pv = 0.0
     for year in range(1, years + 1):
@@ -441,6 +447,122 @@ def monte_carlo_implied(
         "samples": len(results),
         "success_rate": len(results) / n,
     }
+
+
+# ===========================================================================
+# Intelligence-layer helpers (consumed by intelligence.py / decoder._lens_dcf).
+# These let the reverse-solve answer questions richer than "what ONE growth rate
+# justifies the price?": how many YEARS of moat the price buys (implied CAP), what
+# PROBABILITY the market assigns each scenario, and which driver is LOAD-BEARING.
+# Pure functions over the SAME DCF math above — no new valuation model.
+# ===========================================================================
+
+def implied_scenario_probabilities(values, price):
+    """Invert one price into a max-entropy probability simplex over scenario values.
+
+    A price is a probability-weighted expected value: price = Σ pᵢ·vᵢ. With one
+    price (one mean constraint) and ≥2 free probabilities the system is
+    UNDERDETERMINED, so we close it with the maximum-entropy principle — the least
+    committal distribution consistent with the price: pᵢ ∝ exp(λ·vᵢ), λ from a 1-D
+    root-find (the mean is monotonic in λ).
+
+    Returns (probs: list[float] | None, note). None when the price is OUTSIDE the
+    [min,max] of the scenario values — itself the signal that the price is beyond
+    even the most bullish modelled scenario ("above_top") or below the bear
+    ("below_bottom")."""
+    v = np.array([float(x) for x in values], dtype=float)
+    if v.size < 2:
+        return None, "need_2_scenarios"
+    vmin, vmax = float(v.min()), float(v.max())
+    if not (vmin < price < vmax):
+        return None, ("above_top" if price >= vmax else "below_bottom")
+    span = vmax - vmin
+
+    def mean_at(lmbda):
+        z = lmbda * (v - vmin) / span
+        z = z - z.max()                 # numerical stabilization
+        w = np.exp(z)
+        w = w / w.sum()
+        return float((w * v).sum())
+
+    try:
+        lam = brentq(lambda l: mean_at(l) - price, -200.0, 200.0, xtol=1e-8)
+    except (ValueError, ZeroDivisionError):
+        return None, "no_solution"
+    z = lam * (v - vmin) / span
+    z = z - z.max()
+    w = np.exp(z)
+    w = w / w.sum()
+    return [float(x) for x in w], "ok"
+
+
+def implied_cap_years(data: CompanyData, sustained_growth: float,
+                      margin: float, wacc: float, *, max_years: int = 30) -> float | None:
+    """Market-implied Competitive Advantage Period (MICAP): how many years of
+    `sustained_growth` (at consensus margin/WACC, then a GDP-growth terminal) the
+    current price requires. Solve for the horizon N where the DCF value reconciles
+    to the price — the DURATION analogue of the implied-growth reverse-solve
+    ("how long?" instead of "how fast?").
+
+    Returns a float year count (interpolated between the bracketing integers), or
+    None when the price is below the 1-year value or above the max_years value
+    (outside the modellable range)."""
+    if (sustained_growth is None or sustained_growth <= TERMINAL_GROWTH
+            or wacc <= TERMINAL_GROWTH):
+        return None
+    a = Assumptions(revenue_cagr_5y=sustained_growth, terminal_growth=TERMINAL_GROWTH,
+                    terminal_fcf_margin=margin, wacc=wacc)
+    price = data.current_price
+    prev_v = None
+    for n in range(1, max_years + 1):
+        v = dcf_equity_value_per_share(a, data, years=n)
+        if v is None or v < -1e8:
+            return None
+        if v >= price:
+            if n == 1 or prev_v is None:
+                return float(n)
+            frac = (price - prev_v) / (v - prev_v) if v != prev_v else 0.0
+            return round((n - 1) + frac, 1)
+        prev_v = v
+    return None  # price needs > max_years of this growth → off the chart
+
+
+_DRIVER_LABELS = {
+    "revenue_cagr_5y": "营收增速", "terminal_fcf_margin": "FCF 利润率",
+    "wacc": "贴现率 (WACC)", "terminal_growth": "终值增速",
+}
+
+
+def rank_driver_elasticity(base: Assumptions, data: CompanyData,
+                           rel_bump: float = 0.02) -> list[dict]:
+    """At the price-justifying assumption point, rank value drivers by ELASTICITY —
+    the % change in per-share value per % change in each driver. The largest
+    |elasticity| is the LOAD-BEARING ('turbo-trigger') driver the price is really
+    betting on. Replaces the arbitrary fixed-range Monte-Carlo perturbation with a
+    company-specific statement of WHICH assumption matters most.
+
+    Returns [{driver, label, elasticity}, ...] sorted by |elasticity| desc."""
+    v0 = dcf_equity_value_per_share(base, data)
+    if v0 is None or abs(v0) < 1e-9 or v0 < -1e8:
+        return []
+    out = []
+    for drv in ("revenue_cagr_5y", "terminal_fcf_margin", "wacc", "terminal_growth"):
+        cur = getattr(base, drv)
+        if cur is None:
+            continue
+        bumped = cur * (1.0 + rel_bump) if cur != 0 else rel_bump
+        a1 = replace(base, **{drv: bumped})
+        v1 = dcf_equity_value_per_share(a1, data)
+        if v1 is None or v1 < -1e8:
+            continue
+        denom = (bumped - cur) / cur if cur != 0 else rel_bump
+        if denom == 0:
+            continue
+        elasticity = ((v1 - v0) / v0) / denom
+        out.append({"driver": drv, "label": _DRIVER_LABELS.get(drv, drv),
+                    "elasticity": round(float(elasticity), 2)})
+    out.sort(key=lambda d: abs(d["elasticity"]), reverse=True)
+    return out
 
 
 def main(ticker: str):

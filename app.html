@@ -2237,6 +2237,58 @@
   .card-page .cp-limits ul { margin: 10px 0 0; padding-left: 18px; }
   .card-page .cp-limits li { font-size: 12px; color: var(--ink-3); line-height: 1.65; margin-bottom: 6px; }
 
+  /* ============ X-RAY intelligence layer (base rate + scenario probs + kill) ============ */
+  .card-page .cp-xray { margin-bottom: 22px; }
+  .xray-hero { border: 1px solid var(--line); border-left: 2px solid var(--ink); background: var(--paper); padding: 13px 16px; margin-bottom: 14px; }
+  .xray-hero .xr-top { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+  .xray-hero .xr-implied { font-size: 12px; color: var(--ink-3); }
+  .xray-hero .xr-implied b { font-family: var(--mono); font-size: 19px; font-weight: 600; color: var(--ink); }
+  .xray-hero .xr-pct { font-family: var(--mono); font-size: 26px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; white-space: nowrap; }
+  .xray-hero .xr-pct.hot { color: var(--accent); }
+  .xray-hero .xr-pct .u { font-size: 11px; color: var(--ink-4); font-weight: 500; }
+  .xr-dist { position: relative; height: 30px; margin: 16px 0 6px; }
+  .xr-dist .axis { position: absolute; left: 0; right: 0; top: 19px; height: 2px; background: var(--paper-3); }
+  .xr-dist .fillbar { position: absolute; left: 0; top: 18px; height: 4px; background: var(--ink-4); opacity: 0.35; }
+  .xr-dist .mk { position: absolute; top: 11px; width: 2px; height: 18px; background: var(--accent); }
+  .xr-dist .mk .cap { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); font-family: var(--mono); font-size: 9px; color: var(--accent); white-space: nowrap; }
+  .xr-dist .tick { position: absolute; top: 23px; font-family: var(--mono); font-size: 8px; color: var(--ink-4); transform: translateX(-50%); white-space: nowrap; }
+  .xray-hero .xr-headline { font-size: 12.5px; color: var(--ink-2); line-height: 1.55; margin-top: 8px; }
+  .xray-hero .xr-headline b { color: var(--accent); font-weight: 600; }
+  .xray-quote { font-family: var(--mono); font-size: 10px; color: var(--ink-4); line-height: 1.55; margin-top: 6px; padding-left: 11px; border-left: 1px solid var(--line); }
+  .xr-scen { margin-bottom: 14px; }
+  .xr-scen .xr-lab, .xr-wwh .xr-lab { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 9px; }
+  .xr-srow { margin-bottom: 9px; }
+  .xr-srow .xr-stop { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .xr-srow .xr-sname { font-size: 12.5px; color: var(--ink-2); }
+  .xr-srow .xr-sname .g { font-family: var(--mono); font-size: 10px; color: var(--ink-4); margin-left: 6px; }
+  .xr-srow .xr-sval { font-family: var(--mono); font-size: 11px; color: var(--ink-4); }
+  .xr-srow .xr-sp { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--ink-3); }
+  .xr-srow.top .xr-sname { color: var(--ink); font-weight: 600; }
+  .xr-srow.top .xr-sp { color: var(--accent); }
+  .xr-sbar { height: 9px; background: var(--paper-3); position: relative; overflow: hidden; }
+  .xr-sbar .fill { height: 100%; background: var(--ink-3); }
+  .xr-srow.top .xr-sbar .fill { background: var(--accent); }
+  .xr-scen .xr-note { font-size: 12.5px; color: var(--ink-2); line-height: 1.55; margin-top: 9px; }
+  .xr-scen .xr-note b { color: var(--accent); font-weight: 600; }
+  .xr-envelope { background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 11px 14px; font-size: 12.5px; color: var(--ink); line-height: 1.55; }
+  .xr-reads { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  @media (max-width: 1024px) { .xr-reads { grid-template-columns: 1fr; } }
+  .xr-read { border: 1px solid var(--line); background: var(--paper-2); padding: 10px 13px; }
+  .xr-read .k { font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 5px; }
+  .xr-read .v { font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+  .xr-read .v b { color: var(--ink); font-weight: 600; }
+  .xr-wwh { border: 1px solid var(--line); padding-top: 10px; }
+  .xr-wwh .xr-lab { padding: 0 13px; }
+  .xr-wwh table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  .xr-wwh td { padding: 8px 13px; font-size: 12px; color: var(--ink-2); border-top: 1px solid var(--line); line-height: 1.5; }
+  .xr-wwh td.v { text-align: right; font-family: var(--mono); color: var(--ink); white-space: nowrap; }
+  .xr-wwh tr.flag td { color: var(--ink-3); }
+  .xr-wwh tr.flag td.v { white-space: normal; font-family: inherit; }
+  .xr-wwh tr.kill td { background: var(--accent-soft); }
+  .xr-wwh tr.kill td.k { color: var(--accent); font-weight: 600; }
+  .xr-wwh tr.kill td.v { text-align: left; font-family: inherit; color: var(--ink); white-space: normal; }
+  .xr-kelly { font-family: var(--mono); font-size: 11px; color: var(--ink-4); margin-top: 9px; padding-left: 2px; }
+
   /* ---- NEW: per-card discuss thread + what-if exhibit + derived card ---- */
   .bet-card .bc-discuss { border-top: 2px solid var(--ink); padding: 13px 16px 14px; background: var(--paper); }
   .bet-card .bc-discuss > .lab { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 11px; }
@@ -3810,6 +3862,98 @@ function renderDerivationTree(c) {
   '</div>';
 }
 
+// X-RAY intelligence layer: turns the reverse-DCF NUMBER into an analyst JUDGMENT —
+// base-rate percentile (outside view) + max-entropy scenario-probability simplex +
+// load-bearing driver + implied moat duration + what-would-have-to-be-true/kill.
+// Reads c._display.xray (intelligence.py). Empty string when absent (graceful).
+function renderXray(c) {
+  const x = (c._display || {}).xray;
+  if (!x) return '';
+  const fp = v => (v == null ? '—' : (v * 100).toFixed(0) + '%');
+  const $ = v => '$' + Math.round(v).toLocaleString('en-US');
+
+  // --- base-rate hero (the headline Aha) ---
+  let hero = '';
+  const br = x.base_rate;
+  if (br) {
+    const live = br.live || {}, au = br.authoritative || {};
+    const pct = live.percentile, hot = (br.verdict === 'top-tail');
+    const pos = Math.max(2, Math.min(98, Number(pct) || 50));
+    const quotes = [au.verified_quote, au.tesla_class_quote].filter(Boolean)
+      .map(q => '<div class="xray-quote">▸ ' + escapeHTML(q) + '</div>').join('');
+    const cohortStr = (live.cohort && live.cohort !== 'all')
+      ? ' · 同体量(' + escapeHTML(live.cohort) + ')仅 <b>' + live.cohort_share_ge_pct + '%</b>' : '';
+    hero = '<div class="xray-hero">' +
+      '<div class="xr-top">' +
+        '<span class="xr-implied">隐含 5 年营收增速 <b>' + fp(br.implied_cagr) + '</b></span>' +
+        '<span class="xr-pct' + (hot ? ' hot' : '') + '">' + pct + '<span class="u">th 分位</span></span>' +
+      '</div>' +
+      '<div class="xr-dist">' +
+        '<div class="axis"></div>' +
+        '<div class="fillbar" style="width:' + pos + '%"></div>' +
+        '<div class="mk" style="left:' + pos + '%"><span class="cap">隐含 ' + fp(br.implied_cagr) + '</span></div>' +
+        '<div class="tick" style="left:1%">同行最低</div>' +
+        '<div class="tick" style="left:50%">中位 ' + fp(0.05) + '</div>' +
+        '<div class="tick" style="left:99%">最高</div>' +
+      '</div>' +
+      '<div class="xr-headline">大盘股第 <b>' + pct + '</b> 分位 · 仅 <b>' + live.share_ge_pct +
+        '%</b> 同行历史上达到过(n=' + live.n + ')' + cohortStr + '</div>' + quotes +
+    '</div>';
+  }
+
+  // --- max-entropy scenario probabilities ---
+  let scen = '';
+  const sp = x.scenario_probs || {}, scenarios = x.scenarios || [];
+  if (sp.by_name && Object.keys(sp.by_name).length) {
+    const names = Object.keys(sp.by_name);
+    const top = names.reduce((a, b) => (sp.by_name[a] >= sp.by_name[b] ? a : b), names[0]);
+    const rows = scenarios.filter(s => sp.by_name[s.name] != null).map(s => {
+      const p = sp.by_name[s.name], isTop = s.name === top;
+      return '<div class="xr-srow' + (isTop ? ' top' : '') + '">' +
+        '<div class="xr-stop">' +
+          '<span class="xr-sname">' + escapeHTML(s.name_zh) + '<span class="g">' + fp(s.growth) + ' 增速</span></span>' +
+          '<span><span class="xr-sval">≈' + (s.value != null ? $(s.value) : '—') + '&nbsp;&nbsp;</span><span class="xr-sp">' + fp(p) + '</span></span>' +
+        '</div>' +
+        '<div class="xr-sbar"><div class="fill" style="width:' + Math.min(100, p * 100).toFixed(0) + '%"></div></div>' +
+      '</div>';
+    }).join('');
+    scen = '<div class="xr-scen"><div class="xr-lab">市场隐含情景概率 · 单价格 → max-entropy 概率单纯形</div>' +
+      rows + (sp.statement_zh ? '<div class="xr-note">→ ' + escapeHTML(sp.statement_zh) + '</div>' : '') + '</div>';
+  } else if (sp.statement_zh) {
+    scen = '<div class="xr-scen"><div class="xr-lab">市场隐含情景概率</div>' +
+      '<div class="xr-envelope">' + escapeHTML(sp.statement_zh) + '</div></div>';
+  }
+
+  // --- compact reads: load-bearing driver + implied CAP ---
+  const rcards = [];
+  if (x.load_bearing && x.load_bearing.statement_zh)
+    rcards.push('<div class="xr-read"><div class="k">载荷驱动 · 这本质是什么 bet</div><div class="v">' +
+      escapeHTML(x.load_bearing.statement_zh) + '</div></div>');
+  if (x.implied_cap && x.implied_cap.statement_zh)
+    rcards.push('<div class="xr-read"><div class="k">隐含护城河久期 · MICAP</div><div class="v">' +
+      escapeHTML(x.implied_cap.statement_zh) + '</div></div>');
+  const reads = rcards.length ? '<div class="xr-reads">' + rcards.join('') + '</div>' : '';
+
+  // --- what-would-have-to-be-true + kill line ---
+  let wwh = '';
+  const ww = x.wwhtbt || [];
+  if (ww.length) {
+    const trs = ww.map(w => {
+      const cls = w.kind === 'kill' ? ' class="kill"' : (w.kind === 'flag' ? ' class="flag"' : '');
+      return '<tr' + cls + '><td class="k">' + escapeHTML(w.label) + '</td><td class="v">' + escapeHTML(w.value) + '</td></tr>';
+    }).join('');
+    wwh = '<div class="xr-wwh"><div class="xr-lab">要让这个价格成立,必须为真 · what would have to be true</div>' +
+      '<table>' + trs + '</table></div>';
+  }
+
+  const k = x.kelly;
+  const kelly = (k && k.statement_zh) ? '<div class="xr-kelly">仓位(半 Kelly) · ' + escapeHTML(k.statement_zh) + '</div>' : '';
+
+  return '<div class="cp-xray">' +
+    '<div class="cp-sec-lab">X 光 · 这个 bet 有多极端(base rate · 概率 · 可证伪)</div>' +
+    hero + scen + reads + wwh + kelly + '</div>';
+}
+
 // A single bet rendered as a FULL-PAGE 2-col research dossier (the active tab).
 // Keeps the `bet-card` class so all the .bet-card-scoped viz CSS (flow / decomp /
 // discuss / chart) still applies; `card-page` adds the page layout. Left col =
@@ -3859,6 +4003,7 @@ function renderSingleCard(c) {
     (stale ? '<div class="bc-stale"><span class="dot"></span>基于 ' + escapeHTML(c.trade_date) + ' 收盘 · 历史快照</div>' : '') +
     hero2 +
     treeBlock +
+    renderXray(c) +
     renderDeepAnalysis(c) +
     '<div class="cp-support">' +
       '<div class="cp-sup-main">' + renderDecomp(c) + '</div>' +

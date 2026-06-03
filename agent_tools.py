@@ -312,6 +312,46 @@ def _t_compare(args: dict, ctx: ToolContext) -> dict:
             "a_primary": _primary(ctx.fundamentals), "b_primary": _primary(f_b)}
 
 
+@tool("base_rate_check",
+      "Place an implied revenue CAGR in the empirical + Mauboussin base-rate "
+      "distribution — answers 'how rare is this number? what percentile? how many "
+      "comparable firms ever delivered it?' (the outside view).",
+      {"type": "object", "properties": {
+          "implied_cagr": {"type": "number",
+                           "description": "implied 5y revenue CAGR (decimal, e.g. 0.30)"}},
+       "required": ["implied_cagr"]})
+def _t_base_rate(args: dict, ctx: ToolContext) -> dict:
+    import base_rates
+    rev = getattr(ctx.fundamentals, "revenue_ttm", None)
+    res = base_rates.percentile_of(args.get("implied_cagr"), rev)
+    return res or {"error": "no implied cagr / empty base-rate universe"}
+
+
+@tool("xray_intelligence",
+      "Run the full X-RAY judgment layer on the current bet: base-rate percentile, "
+      "max-entropy scenario probabilities, which driver is LOAD-BEARING, the implied "
+      "competitive-advantage period (years of moat), what-would-have-to-be-true + a "
+      "falsifiable kill line, and Kelly position sizing.",
+      {"type": "object", "properties": {}})
+def _t_xray(args: dict, ctx: ToolContext) -> dict:
+    import intelligence
+    import reverse_dcf as rdcf
+    f, anchor = ctx.fundamentals, ctx.anchor_price
+    if not (f and f.has_revenue and f.shares_outstanding and anchor):
+        return {"error": "X-ray needs revenue + shares + a price; not available here."}
+    data = rdcf.CompanyData(
+        ticker=f.ticker, current_price=anchor, revenue_ttm=f.revenue_ttm,
+        fcf_ttm=f.fcf_ttm if f.fcf_ttm is not None else 0.0,
+        shares_outstanding=f.shares_outstanding, net_debt=f.net_debt or 0.0,
+        beta=f.beta if f.beta is not None else 1.0)
+    margin = max(data.fcf_ttm / data.revenue_ttm, 0.05) if data.revenue_ttm else 0.15
+    wacc = rdcf.compute_wacc(data.beta)
+    implied = rdcf.reverse_solve(anchor, rdcf.Assumptions(0.15, 0.025, margin, wacc),
+                                 "revenue_cagr_5y", data)
+    return intelligence.build_xray(data=data, fundamentals=f, implied_cagr=implied,
+                                   base_margin=margin, wacc=wacc)
+
+
 # ---------------------------------------------------------------------------
 # Web-grounded tools — honest-empty unless the provider can actually search
 # ---------------------------------------------------------------------------

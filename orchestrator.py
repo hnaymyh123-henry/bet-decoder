@@ -23,7 +23,7 @@ import client
 # attached by decode_bet itself, and compare is a Q&A concern).
 _DECODE_TOOLS = ["get_fundamentals", "classify_subject", "plan_lenses", "run_lens",
                  "run_all_applicable_lenses", "run_anchor_decompose",
-                 "whatif_reverse_dcf"]
+                 "whatif_reverse_dcf", "base_rate_check", "xray_intelligence"]
 
 # The control tool that ends the loop with the agent's chosen plan.
 _SUBMIT_TOOL = {
@@ -214,6 +214,7 @@ def decode_bet_agentic(source_type, source_input, lang: str = "zh", emit=None, *
 
 _QA_TOOLS = ["get_fundamentals", "run_lens", "run_all_applicable_lenses",
              "run_anchor_decompose", "whatif_reverse_dcf", "compare_subjects",
+             "base_rate_check", "xray_intelligence",
              "research_narrative", "gather_evidence"]
 
 _FINAL_ANSWER_TOOL = {

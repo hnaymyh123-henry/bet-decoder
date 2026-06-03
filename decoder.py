@@ -449,11 +449,26 @@ def _lens_dcf(anchor: float, f: Fundamentals) -> dict | None:
         if sec_tam:
             implied_market_share = implied_rev_5y / sec_tam
 
+    # X-RAY intelligence layer (intelligence.py): base-rate percentile of the
+    # implied number, max-entropy scenario probabilities, driver elasticity,
+    # implied CAP, what-would-have-to-be-true + kill line. A judgment layer on top
+    # of the formula — pure compute, airtight (never raises, never bills).
+    try:
+        import intelligence
+        xray = intelligence.build_xray(
+            data=data, fundamentals=f, implied_cagr=point,
+            base_margin=base_margin, wacc=consensus_wacc,
+            sustained_growth=None,   # let intelligence cap it = min(implied, 40%)
+            implied_rev_5y=implied_rev_5y, implied_market_share=implied_market_share)
+    except Exception:
+        xray = None
+
     # Shared envelope: live rate + THREE scenarios + the company's own history +
     # the implied-number landing, so db.py renders everything from a card already
     # in the DB. baseline_dcf_price = the INDUSTRY scenario (premium reference).
     _extra = dict(
         band=band,
+        xray=xray,
         baseline_dcf_price=baseline_price,
         baseline_dcf_low=base_low,
         baseline_dcf_high=base_high,

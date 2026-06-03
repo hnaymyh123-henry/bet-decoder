@@ -1778,6 +1778,7 @@ def build_card_display(card: BetCard) -> dict | None:
     base_dcf = am.get("base_business_value")
     base_low = base_high = hist_cagr = implied_cagr = None
     sc_industry = sc_momentum = sector = sec_tam = implied_rev_5y = implied_share = None
+    xray = None
     for r in ([dd.get("primary_lens")] + list(dd.get("cross_lenses") or [])):
         if isinstance(r, dict) and r.get("lens") == "dcf":
             if base_dcf is None and isinstance(r.get("baseline_dcf_price"), (int, float)):
@@ -1792,6 +1793,7 @@ def build_card_display(card: BetCard) -> dict | None:
             sec_tam = r.get("sector_tam")
             implied_rev_5y = r.get("implied_rev_5y")
             implied_share = r.get("implied_market_share")
+            xray = r.get("xray")          # X-RAY intelligence layer (intelligence.py)
             break
     # risks: honest, derived from the market-narrative contested points (if any).
     mn = (dd.get("market_narrative") or {}).get("summary") or {}
@@ -1832,6 +1834,7 @@ def build_card_display(card: BetCard) -> dict | None:
             "scenario_industry": sc_industry, "scenario_momentum": sc_momentum,
             "sector": sector, "sector_tam": sec_tam,
             "implied_rev_5y": implied_rev_5y, "implied_market_share": implied_share,
+            "xray": xray,
             "anchor": anchor, "bets": bets,
             "risks": risks, "chain": chain, "decomp": decomp,
             "derivations": _build_derivations(dd),
