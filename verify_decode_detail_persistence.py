@@ -240,6 +240,32 @@ check("AC9 aggregated theme flags concentration + lists both contributing ticker
       any(getattr(t, "is_concentration_risk", False)
           and len(getattr(t, "contributing_tickers", []) or []) == 2 for t in _pte))
 
+# --- AC10: a leg that fails to decode is RECORDED, not silently swallowed -------
+# yfinance can rate-limit / time out a single leg; the aggregate must be honest
+# about which holdings it couldn't decode instead of presenting an empty/partial
+# theme set as a valid "no common bet" answer (the empty-theme portfolio bug).
+def _ff_one_bad(t):
+    if t == "BBB":
+        raise RuntimeError("simulated data-source timeout")
+    return decoder.Fundamentals(
+        ticker=t, current_price=224.0, revenue_ttm=60e9, net_income_ttm=32e9,
+        ebitda_ttm=38e9, fcf_ttm=30e9, book_equity=43e9, eps_ttm=2.9,
+        shares_outstanding=24.4e9, net_debt=-10e9, beta=1.5, growth_rate=0.5,
+        industry="Semiconductors", tags=["GPU accelerator"])
+_pf2 = decoder.decode_bet("portfolio", "AAA,BBB", "zh",
+                          fundamentals_fn=_ff_one_bad, hunter=lambda *a, **k: None)
+_dd2 = getattr(_pf2, "decode_detail", None) or {}
+_failed2 = _dd2.get("failed_legs") or {}
+_pt2 = _dd2.get("per_ticker_primary") or {}
+check("AC10 failed leg recorded in decode_detail.failed_legs (not swallowed)",
+      "BBB" in _failed2, f"failed_legs={list(_failed2.keys())}")
+check("AC10 good leg still decoded + theme aggregated (partial-success honest)",
+      "AAA" in _pt2 and bool(_pf2.theme_exposures),
+      f"per_ticker={list(_pt2.keys())} themes={[getattr(t,'theme',None) for t in (_pf2.theme_exposures or [])]}")
+check("AC10 card_to_json surfaces failed_legs for the UI banner",
+      "BBB" in (db.card_to_json(_pf2).get("failed_legs") or []),
+      f"json.failed_legs={db.card_to_json(_pf2).get('failed_legs')}")
+
 print("=" * 72)
 print(f"RESULT: {_passed} passed, {_failed} failed")
 print("=" * 72)

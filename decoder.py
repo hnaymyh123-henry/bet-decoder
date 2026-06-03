@@ -171,7 +171,10 @@ def fetch_fundamentals(ticker: str) -> Fundamentals:
         beta=_f("beta") or 1.0,
         growth_rate=_f("earningsGrowth") or _f("revenueGrowth"),
         industry=industry,
-        tags=[],
+        # Harvest AI-theme SPECIFIC keywords from the business summary so the
+        # deterministic classifier works on REAL yfinance data (the bare
+        # `industry` label carries none).  Specific-only → no mis-gating.
+        tags=_summary_specific_tags(info.get("longBusinessSummary")),
     )
 
 
@@ -483,6 +486,28 @@ def _ai_theme_for(text: str, *, corpus: str | None = None) -> str | None:
     return None
 
 
+def _summary_specific_tags(text: str | None) -> list[str]:
+    """Harvest AI-theme SPECIFIC keywords present in a business-summary string.
+
+    `fetch_fundamentals` feeds this from yfinance's `longBusinessSummary` so the
+    deterministic classifier works on REAL data.  yfinance's `industry` is a bare
+    label ("Semiconductors") that carries none of the specific keywords, but the
+    business summary does ("...graphics processing units (GPUs)...data center...").
+    Only the SPECIFIC (unambiguous) tier is harvested — never the generic tier —
+    so a company is never mis-gated into anchor mode by a shared word ("memory",
+    "storage", "optical") that happened to appear in prose.  Reproducible, no LLM.
+    """
+    if not text:
+        return []
+    low = str(text).lower()
+    hits: list[str] = []
+    for tiers in AI_COMPOSITE_THEMES.values():
+        for kw in tiers.get("specific", ()):
+            if kw in low and kw not in hits:
+                hits.append(kw)
+    return hits
+
+
 def is_ai_composite(f: Fundamentals) -> tuple[bool, str | None]:
     """Deterministic AI-complex classification (PRD 决策 9).
 
@@ -588,13 +613,17 @@ def _anchor_narrative(gap: float, anchor: float, base_value: float,
     if llm is not None:  # pragma: no cover - real Deep Research path (not in tests)
         return _anchor_via_llm("narrative", "叙事锚", gap, anchor, base_value, f, llm)
     is_ai, theme = is_ai_composite(f)
+    premium = (gap / anchor) if anchor else 0.0
+    factor = _style_factor(f, premium)
     return _anchor_component(
         lens_key="narrative", lens_label="叙事锚",
-        claim="市场为 AI 增长叙事支付的溢价" if is_ai else "市场为增长叙事支付的溢价",
+        claim=("市场为 AI 增长叙事支付的溢价" if is_ai
+               else f"市场为「{factor}」支付的溢价"),
         implied_amount=gap,
         implied_assumption="叙事兑现:增长曲线显著超过传统估值锚定的水平",
         probability=None,
-        theme=theme or "增长叙事",
+        # AI 赛道主题优先;否则用具体因子名(不再是空泛的死字符串「增长叙事」)
+        theme=theme or factor,
     )
 
 
@@ -860,6 +889,33 @@ _RECON_TOL_PCT = 0.01  # 1% of anchor
 # REAL DCF baseline (base_src == "dcf_baseline"), never a degenerate base=0.
 _NARRATIVE_PREMIUM_GATE = 0.50
 
+# Style / factor labels — the cross-holding "common bet" a portfolio aggregates
+# on.  Derived from the narrative premium (share of price the DCF base business
+# value cannot explain), NOT a keyword guess: a high premium means the price is
+# carried by a growth/story bet rather than by current earnings.  Because the
+# label is a function of a real number, holdings with the same premium band line
+# up — so "你以为分散持有 N 只,实际都押在『高估值成长』" emerges from the data
+# rather than from a fixed string.  Honest + reproducible (no LLM).
+_FACTOR_HIGH_GROWTH = "高估值成长"        # premium ≥ 50% (also forces anchor mode)
+_FACTOR_GROWTH_PREMIUM = "成长溢价"       # 30% ≤ premium < 50%
+_FACTOR_EARNINGS_ANCHORED = "盈利锚定"    # premium < 30% (most of price is base)
+
+
+def _style_factor(f: Fundamentals, narrative_premium: float | None) -> str:
+    """Map a card's narrative premium to a concrete style/factor label.
+
+    This is the handle a portfolio aggregates on (保 aha): a NVDA+AAPL+TSLA basket
+    all carries a high premium → all map to 「高估值成长」 → the portfolio surfaces
+    a genuine common bet instead of the vague 「增长叙事」.  Crucially the label
+    depends only on the premium, so even when the AI-keyword gate misses (real
+    yfinance text), the cross-holding alignment still holds."""
+    p = narrative_premium or 0.0
+    if p >= _NARRATIVE_PREMIUM_GATE:
+        return _FACTOR_HIGH_GROWTH
+    if p >= 0.30:
+        return _FACTOR_GROWTH_PREMIUM
+    return _FACTOR_EARNINGS_ANCHORED
+
 
 def _base_business_value(anchor: float, f: Fundamentals,
                          cross_results: list[dict]) -> tuple[float, str, float]:
@@ -992,37 +1048,55 @@ def _theme_exposures_from_anchor(f: Fundamentals, anchor: float, base: float,
                                  components: list[dict]) -> list[db.ThemeExposure]:
     """R1: turn priced anchor components into card-level ThemeExposure rows.
 
-    Exposure % = component implied_amount / anchor (the share of price the theme
-    carries).  An AI-composite subject always gets at least one row tagged with
-    its AI theme so M3 同源比对 has a comparable handle.
+    Two complementary dimensions ride out together:
+      • a 赛道/主题 row per priced component (AI composites carry their AI theme,
+        e.g. NVDA → 「AI 基础设施」);
+      • a single 因子/风格 row (`_style_factor` of the narrative premium) that is
+        the cross-holding handle a portfolio aggregates on — holdings line up by
+        premium band, so a NVDA+AAPL+TSLA basket's common bet (「高估值成长」) is
+        real, not the vague fixed string 「增长叙事」.
+
+    Exposure % = implied_amount / anchor (share of price the theme carries); the
+    factor row uses the premium itself.  De-duped so the AI theme and the factor
+    never double-count when they coincide.
     """
     rows: list[db.ThemeExposure] = []
     is_ai, ai_theme = is_ai_composite(f)
-    for c in components:
-        amt = c.get("implied_amount") or 0.0
-        if amt <= 0:
-            continue
-        theme = c.get("theme") or (ai_theme if is_ai else c.get("lens_label"))
-        if not theme:
-            continue
-        pct = (amt / anchor * 100.0) if anchor else None
+    premium = (max(0.0, anchor - base) / anchor) if anchor else 0.0
+    factor = _style_factor(f, premium)
+    seen: set[str] = set()
+
+    def _add(theme: str | None, pct: float | None) -> None:
+        if not theme or theme in seen:
+            return
+        seen.add(theme)
         rows.append(db.ThemeExposure(
             theme=theme,
             exposure_pct=round(pct, 2) if pct is not None else None,
             contributing_tickers=[f.ticker],
             is_concentration_risk=bool(pct is not None and pct >= 50.0),
         ))
-    # Guarantee an AI-infra theme row for AI composites even if components used a
-    # narrower theme label (so NVDA-style cards always expose "AI 基础设施").
-    if is_ai and ai_theme and not any(r.theme == ai_theme for r in rows):
+
+    for c in components:
+        amt = c.get("implied_amount") or 0.0
+        if amt <= 0:
+            continue
+        # 赛道主题: AI 票用 AI 主题;否则落到具体因子名(不再是 lens_label 裸名)
+        theme = c.get("theme") or (ai_theme if is_ai else factor)
+        pct = (amt / anchor * 100.0) if anchor else None
+        _add(theme, pct)
+
+    # AI 赛道保底行: 即便 component 用了更窄的标签,NVDA 类卡也总暴露 AI 主题。
+    if is_ai and ai_theme:
         narrative_amt = sum(c.get("implied_amount") or 0.0 for c in components)
         pct = (narrative_amt / anchor * 100.0) if anchor else None
-        rows.append(db.ThemeExposure(
-            theme=ai_theme,
-            exposure_pct=round(pct, 2) if pct is not None else None,
-            contributing_tickers=[f.ticker],
-            is_concentration_risk=bool(pct is not None and pct >= 50.0),
-        ))
+        _add(ai_theme, pct)
+
+    # 因子/风格行(必出): 所有有叙事溢价的卡都对齐到它 → 组合 aha 的来源。即便 AI
+    # 关键词门未命中(真实 yfinance 文本只有裸行业名),这一行仍让跨持仓对齐成立。
+    if premium > 0:
+        _add(factor, premium * 100.0)
+
     return rows
 
 
@@ -1410,21 +1484,23 @@ def _decode_market(source_input, lang, emit,
     _base, _base_src, _ = _base_business_value(anchor, f, anchor_cross)
     narrative_premium = (max(0.0, anchor - _base) / anchor) if anchor > 0 else 0.0
     if _base_src == "dcf_baseline" and narrative_premium >= _NARRATIVE_PREMIUM_GATE:
-        _, _theme_lbl = is_ai_composite(f)  # best-effort theme label (may be None)
+        _, _theme_lbl = is_ai_composite(f)  # best-effort 赛道主题 (may be None)
+        _factor_lbl = _style_factor(f, narrative_premium)  # 因子名 (总是有值)
+        _label = _theme_lbl or _factor_lbl
         _safe_emit(emit, phase="frame_gate", kind="decision",
                    text=(f"叙事溢价 {narrative_premium*100:.0f}%(基础业务价值仅解释 "
                          f"{_base/anchor*100:.0f}% 现价)≥ 阈值 "
-                         f"{_NARRATIVE_PREMIUM_GATE*100:.0f}% → anchor mode primary"
-                         + (f",主题={_theme_lbl}" if _theme_lbl else ",未命名叙事溢价")),
+                         f"{_NARRATIVE_PREMIUM_GATE*100:.0f}% → anchor mode primary,"
+                         f"因子={_label}"),
                    subject=ticker,
                    payload={"narrative_premium": round(narrative_premium, 4),
-                            "theme": _theme_lbl, "base_business_value": _base})
+                            "theme": _theme_lbl, "factor": _factor_lbl,
+                            "base_business_value": _base})
         return _assemble_anchor_card(
             ticker, src_ref, anchor, f, emit, lang, anchor_cross,
             mode="anchor_primary",
             reason=(f"叙事溢价 {narrative_premium*100:.0f}% ≥ 阈值 "
-                    f"{_NARRATIVE_PREMIUM_GATE*100:.0f}% → anchor primary"
-                    + (f"(主题={_theme_lbl})" if _theme_lbl else "(未命名叙事溢价)")),
+                    f"{_NARRATIVE_PREMIUM_GATE*100:.0f}% → anchor primary(因子={_label})"),
             llm=llm, conn=conn, hunter=hunter,
         )
 
@@ -1674,26 +1750,55 @@ def _decode_portfolio(source_input, lang, emit,
     # not a hunt × every holding).  The aggregate is therefore an honest empty
     # roll-up; decode a holding as a single card to get its evidence.
     leg_evidence: dict[str, dict] = {}
+    failed_legs: dict[str, str] = {}     # ticker -> 失败原因(诚实暴露,不再静默吞)
+    import time as _time
     for spec in holdings_spec:
         tk = spec["ticker"]
         weight = spec.get("weight_pct")
         holdings.append(db.Holding(ticker=tk, weight_pct=weight))
-        # Best-effort decode of each leg (never let one bad ticker sink the card).
-        try:
-            leg = _decode_market(tk, lang, None, fundamentals_fn,
-                                 llm=llm, conn=conn, hunter=_SKIP_EVIDENCE)
-            detail = getattr(leg, "decode_detail", None)
-            if detail and detail.get("primary_lens"):
-                per_ticker[tk] = detail["primary_lens"]
-            elif detail and detail.get("anchor_mode"):
-                # Anchor-mode leg: surface its anchor detail for R1 aggregation.
-                per_ticker[tk] = {"lens": "anchor", "anchor_mode": detail["anchor_mode"]}
-            # Capture each leg's (honest-empty) evidence section so the aggregate
-            # node stays keyed by ticker with a shape-consistent roll-up.
-            if detail and isinstance(detail.get("evidence"), dict):
-                leg_evidence[tk] = detail["evidence"]
-        except Exception:
-            pass
+        # Decode each leg with ONE retry.  A portfolio decode hits the data source
+        # (yfinance) once per holding, so a transient rate-limit / timeout on a
+        # single leg is common — a short backoff + one retry recovers most.  A
+        # PERSISTENT failure is RECORDED, not silently swallowed: otherwise all
+        # legs failing yields an empty theme set that looks like a valid "no common
+        # bet" answer when the truth is "couldn't decode" (this was the bug behind
+        # the empty-theme portfolio cards seen when yfinance was rate-limited).
+        last_err = None
+        decoded_ok = False
+        for attempt in range(2):
+            try:
+                leg = _decode_market(tk, lang, None, fundamentals_fn,
+                                     llm=llm, conn=conn, hunter=_SKIP_EVIDENCE)
+                detail = getattr(leg, "decode_detail", None) or {}
+                if detail.get("primary_lens"):
+                    per_ticker[tk] = detail["primary_lens"]
+                    decoded_ok = True
+                elif detail.get("anchor_mode"):
+                    # Anchor-mode leg: surface its anchor detail for R1 aggregation.
+                    per_ticker[tk] = {"lens": "anchor", "anchor_mode": detail["anchor_mode"]}
+                    decoded_ok = True
+                # Capture each leg's (honest-empty) evidence section so the aggregate
+                # node stays keyed by ticker with a shape-consistent roll-up.
+                if isinstance(detail.get("evidence"), dict):
+                    leg_evidence[tk] = detail["evidence"]
+                if decoded_ok:
+                    break
+                # Leg RETURNED but produced nothing aggregatable: _decode_market turns
+                # an upstream (yfinance) failure / missing price into an *insufficient
+                # card* rather than raising, so a soft failure surfaces here as "no
+                # primary_lens / anchor_mode" — NOT an exception.  Capture its reason
+                # and retry once (this is the empty-theme-portfolio bug's real path).
+                last_err = detail.get("reason") or "数据不足,无可聚合结果"
+            except Exception as exc:                # hard-failure path (also recorded)
+                last_err = f"{type(exc).__name__}: {exc}"
+            if attempt == 0:
+                _time.sleep(0.3)                    # brief backoff before the retry
+        if not decoded_ok:
+            failed_legs[tk] = str(last_err)
+            _safe_emit(emit, phase="leg_error", kind="decision",
+                       text=f"持仓 {tk} 解码失败(已重试):{failed_legs[tk]} — "
+                            f"诚实留空,不计入主题聚合(避免伪装成'无共同赌注')",
+                       subject=subject, payload={"ticker": tk})
 
     # Equal-weight default when no weights were supplied (a plain comma string
     # carries none) so composition / weighting is always well-defined.
@@ -1719,6 +1824,7 @@ def _decode_portfolio(source_input, lang, emit,
         "per_ticker_primary": per_ticker,
         "holding_count": len(holdings),
         "decoded_legs": len(per_ticker),
+        "failed_legs": failed_legs,     # 诚实:哪些腿没解出来(数据源临时不可用)
         # Step 3 — unified evidence node so consumers can read
         # decode_detail["evidence"] with the SAME shape on every card kind
         # (single OR portfolio).  Aggregates each leg's found/cost; a per-leg
@@ -1727,7 +1833,8 @@ def _decode_portfolio(source_input, lang, emit,
         "lang": lang,
     }
     _safe_emit(emit, phase="assemble", kind="decision",
-               text=f"组装组合卡完成({len(holdings)} 持仓,{len(per_ticker)} 个成功解码)",
+               text=f"组装组合卡完成({len(holdings)} 持仓,{len(per_ticker)} 个成功解码"
+                    + (f",{len(failed_legs)} 个失败(数据源临时不可用)" if failed_legs else "") + ")",
                subject=subject, payload=None)
     return card
 

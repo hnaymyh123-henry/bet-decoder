@@ -1191,6 +1191,10 @@ def card_to_json(card: BetCard) -> dict:
         # Compact market-narrative summary (regime/headline/bindings/source_quality);
         # the full validated narrative stays on decode_detail.
         "market_narrative": (_dd.get("market_narrative") or {}).get("summary"),
+        # Portfolio honesty: tickers whose leg couldn't be decoded (data source
+        # temporarily unavailable). Lets the UI warn instead of presenting an
+        # empty-but-valid theme set as a real "no common bet". [] on clean cards.
+        "failed_legs": list((_dd.get("failed_legs") or {}).keys()),
         # Lineage (v3): non-null on a what-if / revision card derived from a parent.
         "derived_from": card.derived_from,
         "derivation_kind": card.derivation_kind,

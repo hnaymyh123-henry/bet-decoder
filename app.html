@@ -2288,6 +2288,9 @@
   .pf-wleg .wt { color: var(--ink); font-weight: 600; }
   .pf-seclab { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); font-weight: 600; margin-bottom: 3px; }
   .pf-secsub { font-size: 11.5px; color: var(--ink-3); margin-bottom: 14px; }
+  .pf-factor-note { font-size: 12px; line-height: 1.55; color: var(--ink-2); margin: 4px 0 14px; max-width: 62ch; }
+  .pf-warn { margin: 0 0 16px; background: var(--paper-2); border-left: 3px solid var(--ink-3); padding: 10px 14px; font-size: 12px; color: var(--ink-2); line-height: 1.55; }
+  .pf-warn b { color: var(--ink); font-weight: 600; }
   .pf-theme { margin-bottom: 14px; }
   .pf-theme-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
   .pf-theme-name { font-size: 13px; font-weight: 500; color: var(--ink); }
@@ -2642,10 +2645,9 @@ const FIXTURE_CARDS = {
       { ticker: "COST", weight_pct: 8, run_id: 17 }, { ticker: "TSLA", weight_pct: 6, run_id: 14 }
     ],
     theme_exposures: [
-      { theme: "AI 基础设施 capex 持续高位", exposure_pct: 76, contributing_tickers: ["NVDA","MSFT","META","GOOG","AMZN"], is_concentration_risk: true },
-      { theme: "利率回落 / 低折现率", exposure_pct: 58, contributing_tickers: ["全部成长股"], is_concentration_risk: false },
-      { theme: "消费韧性", exposure_pct: 34, contributing_tickers: ["AAPL","COST","AMZN","TSLA"], is_concentration_risk: false },
-      { theme: "中国市场敞口", exposure_pct: 16, contributing_tickers: ["AAPL","TSLA"], is_concentration_risk: false }
+      { theme: "高估值成长", exposure_pct: 71, contributing_tickers: ["NVDA","MSFT","META","GOOG","AMZN","AAPL","TSLA"], is_concentration_risk: true },
+      { theme: "AI 基础设施", exposure_pct: 54, contributing_tickers: ["NVDA","MSFT","META","GOOG","AMZN"], is_concentration_risk: true },
+      { theme: "盈利锚定", exposure_pct: 8, contributing_tickers: ["COST"], is_concentration_risk: false }
     ]
   }
 };
@@ -3115,6 +3117,7 @@ function renderPortfolioPage(pf) {
   }).join('');
   const concHtml = conc ? '<div class="pf-conc"><span class="lab">⚠ 集中风险 · AHA</span>你的仓位高度集中在 <strong>' + escapeHTML(conc.theme) + '</strong>(' + Math.round(conc.exposure_pct || 0) + '%) —— 看似分散 ' + (conc.contributing_tickers || []).length + ' 只,实际<strong>押同一个赌注</strong>。</div>' : '';
   const aggSec = '<div class="cp-tree"><div class="cp-sec-lab">你的钱实际在 BET 什么 · 把各持仓隐含假设按权重聚合到主题级</div>' +
+    '<div class="pf-factor-note">因子 = 现价中要靠未来增长兑现、当期盈利解释不了的占比(叙事溢价);相同因子的持仓按权重叠加 → 集中度即真实的共同赌注。</div>' +
     (themeBars || '<div class="da-empty">尚无主题暴露数据 —— 需要先把持仓解码出隐含主题(单股卡)。</div>') + concHtml + '</div>';
 
   // 跨持仓综合 (Module 3, auto-run on view) — the portfolio's deep-analysis layer
@@ -3130,13 +3133,20 @@ function renderPortfolioPage(pf) {
   const holdSec = '<div class="cp-support"><div class="cp-sup-main"><div class="cp-sec-lab">组合内持仓 · 点已解码的跳到它的 tab</div>' +
     '<table class="pf-holdings"><thead><tr><th>标的</th><th class="r">权重</th><th class="r">单股卡</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
 
+  // Honest banner when some holdings couldn't be decoded (data source temp
+  // unavailable) — so an incomplete theme aggregation isn't read as a real answer.
+  const failed = pf.failed_legs || [];
+  const failedBanner = failed.length
+    ? '<div class="pf-warn"><b>' + failed.length + ' 个持仓未能解码</b>(数据源临时不可用):' + escapeHTML(failed.join(', ')) + ' —— 主题聚合仅基于已成功解码的持仓,可能不完整;稍后重试可补全。</div>'
+    : '';
+
   return '<div class="bet-card card-page portfolio-page" data-card="' + escapeHTML(pf.card_id) + '">' +
     '<div class="cp-head"><div class="cp-id"><div class="cp-subj">' + escapeHTML(pf.subject) +
       '<span class="bc-badge">Portfolio · ' + holdings.length + ' 持仓</span></div>' +
       '<div class="cp-source">' + escapeHTML(pf.source_ref || '') + '</div></div>' +
       '<div class="cp-kpis">' + kpis + '</div></div>' +
     '<div class="cp-hero2"><div class="cp-hero-l">' + betBox + '</div><div class="cp-hero-r">' + weightBox + '</div></div>' +
-    aggSec + synthSec + holdSec + _methodLimits(pf) +
+    failedBanner + aggSec + synthSec + holdSec + _methodLimits(pf) +
   '</div>';
 }
 
