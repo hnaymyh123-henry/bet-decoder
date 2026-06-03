@@ -74,6 +74,9 @@ class Fundamentals:
     # tests pin the classification without any network.
     industry: str | None = None
     tags: list[str] = field(default_factory=list)
+    # Company's OWN trailing revenue CAGR (computed from financials in
+    # fetch_fundamentals; the DCF lens's upper "historical continuation" anchor).
+    hist_revenue_cagr: float | None = None
 
     # --- derived predicates the decision tree reads ---
     @property
@@ -112,6 +115,32 @@ class Fundamentals:
             return None
         nd = self.net_debt or 0.0
         return anchor_price * self.shares_outstanding + nd
+
+
+def _trailing_revenue_cagr(financials, years: int = 5) -> float | None:
+    """Trailing revenue CAGR from an already-pulled yfinance financials frame
+    (most-recent first).  None when <2 usable annual revenue points.  Pure compute,
+    no network — so the DCF lens's upper anchor needs no extra fetch and tests can
+    inject the value via the stub Fundamentals."""
+    try:
+        for name in ("Total Revenue", "TotalRevenue"):
+            if name in financials.index:
+                vals = []
+                for v in financials.loc[name].tolist()[:years]:
+                    try:
+                        fv = float(v)
+                    except (TypeError, ValueError):
+                        continue
+                    if not math.isnan(fv) and fv > 0:
+                        vals.append(fv)
+                if len(vals) >= 2 and vals[-1] > 0:
+                    n = len(vals) - 1
+                    c = (vals[0] / vals[-1]) ** (1.0 / n) - 1.0
+                    return float(c) if not math.isnan(c) else None
+                return None
+    except Exception:
+        return None
+    return None
 
 
 def fetch_fundamentals(ticker: str) -> Fundamentals:
@@ -156,6 +185,9 @@ def fetch_fundamentals(ticker: str) -> Fundamentals:
     industry = " / ".join(
         str(info.get(k)) for k in ("sector", "industry") if info.get(k)
     ) or None
+    # Company's own trailing revenue CAGR from the financials pulled above (no
+    # extra network) — the DCF lens's upper "historical continuation" anchor.
+    hist_revenue_cagr = _trailing_revenue_cagr(financials)
 
     return Fundamentals(
         ticker=ticker,
@@ -175,6 +207,7 @@ def fetch_fundamentals(ticker: str) -> Fundamentals:
         # deterministic classifier works on REAL yfinance data (the bare
         # `industry` label carries none).  Specific-only → no mis-gating.
         tags=_summary_specific_tags(info.get("longBusinessSummary")),
+        hist_revenue_cagr=hist_revenue_cagr,
     )
 
 
@@ -322,40 +355,62 @@ def _lens_dcf(anchor: float, f: Fundamentals) -> dict | None:
         net_debt=f.net_debt or 0.0,
         beta=f.beta if f.beta is not None else 1.0,
     )
-    consensus_wacc = reverse_dcf.compute_wacc(data.beta)
+    # Live risk-free (10Y ^TNX, cached + offline fallback) → WACC uses a REAL
+    # rate, not a hardcoded 4.5%.  Margin is the real TTM FCF margin.
+    live_rf, rf_src = reverse_dcf.fetch_risk_free()
+    consensus_wacc = reverse_dcf.compute_wacc(data.beta, risk_free=live_rf)
     base_margin = (
         max(data.fcf_ttm / data.revenue_ttm, 0.05) if data.revenue_ttm else 0.15
     )
-    consensus = reverse_dcf.Assumptions(
-        revenue_cagr_5y=0.15,
-        terminal_growth=0.025,
+    # The company's OWN trailing revenue CAGR — kept REAL for the implied-vs-history
+    # contrast, but CAPPED for the upper anchor (extrapolating an extreme trailing
+    # CAGR flat for 5y is absurd; a proper fade is a later tier). Computed in
+    # fetch_fundamentals from already-pulled financials (tests inject via the stub).
+    hist_cagr = getattr(f, "hist_revenue_cagr", None)
+    hist_capped = (min(hist_cagr, reverse_dcf.HIST_CAGR_CAP)
+                   if hist_cagr is not None else None)
+
+    # Two business-value ANCHORS (both at live WACC + real TTM margin) so the base
+    # is a defensible RANGE, not one fixed number — and built ONLY from the
+    # company's own data (no third-party forecast, per the product thesis):
+    #   • lower = conservative zero-growth (earnings never grow)
+    #   • upper = historical continuation (5y at the company's own past CAGR)
+    A = reverse_dcf.Assumptions
+    _dcf = reverse_dcf.dcf_equity_value_per_share
+    def _feasible(x):
+        return float(x) if isinstance(x, (int, float)) and x > -1e8 else None
+    base_low = _feasible(_dcf(A(0.0, 0.0, base_margin, consensus_wacc), data))
+    base_high = None
+    if hist_capped is not None:
+        base_high = _feasible(
+            _dcf(A(max(hist_capped, 0.0), reverse_dcf.TERMINAL_GROWTH, base_margin, consensus_wacc), data)
+        )
+    if base_high is None:
+        base_high = base_low                       # no usable history → range collapses to floor
+    if (base_low is not None and base_high is not None and base_high < base_low):
+        base_low, base_high = base_high, base_low  # keep low ≤ high
+
+    # Narrative-premium reference = the UPPER anchor: how far the price sits above
+    # "even continuing the company's own history would justify".
+    baseline_price = base_high if base_high is not None else base_low
+
+    # Consensus envelope for the reverse-solve (implied CAGR holds the OTHER vars
+    # fixed; the solver overwrites its cagr field, so that value is moot).
+    consensus = A(
+        revenue_cagr_5y=(hist_cagr if hist_cagr is not None else 0.15),
+        terminal_growth=reverse_dcf.TERMINAL_GROWTH,
         terminal_fcf_margin=base_margin,
         wacc=consensus_wacc,
     )
-    # The consensus DCF *baseline* (business-value floor) is ALWAYS computable —
-    # it's a forward valuation of the consensus assumptions and does not depend
-    # on the reverse-solve having a root.  Compute it first and never throw it
-    # away: anchor mode's `_base_business_value` needs it even when the point
-    # reverse-solve has no solution (otherwise an *undervalued* stock — anchor
-    # below its DCF — collapses to base=0 and gets mis-judged as 100% narrative).
-    baseline_price = reverse_dcf.dcf_equity_value_per_share(consensus, data)
-    if baseline_price is not None and baseline_price <= -1e8:
-        # Gordon-model infeasible sentinel (wacc <= terminal_growth) → no
-        # defensible baseline rather than a nonsensical large-negative price.
-        baseline_price = None
 
-    # Point estimate: implied revenue CAGR holding other vars at consensus.  This
-    # CAN be None (TSLA-style: the price is outside the feasible CAGR range) —
-    # that means "DCF can't pin an implied growth", NOT "DCF has no baseline".
+    # Point estimate: the 5y revenue CAGR the price implies (the market's bet).
+    # CAN be None (TSLA-style: price outside the feasible CAGR range).
     point = reverse_dcf.reverse_solve(anchor, consensus, "revenue_cagr_5y", data)
 
-    # If we have neither a baseline NOR a point, the DCF lens truly has nothing
-    # to say → no solution, fall back to the next lens.
+    # Neither a baseline NOR a point → the DCF lens has nothing to say.
     if point is None and baseline_price is None:
         return None
 
-    # Monte-Carlo band (R2): p25/p50/p75 of the implied CAGR.  Only meaningful
-    # when the reverse-solve is feasible (the band is over implied CAGRs).
     band = None
     if point is not None:
         perturbations = {
@@ -368,33 +423,38 @@ def _lens_dcf(anchor: float, f: Fundamentals) -> dict | None:
             data, "revenue_cagr_5y", consensus, perturbations
         )
 
-    # The lens "value" is the implied CAGR when solvable.  When the point solve
-    # has no root but a baseline exists, we must NOT route through `_result`
-    # (which returns None on a None value and would discard the baseline a second
-    # time — exactly the original bug).  Build the envelope directly so the DCF
-    # baseline survives into anchor mode with implied_value honestly None.
+    # Shared envelope: live rate + BOTH anchors + the company's own history, so
+    # db.py can render the range + an implied-vs-history contrast from a card
+    # already in the DB.  baseline_dcf_price stays = upper anchor (downstream
+    # narrative-premium reference) to minimize churn.
+    _extra = dict(
+        band=band,
+        baseline_dcf_price=baseline_price,
+        baseline_dcf_low=base_low,
+        baseline_dcf_high=base_high,
+        hist_cagr=hist_cagr,
+        hist_cagr_capped=hist_capped,
+        risk_free_used=live_rf,
+        risk_free_source=rf_src,
+        consensus_wacc=consensus_wacc,
+        consensus_terminal_growth=consensus.terminal_growth,
+        consensus_terminal_fcf_margin=base_margin,
+    )
     if point is None:
         return {
             "metric": "implied_revenue_cagr_5y",
             "implied_value": None,           # no feasible implied CAGR
-            "implied_label": "隐含 5 年营收 CAGR(无可行解,仅余基础估值)",
+            "implied_label": "隐含 5 年营收 CAGR(无可行解,仅余基础估值区间)",
             "unit": "",
-            "band": None,
-            "baseline_dcf_price": baseline_price,   # business-value floor stands alone
-            "consensus_wacc": consensus_wacc,
-            "consensus_terminal_growth": consensus.terminal_growth,
-            "consensus_terminal_fcf_margin": base_margin,
             "point_solved": False,
+            **_extra,
         }
     return _result(
         "implied_revenue_cagr_5y", point, unit="",
         implied_label="隐含 5 年营收 CAGR",
-        band=band,                       # {p25,p50,p75,success_rate,...} | None
-        baseline_dcf_price=baseline_price,   # business-value floor (may stand alone)
-        consensus_wacc=consensus_wacc,
-        consensus_terminal_growth=consensus.terminal_growth,
-        consensus_terminal_fcf_margin=base_margin,
+        implied_cagr=point,              # the market-implied growth (for db contrast)
         point_solved=True,
+        **_extra,
     )
 
 

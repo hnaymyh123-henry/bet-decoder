@@ -3,7 +3,10 @@
 Run: python reverse_dcf.py NVDA
 Deps: pip install -r requirements.txt
 """
+import json
+import os
 import sys
+import time
 from dataclasses import dataclass, replace
 
 import numpy as np
@@ -66,10 +69,68 @@ def pull_company_data(ticker: str) -> CompanyData:
     )
 
 
+# --- Live / sourced macro inputs -------------------------------------------
+# Equity risk premium: a sourced constant, not a guess.  Damodaran's implied ERP
+# for the US sits ~4.3–4.8%; pin to a documented value, refresh manually (a live
+# Damodaran pull is an Excel scrape — deferred to a later tier).
+EQUITY_RISK_PREMIUM = 0.046          # Damodaran implied ERP (US, ~2026)
+# Terminal growth: long-run nominal GDP anchor (~2% real GDP + ~2% inflation,
+# held conservative).  A labeled convention — never the driver of the bet.
+TERMINAL_GROWTH = 0.025
+# Cap the upper anchor's growth: extrapolating an extreme trailing CAGR (e.g. a
+# post-AI-boom ~100%) flat for 5y is absurd (revenue ×32). The upper anchor models
+# a CAPPED continuation; the real trailing CAGR is still surfaced for contrast.
+HIST_CAGR_CAP = 0.40
+_RF_FALLBACK = 0.045                 # offline / fetch-failure fallback
+_RF_CACHE = os.path.join("cache", "macro", "risk_free.json")
+_RF_TTL_SEC = 86_400                 # 1 day
+
+
+def fetch_risk_free(default: float = _RF_FALLBACK) -> tuple[float, str]:
+    """Live 10-year Treasury yield (^TNX) as the risk-free rate.
+
+    Returns (rate_as_decimal, source).  Order: fresh file cache → (skip the
+    network when OFFLINE_MODE) → live ^TNX (then cached for a day) → fallback.
+    Never raises — a macro lookup must not sink a decode.
+    """
+    # 1) fresh file cache
+    try:
+        with open(_RF_CACHE, encoding="utf-8") as fh:
+            c = json.load(fh)
+        if (time.time() - float(c.get("ts", 0)) < _RF_TTL_SEC
+                and isinstance(c.get("rate"), (int, float)) and 0.0 < c["rate"] < 0.20):
+            return float(c["rate"]), "cache"
+    except Exception:
+        pass
+    # 2) offline → never hit the network
+    if os.environ.get("OFFLINE_MODE"):
+        return default, "fallback_offline"
+    # 3) live ^TNX
+    try:
+        hist = yf.Ticker("^TNX").history(period="5d")
+        last = float(hist["Close"].dropna().iloc[-1])
+        # ^TNX quotes the yield in percent (e.g. 4.45 → 4.45%); guard the scale.
+        rate = last / 100.0
+        if rate > 0.20:           # some feeds report ×10 (e.g. 44.5) — normalize
+            rate = last / 1000.0
+        if 0.0 < rate < 0.20:
+            try:
+                os.makedirs(os.path.dirname(_RF_CACHE), exist_ok=True)
+                with open(_RF_CACHE, "w", encoding="utf-8") as fh:
+                    json.dump({"rate": rate, "ts": time.time(), "raw_tnx": last}, fh)
+            except Exception:
+                pass
+            return rate, "live_tnx"
+    except Exception:
+        pass
+    # 4) fallback
+    return default, "fallback"
+
+
 def compute_wacc(
     beta: float,
-    risk_free: float = 0.045,
-    equity_premium: float = 0.055,
+    risk_free: float = _RF_FALLBACK,
+    equity_premium: float = EQUITY_RISK_PREMIUM,
     beta_cap: float = 1.5,
 ) -> float:
     effective_beta = min(max(beta, 0.5), beta_cap)
@@ -254,7 +315,11 @@ def dcf_equity_value_per_share(a: Assumptions, data: CompanyData) -> float:
 
 
 SEARCH_RANGES = {
-    "revenue_cagr_5y": (-0.10, 0.80),
+    # Upper bound raised to 1.00: extreme-premium names (real NVDA-style) imply a
+    # 5y CAGR above 80%; capping at 0.80 made reverse_solve return None for them,
+    # dropping the implied-vs-history contrast. Above ~100% it is still honestly
+    # "no feasible solution" (the price is outside any defensible growth range).
+    "revenue_cagr_5y": (-0.10, 1.00),
     "terminal_growth": (0.000, 0.060),
     "terminal_fcf_margin": (-0.20, 0.60),
     "wacc": (0.040, 0.250),

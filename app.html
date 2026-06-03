@@ -3818,7 +3818,13 @@ function renderDerivationTree(c) {
 function renderSingleCard(c) {
   const sel = state.selected.has(c.card_id);
   const d = c._display || {};
-  const dcf = d.baseline_dcf != null ? ('$' + Number(d.baseline_dcf).toLocaleString('en-US', { maximumFractionDigits: 2 })) : null;
+  const _usd = v => '$' + Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 });
+  // Tier 1: base business value is a RANGE (conservative zero-growth ↔ historical
+  // continuation), shown as low–high; falls back to a single value pre-Tier-1.
+  const dcfLo = d.baseline_dcf_low, dcfHi = d.baseline_dcf_high;
+  const dcf = (dcfLo != null && dcfHi != null && Math.abs(Number(dcfHi) - Number(dcfLo)) > 0.01)
+    ? (_usd(dcfLo) + '–' + _usd(dcfHi))
+    : (d.baseline_dcf != null ? _usd(d.baseline_dcf) : null);
   const anchor = d.anchor != null ? ('$' + Number(d.anchor).toLocaleString('en-US', { maximumFractionDigits: 2 })) : '—';
   const np = narrativePremiumPct(c, d);
   const stale = c.trade_date && c.trade_date < todayISO();
@@ -3846,7 +3852,7 @@ function renderSingleCard(c) {
       '</div>' +
       '<div class="cp-kpis">' +
         kpi('现价', anchor, false) +
-        (dcf != null ? kpi('基线 DCF', dcf, false) : '') +
+        (dcf != null ? kpi('基础价值', dcf, false) : '') +
         (np != null ? kpi('叙事溢价', Math.round(np * 100) + '%', np >= 0.5) : '') +
       '</div>' +
     '</div>' +

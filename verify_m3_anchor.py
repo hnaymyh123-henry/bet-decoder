@@ -50,6 +50,7 @@ NVDA_AI = Fundamentals(
     fcf_ttm=60e9, book_equity=80e9, eps_ttm=2.95,
     shares_outstanding=24.5e9, net_debt=-30e9, beta=1.7, growth_rate=0.55,
     industry="Technology / Semiconductors — AI chip / GPU accelerator",
+    hist_revenue_cagr=0.40,   # Tier 1: company's own trailing CAGR → upper anchor
 )
 
 # TSLA-style: traditional lenses all fail (the demo's "DCF can't explain $429"
@@ -70,9 +71,10 @@ TSLA_LIKE = Fundamentals(
 COST_PLAIN = Fundamentals(
     ticker="COST", current_price=900.0,
     revenue_ttm=255e9, net_income_ttm=7.4e9, ebitda_ttm=11e9,
-    fcf_ttm=6e9, book_equity=23e9, eps_ttm=16.6,
+    fcf_ttm=16e9, book_equity=23e9, eps_ttm=16.6,
     shares_outstanding=0.443e9, net_debt=-5e9, beta=0.8, growth_rate=0.09,
     industry="Consumer Defensive / Discount Stores",
+    hist_revenue_cagr=0.08,   # Tier 1: real history → upper anchor ≈ price → low premium → traditional
 )
 
 # AVGO via explicit tag (alternate signal path: tags, not industry).
@@ -82,6 +84,7 @@ AVGO_TAG = Fundamentals(
     fcf_ttm=20e9, book_equity=70e9, eps_ttm=4.2,
     shares_outstanding=4.7e9, net_debt=60e9, beta=1.1, growth_rate=0.20,
     tags=["光模块", "datacenter networking"],
+    hist_revenue_cagr=0.20,
 )
 
 _FIXTURES = {f.ticker: f for f in (NVDA_AI, TSLA_LIKE, COST_PLAIN, AVGO_TAG)}

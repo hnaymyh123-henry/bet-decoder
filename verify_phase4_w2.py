@@ -149,14 +149,17 @@ UNDERVALUED = Fundamentals(
     shares_outstanding=1.71e9, net_debt=-30e9, beta=1.7, growth_rate=0.55,
     industry="Technology / Semiconductors — AI chip / GPU accelerator",
 )
-# First, confirm the consensus DCF baseline (≈$591) survives even though the
-# $50-anchor point reverse-solve has NO root — the exact bug scenario.
+# First, confirm the DCF baseline (the business-value upper anchor) survives even
+# though the $50-anchor point reverse-solve has NO root — the exact bug scenario.
+# Tier 1: baseline_dcf_price = the historical-continuation upper anchor (degrades to
+# the zero-growth lower anchor when no history); the exact figure depends on the live
+# risk-free + sourced ERP, so we assert it's a defensible business value FAR above
+# the $50 anchor (undervalued) rather than a hardcoded number.
 import reverse_dcf  # noqa: E402
 _dcf_view = decoder._run_lens("dcf", 50.0, UNDERVALUED)
 _baseline = (_dcf_view or {}).get("baseline_dcf_price")
-check("#2a DCF baseline (≈$591) survives a no-point-solve (baseline >> $50 anchor)",
-      _dcf_view is not None and _baseline is not None and _baseline > 50.0
-      and 560 <= _baseline <= 620
+check("#2a DCF baseline survives a no-point-solve (baseline >> $50 anchor)",
+      _dcf_view is not None and _baseline is not None and _baseline > 200.0
       and _dcf_view.get("point_solved") is False,
       f"baseline_dcf_price=${_baseline:.2f} point_solved={(_dcf_view or {}).get('point_solved')} "
       f"vs anchor=$50.00" if _baseline is not None else "baseline LOST (bug)")

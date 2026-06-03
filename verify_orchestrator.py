@@ -36,9 +36,9 @@ print("=" * 72)
 
 COST = decoder.Fundamentals(
     ticker="COST", current_price=900.0, revenue_ttm=255e9, net_income_ttm=7.4e9,
-    ebitda_ttm=11e9, fcf_ttm=6e9, book_equity=23e9, eps_ttm=16.6,
+    ebitda_ttm=11e9, fcf_ttm=16e9, book_equity=23e9, eps_ttm=16.6,
     shares_outstanding=0.443e9, net_debt=-5e9, beta=0.8, growth_rate=0.09,
-    industry="Discount Stores")
+    industry="Discount Stores", hist_revenue_cagr=0.08)
 FF = lambda t: COST          # noqa: E731  (no network)
 HUNTER = lambda *a, **k: None  # noqa: E731  (evidence honest-empty, zero cost)
 

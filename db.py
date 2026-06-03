@@ -1335,51 +1335,89 @@ def _build_derivations(dd: dict) -> dict | None:
     bi = 0  # binding index for evidence matching (best-effort, by order)
 
     if am.get("components"):
-        base = am.get("base_business_value")
-        # The base business value IS the consensus DCF baseline (a forward DCF at
-        # the fixed consensus CAGR). Mirror it with _dcf_breakdown using the
-        # consensus params persisted on the DCF cross-lens, so the worksheet
-        # reconciles to `base` — no re-decode, works on cards already in the DB.
+        base = am.get("base_business_value")   # = upper anchor (premium reference)
+        # Mirror the base with _dcf_breakdown using the params persisted on the DCF
+        # cross-lens so the worksheet reconciles WITHOUT a re-decode (works on cards
+        # already in the DB). Tier 1: the base is a RANGE built only from the
+        # company's OWN data — lower = conservative zero-growth, upper = historical
+        # continuation — and the inputs are now LIVE / sourced, not hardcoded.
         dcf_ref = next((r for r in (dd.get("cross_lenses") or [])
                         if isinstance(r, dict) and r.get("lens") == "dcf"
                         and isinstance(r.get("baseline_dcf_price"), (int, float))), None)
         if isinstance(base, (int, float)):
             base_pct = max(0, round(base / anchor * 100)) if anchor else 0
             base_levels = []
-            bbd = None
             if dcf_ref is not None:
                 w = dcf_ref.get("consensus_wacc")
                 tg = dcf_ref.get("consensus_terminal_growth")
                 m = dcf_ref.get("consensus_terminal_fcf_margin")
-                # Always-visible assumptions step. HONEST labeling: the baseline CAGR is a
-                # single GENERIC value (not the company's own consensus — the data layer has
-                # no reliable 5y revenue consensus), and the discount rate is a CAPM cost of
-                # equity, not a debt-weighted WACC. We surface the company's actual growth
-                # for contrast rather than overclaiming "consensus".
-                aparts = [f"营收增速 {_pct1(_CONSENSUS_BASE_CAGR)}(通用基线,非公司专属共识)"]
+                rf = dcf_ref.get("risk_free_used")
+                hist = dcf_ref.get("hist_cagr")
+                hist_cap = dcf_ref.get("hist_cagr_capped")
+                implied = dcf_ref.get("implied_cagr")
+                b_low = dcf_ref.get("baseline_dcf_low")
+                b_high = dcf_ref.get("baseline_dcf_high")
+                rev, nd, sh = (fund.get("revenue_ttm"), fund.get("net_debt"),
+                               fund.get("shares_outstanding"))
+                # Inputs are now LIVE / sourced (no more 凭空写死); growth uses the
+                # company's OWN history, not a generic 15% or a third-party forecast.
+                aparts = []
+                if isinstance(rf, (int, float)): aparts.append(f"无风险利率 {_pct1(rf)}(10Y 美债实时)")
                 if isinstance(w, (int, float)): aparts.append(f"贴现率 {_pct1(w)}(CAPM 权益成本)")
-                if isinstance(tg, (int, float)): aparts.append(f"终值增速 {_pct1(tg)}")
-                if isinstance(m, (int, float)): aparts.append(f"FCF 利润率 {_pct1(m)}")
-                base_levels.append({"kind": "assume",
-                                    "text": "基线假设:" + " · ".join(aparts) + " → 前向 DCF 折现"})
-                g0 = fund.get("growth_rate")
-                if isinstance(g0, (int, float)):
+                if isinstance(tg, (int, float)): aparts.append(f"终值增速 {_pct1(tg)}(长期 GDP 锚)")
+                if isinstance(m, (int, float)): aparts.append(f"FCF 利润率 {_pct1(m)}(实际 TTM)")
+                if aparts:
+                    base_levels.append({"kind": "assume", "text": "实时参数:" + " · ".join(aparts)})
+                # Lower anchor — conservative zero-growth.
+                if isinstance(b_low, (int, float)):
+                    bd_low = _dcf_breakdown(rev, 0.0, m, w, 0.0, nd, sh)
+                    if bd_low:
+                        bd_low["summary_label"] = "DCF 建模底稿 · 零增长(最保守)→ 下锚"
+                        bd_low["cagr_label"] = "增速(零增长)"
+                        bd_low["reconcile_label"] = "下锚 · 保守业务价值"
+                    lp = max(0, round(b_low / anchor * 100)) if anchor else 0
+                    base_levels.append({"kind": "implied", "label": "下锚 · 保守零增长",
+                                        "impl": _money_big(b_low), "impl_num": b_low,
+                                        "text": f"假设盈利零增长 → 占现价 {lp}%",
+                                        "breakdown": bd_low})
+                # Upper anchor — historical continuation (company's own past CAGR).
+                if isinstance(b_high, (int, float)):
+                    # Upper anchor uses the CAPPED growth (so it reconciles to base_high);
+                    # the REAL trailing CAGR is shown for context + a cap note when binding.
+                    hc = hist_cap if isinstance(hist_cap, (int, float)) else 0.0
+                    bd_high = _dcf_breakdown(rev, hc, m, w, tg, nd, sh)
+                    if bd_high:
+                        bd_high["summary_label"] = "DCF 建模底稿 · 延续公司历史增速(封顶)→ 上锚"
+                        bd_high["cagr_label"] = "增速(公司历史,封顶)"
+                        bd_high["reconcile_label"] = "上锚 · 历史延续业务价值"
+                    hp = max(0, round(b_high / anchor * 100)) if anchor else 0
+                    if (isinstance(hist, (int, float)) and isinstance(hist_cap, (int, float))
+                            and hist > hist_cap + 1e-9):
+                        htxt = (f"历史增速 {hist * 100:.0f}% 过高,上锚按 {hist_cap * 100:.0f}% 上限建模"
+                                f"(避免极端外推)")
+                    elif isinstance(hist, (int, float)):
+                        htxt = f"延续公司过去 ~{hist * 100:.0f}% 历史增速"
+                    else:
+                        htxt = "历史数据不足 → 回退到下锚"
+                    base_levels.append({"kind": "implied", "label": "上锚 · 历史延续",
+                                        "impl": _money_big(b_high), "impl_num": b_high,
+                                        "text": f"{htxt} → 占现价 {hp}%",
+                                        "breakdown": bd_high})
+                # Implied-vs-history contrast — BOTH numbers are the company's own.
+                if isinstance(implied, (int, float)) and isinstance(hist, (int, float)):
+                    d = (implied - hist) * 100
                     base_levels.append({"kind": "imply",
-                                        "text": f"对比:公司近一年实际增速 ≈ {g0 * 100:.0f}%"
-                                                f"(基线用通用 {_pct1(_CONSENSUS_BASE_CAGR)},未采用公司自身增速)"})
-                bbd = _dcf_breakdown(fund.get("revenue_ttm"), _CONSENSUS_BASE_CAGR, m, w, tg,
-                                     fund.get("net_debt"), fund.get("shares_outstanding"))
-                if bbd:
-                    bbd["summary_label"] = "DCF 建模底稿 · 通用基线增速前向折现 → 基础业务价值"
-                    bbd["cagr_label"] = "基线增速(通用)"
-                    bbd["reconcile_label"] = "基础业务价值"
-            base_levels.append({"kind": "implied", "label": "基础业务价值", "impl": _money_big(base),
-                                "impl_num": base,
-                                "text": f"前向折现现金流 → 占现价 {base_pct}%",
-                                "breakdown": bbd})
+                        "text": f"对照:市场隐含未来 5y 增速 ≈ {implied * 100:.0f}% vs 公司历史 ≈ "
+                                f"{hist * 100:.0f}% → 市场押你比过去{'快' if d >= 0 else '慢'} {abs(d):.0f} 个点"})
+            # The base_business_value carried on the card = upper anchor; surface it
+            # as the reference the narrative premium is measured from.
+            base_levels.append({"kind": "implied", "label": "基础业务价值(以上锚计)",
+                                "impl": _money_big(base), "impl_num": base,
+                                "text": f"叙事溢价以上锚(历史延续)为参照 → 上锚占现价 {base_pct}%"})
             base_levels.append({"kind": "imply",
-                                "text": "= 估值地板:即使不相信任何增长叙事,业务本身折现就值这么多"})
-            branches.append({"lens": "base", "label": "基础业务价值(保守 DCF)", "primary": True,
+                                "text": "= 基本面区间:只用公司自己的数(零增长↔历史延续),不引入任何第三方预测;"
+                                        "现价高出上锚的部分才算增长叙事溢价"})
+            branches.append({"lens": "base", "label": "基础业务价值(双锚:保守↔历史)", "primary": True,
                              "levels": base_levels})
         gap = (max(0.0, anchor - base) if isinstance(base, (int, float)) and anchor else None)
         # theme_exposures may be dicts (reloaded card) OR ThemeExposure dataclasses
@@ -1440,17 +1478,28 @@ def _build_derivations(dd: dict) -> dict | None:
         if lens == "dcf":
             levels = []
             w, tg, m = r.get("consensus_wacc"), r.get("consensus_terminal_growth"), r.get("consensus_terminal_fcf_margin")
+            rf, hist = r.get("risk_free_used"), r.get("hist_cagr_capped")
+            b_low, b_high = r.get("baseline_dcf_low"), r.get("baseline_dcf_high")
             parts = []
+            if isinstance(rf, (int, float)): parts.append(f"无风险利率 {_pct1(rf)}(10Y 美债实时)")
             if isinstance(w, (int, float)): parts.append(f"贴现率 {_pct1(w)}(CAPM 权益成本)")
             if isinstance(tg, (int, float)): parts.append(f"终值增速 {_pct1(tg)}")
             if isinstance(m, (int, float)): parts.append(f"FCF 利润率 {_pct1(m)}")
             if parts:
                 levels.append({"kind": "assume", "text": "固定其余假设:" + " · ".join(parts) + " → 只解营收增速"})
-            bl = r.get("baseline_dcf_price")
-            if isinstance(bl, (int, float)):
-                expl = round(min(bl, anchor) / anchor * 100) if anchor else None
+            if isinstance(b_low, (int, float)) and isinstance(b_high, (int, float)):
+                lo_p = round(min(b_low, anchor) / anchor * 100) if anchor else None
+                hi_p = round(min(b_high, anchor) / anchor * 100) if anchor else None
+                htxt = f"历史延续 {hist * 100:.0f}%" if isinstance(hist, (int, float)) else "历史延续"
                 levels.append({"kind": "baseline",
-                               "text": f"基线 DCF(按通用基线增速 {_pct1(_CONSENSUS_BASE_CAGR)})= ${bl:,.2f} → 解释现价 {expl}%"})
+                               "text": f"基础业务价值区间:${b_low:,.2f}(零增长)↔ ${b_high:,.2f}({htxt})"
+                                       f" → 解释现价 {lo_p}%–{hi_p}%"})
+            else:
+                bl = r.get("baseline_dcf_price")
+                if isinstance(bl, (int, float)):
+                    expl = round(min(bl, anchor) / anchor * 100) if anchor else None
+                    levels.append({"kind": "baseline",
+                                   "text": f"基线 DCF = ${bl:,.2f} → 解释现价 {expl}%"})
             if iv is not None:
                 levels.append({"kind": "implied", "label": r.get("implied_label") or "隐含 5 年营收 CAGR",
                                "impl": _fmt_implied(iv, unit), "impl_num": iv, "unit": unit,
@@ -1586,9 +1635,23 @@ def _build_activity(dd: dict) -> list[dict]:
 
     if am.get("components"):
         base = am.get("base_business_value")
-        if isinstance(base, (int, float)) and anchor:
-            add("computation", f"前向 DCF(通用基线增速)→ 基础业务价值 {_money_big(base)}"
+        _dcf = next((r for r in (dd.get("cross_lenses") or [])
+                     if isinstance(r, dict) and r.get("lens") == "dcf"), {})
+        _rf = _dcf.get("risk_free_used")
+        _lo, _hi = _dcf.get("baseline_dcf_low"), _dcf.get("baseline_dcf_high")
+        _hist, _impl = _dcf.get("hist_cagr"), _dcf.get("implied_cagr")
+        if isinstance(_rf, (int, float)):
+            add("computation", f"取实时无风险利率(10Y 美债)≈ {_rf * 100:.1f}% → CAPM 折现率")
+        if isinstance(_lo, (int, float)) and isinstance(_hi, (int, float)):
+            add("computation", f"双锚 DCF(只用公司自己的数):下锚 {_money_big(_lo)}(零增长)"
+                f" ↔ 上锚 {_money_big(_hi)}(历史延续)")
+        elif isinstance(base, (int, float)) and anchor:
+            add("computation", f"前向 DCF → 基础业务价值 {_money_big(base)}"
                 f"(占现价 {max(0, round(base / anchor * 100))}%)")
+        if isinstance(_impl, (int, float)) and isinstance(_hist, (int, float)):
+            _d = (_impl - _hist) * 100
+            add("computation", f"对照:市场隐含 5y 增速 ≈ {_impl * 100:.0f}% vs 公司历史 ≈ "
+                f"{_hist * 100:.0f}% → 比过去{'快' if _d >= 0 else '慢'} {abs(_d):.0f} 个点")
         for comp in am["components"]:
             amt = comp.get("implied_amount")
             if isinstance(amt, (int, float)):
@@ -1691,12 +1754,19 @@ def build_card_display(card: BetCard) -> dict | None:
                          if isinstance(p25, (int, float))
                          and isinstance(p75, (int, float)) else None)})
     # baseline_dcf: anchor base business value → a cross/primary lens's DCF baseline.
+    # Tier 1 also surfaces the two-anchor RANGE + the company's own history vs the
+    # market-implied growth (all from the DCF lens envelope) for the KPI + tree.
     base_dcf = am.get("base_business_value")
-    if base_dcf is None:
-        for r in ([dd.get("primary_lens")] + list(dd.get("cross_lenses") or [])):
-            if isinstance(r, dict) and isinstance(r.get("baseline_dcf_price"), (int, float)):
+    base_low = base_high = hist_cagr = implied_cagr = None
+    for r in ([dd.get("primary_lens")] + list(dd.get("cross_lenses") or [])):
+        if isinstance(r, dict) and r.get("lens") == "dcf":
+            if base_dcf is None and isinstance(r.get("baseline_dcf_price"), (int, float)):
                 base_dcf = r["baseline_dcf_price"]
-                break
+            base_low = r.get("baseline_dcf_low")
+            base_high = r.get("baseline_dcf_high")
+            hist_cagr = r.get("hist_cagr")
+            implied_cagr = r.get("implied_cagr")
+            break
     # risks: honest, derived from the market-narrative contested points (if any).
     mn = (dd.get("market_narrative") or {}).get("summary") or {}
     risks = " · ".join(mn.get("contested") or [])
@@ -1730,7 +1800,9 @@ def build_card_display(card: BetCard) -> dict | None:
             "anchor": recon_anchor if isinstance(recon_anchor, (int, float)) else anchor,
             "residual": recon.get("residual"),
             "parts": parts}
-    return {"baseline_dcf": base_dcf, "anchor": anchor, "bets": bets,
+    return {"baseline_dcf": base_dcf, "baseline_dcf_low": base_low,
+            "baseline_dcf_high": base_high, "hist_cagr": hist_cagr,
+            "implied_cagr": implied_cagr, "anchor": anchor, "bets": bets,
             "risks": risks, "chain": chain, "decomp": decomp,
             "derivations": _build_derivations(dd),
             "bet_statement": _bet_statement(dd),

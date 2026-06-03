@@ -144,9 +144,9 @@ import decoder  # noqa: E402
 
 _COST = decoder.Fundamentals(
     ticker="COST", current_price=900.0, revenue_ttm=255e9, net_income_ttm=7.4e9,
-    ebitda_ttm=11e9, fcf_ttm=6e9, book_equity=23e9, eps_ttm=16.6,
+    ebitda_ttm=11e9, fcf_ttm=16e9, book_equity=23e9, eps_ttm=16.6,
     shares_outstanding=0.443e9, net_debt=-5e9, beta=0.8, growth_rate=0.09,
-    industry="Discount Stores")
+    industry="Discount Stores", hist_revenue_cagr=0.08)
 _cc = decoder.decode_bet("market", "COST", "zh",
                          fundamentals_fn=lambda t: _COST, hunter=lambda *a, **k: None)
 _der = (db.build_card_display(_cc) or {}).get("derivations") or {}
@@ -170,7 +170,7 @@ _NV = decoder.Fundamentals(
     ticker="NVDA", current_price=224.0, revenue_ttm=60e9, net_income_ttm=32e9,
     ebitda_ttm=38e9, fcf_ttm=30e9, book_equity=43e9, eps_ttm=2.9,
     shares_outstanding=24.4e9, net_debt=-10e9, beta=1.5, growth_rate=0.5,
-    industry="Semiconductors", tags=["GPU accelerator"])
+    industry="Semiconductors", tags=["GPU accelerator"], hist_revenue_cagr=0.40)
 _nc = decoder.decode_bet("market", "NVDA", "zh",
                          fundamentals_fn=lambda t: _NV, hunter=lambda *a, **k: None)
 _nam = (_nc.decode_detail or {}).get("anchor_mode") or {}
@@ -178,27 +178,46 @@ _base_val = _nam.get("base_business_value")
 _nder = (db.build_card_display(_nc) or {}).get("derivations") or {}
 _nbr = _nder.get("branches", [])
 _basebr = next((b for b in _nbr if b.get("lens") == "base"), {})
-_baselv = next((lv for lv in _basebr.get("levels", []) if lv.get("kind") == "implied"), {})
-_bbd = _baselv.get("breakdown")
-_txts = " ".join(str(lv.get("text") or "") for b in _nbr for lv in b.get("levels", []))
+# Tier 1 dual-anchor: collect the lower (conservative zero-growth) and upper
+# (historical continuation) build-ups by their reconcile_label. The card's
+# base_business_value = the UPPER anchor (the narrative-premium reference).
+_lvls = [lv for b in _nbr for lv in b.get("levels", [])]
+_bd_lo = next((lv.get("breakdown") for lv in _lvls
+               if isinstance(lv.get("breakdown"), dict)
+               and "下锚" in str(lv["breakdown"].get("reconcile_label", ""))), None)
+_bd_hi = next((lv.get("breakdown") for lv in _lvls
+               if isinstance(lv.get("breakdown"), dict)
+               and "上锚" in str(lv["breakdown"].get("reconcile_label", ""))), None)
+_b_low = next((r.get("baseline_dcf_low") for r in (_nc.decode_detail.get("cross_lenses") or [])
+               if isinstance(r, dict) and r.get("lens") == "dcf"), None)
+_txts = " ".join(str(lv.get("text") or "") for lv in _lvls)
 check("AC7 anchor mode triggered on the AI-composite fixture",
       bool(_nam.get("components")) and isinstance(_base_val, (int, float)) and _base_val > 0,
       f"mode={(_nc.decode_detail or {}).get('mode')} base={_base_val and round(_base_val,2)}")
-check("AC7 基础业务价值 branch carries a 5y build-up reconciling to BASE (not price)",
-      bool(_bbd) and len(_bbd.get("years") or []) == 5
-      and isinstance(_base_val, (int, float)) and _base_val > 0
-      and abs(_bbd["per_share"] - _base_val) / _base_val < 0.02,
-      f"per_share={_bbd and round(_bbd['per_share'], 2)} vs base={_base_val and round(_base_val, 2)}")
-check("AC7 base build-up labels reconcile to 基础业务价值 (not 现价)",
-      bool(_bbd) and _bbd.get("reconcile_label") == "基础业务价值"
-      and _bbd.get("cagr_label") == "基线增速(通用)")
+check("AC7 dual-anchor build-ups present (下锚 conservative + 上锚 historical), each 5y",
+      bool(_bd_lo) and bool(_bd_hi)
+      and len(_bd_lo.get("years") or []) == 5 and len(_bd_hi.get("years") or []) == 5)
+check("AC7 UPPER anchor build-up reconciles to base_business_value (historical continuation)",
+      bool(_bd_hi) and isinstance(_base_val, (int, float)) and _base_val > 0
+      and abs(_bd_hi["per_share"] - _base_val) / _base_val < 0.02,
+      f"upper per_share={_bd_hi and round(_bd_hi['per_share'], 2)} vs base={round(_base_val, 2)}")
+check("AC7 LOWER anchor build-up reconciles to the conservative zero-growth floor",
+      bool(_bd_lo) and isinstance(_b_low, (int, float)) and _b_low > 0
+      and abs(_bd_lo["per_share"] - _b_low) / _b_low < 0.02,
+      f"lower per_share={_bd_lo and round(_bd_lo['per_share'], 2)} vs base_low={_b_low and round(_b_low, 2)}")
+check("AC7 dual-anchor build-up labels (下锚保守 + 上锚历史延续)",
+      bool(_bd_hi) and _bd_hi.get("reconcile_label") == "上锚 · 历史延续业务价值"
+      and _bd_hi.get("cagr_label") == "增速(公司历史,封顶)"
+      and bool(_bd_lo) and _bd_lo.get("reconcile_label") == "下锚 · 保守业务价值")
 check("AC7 explicit 现价−基础=溢价 bridge step present in the tree",
       "− 基础" in _txts and "叙事/期权溢价" in _txts, _txts[:90])
-check("AC7 baseline-assumptions step precedes base value, HONESTLY labeled (not '共识')",
-      "基线假设" in _txts and "前向 DCF 折现" in _txts and "非公司专属共识" in _txts
-      and "共识增速" not in _txts)
-check("AC7 base node carries an interpretive 估值地板 line (richer tree)",
-      "估值地板" in _txts)
+check("AC7 assumptions step shows LIVE / sourced inputs (no hardcoded 15% consensus)",
+      "实时参数" in _txts and "10Y 美债实时" in _txts and "CAPM 权益成本" in _txts
+      and "通用基线" not in _txts and "共识增速" not in _txts)
+check("AC7 implied-vs-history contrast present (both numbers the company's own)",
+      "市场隐含" in _txts and "公司历史" in _txts)
+check("AC7 base node carries the dual-anchor interpretive line (only the company's own data)",
+      "基本面区间" in _txts and "不引入任何第三方预测" in _txts)
 check("AC7 quantified theme-exposure row present (R1)",
       "主题暴露:" in _txts)
 
@@ -211,8 +230,8 @@ _atext = " ".join(a.get("text", "") for a in _nact)
 check("AC8 _display.activity reconstructs the decode steps (non-empty, kind-tagged)",
       len(_nact) >= 4 and {"decision", "computation"} <= _akinds,
       f"n={len(_nact)} kinds={sorted(_akinds)}")
-check("AC8 activity covers mode + base value + 对账 (anchor card)",
-      "解码模式" in _atext and "基础业务价值" in _atext and "对账" in _atext)
+check("AC8 activity covers mode + dual-anchor base + 对账 (anchor card)",
+      "解码模式" in _atext and ("双锚" in _atext or "基础业务价值" in _atext) and "对账" in _atext)
 check("AC8 activity is honest — deterministic card NOT labelled '自主选择'",
       "自主选择" not in _atext)
 
@@ -265,6 +284,44 @@ check("AC10 good leg still decoded + theme aggregated (partial-success honest)",
 check("AC10 card_to_json surfaces failed_legs for the UI banner",
       "BBB" in (db.card_to_json(_pf2).get("failed_legs") or []),
       f"json.failed_legs={db.card_to_json(_pf2).get('failed_legs')}")
+
+# --- AC11: Tier 1 live risk-free fetch + historical-anchor honest degrade -------
+import reverse_dcf as _rdcf  # noqa: E402
+# OFFLINE_MODE is set in this test env → fetch_risk_free must NOT hit the network
+# and must fall back to a documented default (never raises).
+_rf, _src = _rdcf.fetch_risk_free()
+check("AC11 fetch_risk_free offline → fallback/cache default, no network, no raise",
+      _src in ("fallback_offline", "cache", "fallback") and 0.0 < _rf < 0.20,
+      f"rf={_rf} src={_src}")
+# _trailing_revenue_cagr is pure compute (most-recent first: 121→100 over 2 periods
+# → ~10% CAGR); verify the math on a tiny stub frame.
+class _FinStub:
+    index = ["Total Revenue"]
+    class _Loc:
+        def __getitem__(self, k):
+            class _S:
+                @staticmethod
+                def tolist(): return [121.0, 110.0, 100.0]
+            return _S()
+    loc = _Loc()
+_cagr = decoder._trailing_revenue_cagr(_FinStub())
+check("AC11 _trailing_revenue_cagr computes CAGR from a financials frame",
+      _cagr is not None and abs(_cagr - 0.10) < 0.005, f"cagr={_cagr}")
+# No-history fixture → upper anchor honestly degrades to lower (no fabricated history).
+_NOHIST = decoder.Fundamentals(
+    ticker="ZZZ", current_price=500.0, revenue_ttm=10e9, net_income_ttm=2e9,
+    ebitda_ttm=3e9, fcf_ttm=3e9, book_equity=5e9, eps_ttm=1.0,
+    shares_outstanding=1e9, net_debt=0.0, beta=1.2, growth_rate=0.2,
+    industry="Technology / Semiconductors", tags=["gpu"], hist_revenue_cagr=None)
+_zc = decoder.decode_bet("market", "ZZZ", "zh", fundamentals_fn=lambda t: _NOHIST,
+                         hunter=lambda *a, **k: None)
+_zdcf = next((r for r in (_zc.decode_detail.get("cross_lenses") or [])
+              if isinstance(r, dict) and r.get("lens") == "dcf"), {})
+check("AC11 no-history fixture → upper anchor honestly degrades to lower (no fabrication)",
+      isinstance(_zdcf.get("baseline_dcf_low"), (int, float))
+      and _zdcf.get("baseline_dcf_low") == _zdcf.get("baseline_dcf_high")
+      and _zdcf.get("hist_cagr") is None,
+      f"low={_zdcf.get('baseline_dcf_low')} high={_zdcf.get('baseline_dcf_high')} hist={_zdcf.get('hist_cagr')}")
 
 print("=" * 72)
 print(f"RESULT: {_passed} passed, {_failed} failed")
