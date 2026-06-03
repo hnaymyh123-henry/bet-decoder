@@ -4218,13 +4218,15 @@ function _flowConn(html) {
 // work" layer (HOW the number was derived), not part of the argument spine, so they
 // no longer break the reading flow up top. Open it to audit; ignore it to just read.
 function _auditFold(c) {
-  const d = c._display || {};
-  const tree = '<div class="cp-tree"><div class="cp-sec-lab">反解推导 · 这个 bet 怎么从现价倒推出来的</div>' +
+  // Slimmed to the "底稿" (show-your-work) layer: the reverse-derivation worksheet
+  // (the actual math behind the implied number) + the honest method/limits caveats.
+  // The reasoning tree up top gives the CONCLUSIONS; this gives the PROOF. Price
+  // decomposition + the standalone risks line were dropped (redundant with the KPI
+  // 叙事溢价 + the debate's contested axis).
+  const tree = '<div class="cp-tree"><div class="cp-sec-lab">反解推导 · 这个 bet 怎么从现价倒推出来的(逐年现金流底稿)</div>' +
     renderDerivationTree(c) + '</div>';
-  const risks = d.risks
-    ? '<div class="bc-risks"><span class="lab">关键风险</span>' + escapeHTML(d.risks) + '</div>' : '';
-  return '<details class="cp-audit"><summary>审计 · 反解推导 / 价格分解 / 风险 / 方法局限</summary>' +
-    '<div class="cp-audit-body">' + tree + renderDecomp(c) + risks + _methodLimits(c) + '</div></details>';
+  return '<details class="cp-audit"><summary>底稿 · 反解推导 + 方法局限(每个结论背后的实际计算与诚实假设)</summary>' +
+    '<div class="cp-audit-body">' + tree + _methodLimits(c) + '</div></details>';
 }
 
 // A collapsed "method & limits" disclosure — honest about what the model holds
