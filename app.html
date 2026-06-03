@@ -2331,6 +2331,24 @@
   .card-page .cp-audit-body { margin-top: 16px; }
   .card-page .cp-audit-body .cp-tree { margin-bottom: 22px; }
   .card-page .cp-audit-body .cp-limits { border-top: none; margin-top: 18px; }
+  /* reasoning-chain tree (top hero-left) — the whole argument skeleton at a glance */
+  .card-page .cp-rtree { margin-bottom: 0; }
+  .rt-empty { font-size: 12px; color: var(--ink-4); }
+  .rt-root { display: inline-flex; align-items: baseline; gap: 9px; flex-wrap: wrap; border: 1px solid var(--rule); background: var(--paper-2); padding: 8px 13px; }
+  .rt-root-lab { font-family: var(--mono); font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-4); }
+  .rt-root-val { font-family: var(--mono); font-size: 19px; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; }
+  .rt-root-sub { font-size: 11.5px; color: var(--ink-3); }
+  .rt-branches { border-left: 2px solid var(--ink); margin-left: 15px; }
+  .rt-node { position: relative; display: flex; align-items: baseline; gap: 8px; padding: 7px 0 7px 20px; border-bottom: 1px dotted var(--line); }
+  .rt-node:last-child { border-bottom: none; }
+  .rt-node::before { content: ""; position: absolute; left: 0; top: 14px; width: 16px; border-top: 2px solid var(--ink); }
+  .rt-n { flex: none; width: 16px; height: 16px; border: 1px solid var(--ink-3); color: var(--ink-3); font-family: var(--mono); font-size: 9px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
+  .rt-n.hot { border-color: var(--accent); color: var(--accent); }
+  .rt-q { font-size: 12px; color: var(--ink-3); min-width: 76px; flex: none; }
+  .rt-arrow { font-family: var(--mono); font-size: 11px; color: var(--ink-4); }
+  .rt-a { font-family: var(--mono); font-size: 12px; color: var(--ink); font-weight: 500; font-feature-settings: "tnum" 1; }
+  .rt-a.hot { color: var(--accent); font-weight: 600; }
+  @media (max-width: 1024px) { .rt-q { min-width: 64px; } }
 
   /* ---- NEW: per-card discuss thread + what-if exhibit + derived card ---- */
   .bet-card .bc-discuss { border-top: 2px solid var(--ink); padding: 13px 16px 14px; background: var(--paper); }
@@ -4055,11 +4073,79 @@ function renderXrayBottom(c) {
     f.bottom + '</div>';
 }
 
+// THE REASONING-CHAIN TREE (top of the card) — a one-glance skeleton of the whole
+// argument: root = THE BET (price → implied number), 6 branches = the punchline of
+// each reasoning step, in the SAME order the detailed sections unfold below. Doubles
+// as an at-a-glance aha + a table-of-contents. Reads c._display.xray + the narrative.
+function _reasoningTree(c) {
+  const x = (c._display || {}).xray;
+  const d = c._display || {};
+  const px = d.anchor != null ? ('$' + Number(d.anchor).toLocaleString('en-US', { maximumFractionDigits: 2 })) : '现价';
+  const fp = v => (v == null ? '—' : (v * 100).toFixed(0) + '%');
+  const lab = '<div class="cp-sec-lab">推理链 · 从现价一步步读到「该不该下注」(下方逐节展开)</div>';
+  if (!x) return '<div class="cp-rtree">' + lab + '<div class="rt-empty">数据不足,暂无法构建推理链。</div></div>';
+  const br = x.base_rate, sp = x.scenario_probs || {}, bn = sp.by_name || {};
+  const rootSub = (br && br.implied_cagr != null) ? ('市场押 5 年营收 CAGR ' + fp(br.implied_cagr))
+    : (sp.note === 'above_top' ? '价格高到 DCF 无解 · 纯叙事定价' : '');
+  // ① rarity
+  let a1 = '—', hot1 = false;
+  if (br) { a1 = '第 ' + br.live.percentile + ' 分位 · 仅 ' + br.live.share_ge_pct + '% 做到过'; hot1 = (br.verdict === 'top-tail'); }
+  else if (sp.note === 'above_top') { a1 = 'DCF 无解 · 纯叙事定价'; hot1 = true; }
+  // ② conviction
+  let a2 = '—', hot2 = false;
+  if (Object.keys(bn).length) {
+    const top = Object.keys(bn).reduce((a, b) => (bn[a] >= bn[b] ? a : b));
+    const zh = ((x.scenarios || []).find(s => s.name === top) || {}).name_zh || top;
+    a2 = Math.round(bn[top] * 100) + '% 押「' + zh + '」'; hot2 = (top === 'moonshot' && bn[top] >= 0.5);
+  } else if (sp.note === 'above_top') { a2 = '全市场押超最乐观情景'; hot2 = true; }
+  // ③ nature
+  const a3 = x.load_bearing ? (x.load_bearing.label + ' bet') : '—';
+  // ④ why (the debate digest)
+  const mn = ((c.decode_detail || {}).market_narrative) || c.market_narrative || {};
+  const full = mn.full || null;
+  const cov = mn.coverage || (full && full.coverage);
+  let a4 = '未联网研究', hot4 = false;
+  if (cov && cov !== 'unavailable' && cov !== 'unparseable') {
+    const regRaw = (full && full.sentiment_regime && full.sentiment_regime.label) || mn.regime || '';
+    const regZh = (typeof regimeLabel === 'function') ? regimeLabel(regRaw) : regRaw;
+    const bull = full && full.bull_case ? full.bull_case.length : (mn.bull_count || 0);
+    const bear = full && full.bear_case ? full.bear_case.length : (mn.bear_count || 0);
+    // divergences live on the cross_check rows (narrative lean vs evidence verdict)
+    const div = (mn.cross_check || []).filter(r => r && r.diverges).length;
+    a4 = (regZh ? regZh + ' · ' : '') + '多 ' + bull + '/空 ' + bear + (div ? ' · ⚠' + div + ' 分歧' : '');
+    hot4 = div > 0;
+  }
+  // ⑤ falsification
+  let a5 = '—', hot5 = false;
+  const kill = (x.wwhtbt || []).find(w => w.kind === 'kill');
+  if (kill) { a5 = String(kill.value).length > 30 ? String(kill.value).slice(0, 28) + '…' : kill.value; hot5 = true; }
+  else { const t = (x.wwhtbt || [])[0]; if (t) a5 = t.label + ' ' + t.value; }
+  // ⑥ sizing
+  let a6 = '—';
+  if (x.kelly) {
+    a6 = x.kelly.verdict === 'edge' ? ('半 Kelly ≈ ' + x.kelly.half_kelly_pct + '% 仓位')
+      : (x.kelly.verdict === 'no_edge' ? 'Kelly ≤ 0 · 不建仓'
+        : String(x.kelly.statement_zh || '').slice(0, 26));
+  }
+  const node = (n, q, a, hot) => '<div class="rt-node"><span class="rt-n' + (hot ? ' hot' : '') + '">' + n + '</span>' +
+    '<span class="rt-q">' + q + '</span><span class="rt-arrow">→</span>' +
+    '<span class="rt-a' + (hot ? ' hot' : '') + '">' + escapeHTML(a) + '</span></div>';
+  return '<div class="cp-rtree">' + lab +
+    '<div class="rt">' +
+      '<div class="rt-root"><span class="rt-root-lab">现价</span><span class="rt-root-val">' + px + '</span>' +
+        (rootSub ? '<span class="rt-root-sub">' + escapeHTML(rootSub) + '</span>' : '') + '</div>' +
+      '<div class="rt-branches">' +
+        node('1', '有多稀有', a1, hot1) + node('2', '市场多大信心', a2, hot2) +
+        node('3', '本质什么 bet', a3, false) + node('4', '凭什么 · 多空论战', a4, hot4) +
+        node('5', '什么会证伪', a5, hot5) + node('6', '该怎么下注', a6, false) +
+      '</div>' +
+    '</div></div>';
+}
+
 // A single bet rendered as a FULL-PAGE 2-col research dossier (the active tab).
 // Keeps the `bet-card` class so all the .bet-card-scoped viz CSS (flow / decomp /
 // discuss / chart) still applies; `card-page` adds the page layout. Left col =
-// reverse-derivation flow + decomposition; right col = always-on price chart +
-// market narrative; discuss + scenario chips full-width below.
+// reasoning-chain tree (the skeleton) + market narrative; right col = price chart.
 function renderSingleCard(c) {
   const sel = state.selected.has(c.card_id);
   const d = c._display || {};
@@ -4084,7 +4170,7 @@ function renderSingleCard(c) {
       '<div class="pc-host" data-pchost="' + escapeHTML(c.card_id) + '"><div class="pc-empty">加载 5 年价格走势…</div></div>' +
       '<div class="pc-foot">实线 MKT 现价 · 虚线 DCF 基线 · 浅线 历史月收盘</div>' +
     '</div>';
-  const hero2 = '<div class="cp-hero2"><div class="cp-hero-l">' + _betHeadline(c) + '</div>' +
+  const hero2 = '<div class="cp-hero2"><div class="cp-hero-l">' + _reasoningTree(c) + '</div>' +
     '<div class="cp-hero-r">' + priceChart + '</div></div>';
 
   return '<div class="bet-card card-page' + (sel ? ' selected' : '') + '" data-card="' + escapeHTML(c.card_id) + '">' +
