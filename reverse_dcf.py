@@ -81,6 +81,67 @@ TERMINAL_GROWTH = 0.025
 # post-AI-boom ~100%) flat for 5y is absurd (revenue ×32). The upper anchor models
 # a CAPPED continuation; the real trailing CAGR is still surfaced for contrast.
 HIST_CAGR_CAP = 0.40
+
+# --- Tier 2: hardcoded sector long-run growth + TAM (no network, $0) ----------
+# Long-run (~10y) revenue CAGR by sector — a sourced rough NORM, not a forecast of
+# any single company; drives the "industry" base scenario. Matched as a substring
+# against the lowercased "sector / industry" string (longest key first).
+SECTOR_LONG_RUN_CAGR = {
+    "semiconductor": 0.15, "ai": 0.18, "cloud": 0.18, "software": 0.12,
+    "internet": 0.12, "technology": 0.11, "communication": 0.06,
+    "biotech": 0.10, "pharmaceutical": 0.06, "health": 0.07,
+    "auto": 0.08, "consumer cyclical": 0.06, "consumer defensive": 0.04,
+    "discount stores": 0.07, "retail": 0.05, "industrial": 0.05,
+    "financial": 0.05, "bank": 0.04, "energy": 0.03, "utilities": 0.03,
+    "real estate": 0.04, "materials": 0.04,
+}
+# Approximate total addressable market (USD) by sector — coarse, for the implied
+# market-share landing. Missing key → landing shows revenue terminal only.
+SECTOR_TAM_USD = {
+    "semiconductor": 1_500e9, "ai": 1_300e9, "cloud": 1_000e9,
+    "software": 1_200e9, "internet": 900e9, "auto": 4_000e9,
+    "health": 9_000e9, "pharmaceutical": 1_600e9, "discount stores": 6_000e9,
+    "retail": 6_000e9, "energy": 7_000e9, "financial": 5_000e9,
+}
+
+
+def sector_of(industry: str | None) -> str | None:
+    """Map a yfinance 'sector / industry' string to a sector key. Prefer the more
+    SPECIFIC industry part (after '/') over the broad sector bucket, then longest
+    key first (so 'discount stores' beats both 'retail' and the 'consumer
+    defensive' bucket). None if no hit."""
+    if not industry:
+        return None
+    low = str(industry).lower()
+    parts = [p.strip() for p in low.split("/") if p.strip()]
+    keys = sorted(SECTOR_LONG_RUN_CAGR, key=len, reverse=True)
+    for seg in (parts[::-1] + [low]):   # industry part first, then sector, then whole
+        for key in keys:
+            if key in seg:
+                return key
+    return None
+
+
+def industry_cagr(industry: str | None) -> float:
+    """Sector long-run CAGR for the 'industry' scenario; fallback to long-run
+    nominal-GDP terminal when the sector is unknown."""
+    k = sector_of(industry)
+    return SECTOR_LONG_RUN_CAGR.get(k, TERMINAL_GROWTH) if k else TERMINAL_GROWTH
+
+
+def industry_tam(industry: str | None) -> float | None:
+    """Sector TAM (USD) for the implied market-share landing; None if unknown."""
+    k = sector_of(industry)
+    return SECTOR_TAM_USD.get(k) if k else None
+
+
+def compute_fade_path(start_cagr: float, end_cagr: float, years: int = 5) -> list[float]:
+    """Linear fade start→end over `years` — the 'momentum' scenario: current growth
+    decaying to long-run GDP, instead of extrapolating an extreme rate flat."""
+    if years <= 1:
+        return [end_cagr]
+    step = (end_cagr - start_cagr) / (years - 1)
+    return [start_cagr + step * i for i in range(years)]
 _RF_FALLBACK = 0.045                 # offline / fetch-failure fallback
 _RF_CACHE = os.path.join("cache", "macro", "risk_free.json")
 _RF_TTL_SEC = 86_400                 # 1 day
@@ -294,12 +355,18 @@ def format_historical_context_md(context: dict, consensus: dict | None = None) -
     return "\n".join(lines) if lines else "- (历史数据与卖方共识暂无)"
 
 
-def dcf_equity_value_per_share(a: Assumptions, data: CompanyData) -> float:
+def dcf_equity_value_per_share(a: Assumptions, data: CompanyData,
+                               growth_path: list[float] | None = None) -> float:
+    """`growth_path` (optional per-year growth rates) lets a scenario FADE growth
+    year-by-year (e.g. momentum: current rate → GDP); when None, the constant
+    `a.revenue_cagr_5y` is used — Tier-1 behavior, unchanged."""
     years = 5
     revenue = data.revenue_ttm
     pv = 0.0
     for year in range(1, years + 1):
-        revenue *= 1 + a.revenue_cagr_5y
+        g = (growth_path[year - 1]
+             if (growth_path and year - 1 < len(growth_path)) else a.revenue_cagr_5y)
+        revenue *= 1 + g
         fcf = revenue * a.terminal_fcf_margin
         pv += fcf / (1 + a.wacc) ** year
 

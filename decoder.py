@@ -370,29 +370,46 @@ def _lens_dcf(anchor: float, f: Fundamentals) -> dict | None:
     hist_capped = (min(hist_cagr, reverse_dcf.HIST_CAGR_CAP)
                    if hist_cagr is not None else None)
 
-    # Two business-value ANCHORS (both at live WACC + real TTM margin) so the base
-    # is a defensible RANGE, not one fixed number — and built ONLY from the
-    # company's own data (no third-party forecast, per the product thesis):
-    #   • lower = conservative zero-growth (earnings never grow)
-    #   • upper = historical continuation (5y at the company's own past CAGR)
+    # THREE business-value SCENARIOS (all at live WACC + real TTM margin), built
+    # from the company's own data + a hardcoded SECTOR norm — no third-party
+    # forecast (product thesis):
+    #   • conservative = zero-growth (earnings never grow) — the floor
+    #   • industry     = the sector's long-run CAGR (the defensible "norm")
+    #   • momentum     = the company's CURRENT growth FADING to long-run GDP
     A = reverse_dcf.Assumptions
     _dcf = reverse_dcf.dcf_equity_value_per_share
     def _feasible(x):
         return float(x) if isinstance(x, (int, float)) and x > -1e8 else None
-    base_low = _feasible(_dcf(A(0.0, 0.0, base_margin, consensus_wacc), data))
-    base_high = None
-    if hist_capped is not None:
-        base_high = _feasible(
-            _dcf(A(max(hist_capped, 0.0), reverse_dcf.TERMINAL_GROWTH, base_margin, consensus_wacc), data)
-        )
-    if base_high is None:
-        base_high = base_low                       # no usable history → range collapses to floor
-    if (base_low is not None and base_high is not None and base_high < base_low):
-        base_low, base_high = base_high, base_low  # keep low ≤ high
+    GDP = reverse_dcf.TERMINAL_GROWTH
+    sector = reverse_dcf.sector_of(f.industry)
+    ind_cagr = reverse_dcf.industry_cagr(f.industry)        # sector norm (fallback GDP)
+    sec_tam = reverse_dcf.industry_tam(f.industry)          # None when unknown
+    # momentum START = current growth (yfinance), capped so an extreme rate doesn't
+    # anchor the fade absurdly high; falls back to the trailing CAGR.
+    mom_start = f.growth_rate if isinstance(f.growth_rate, (int, float)) else hist_cagr
+    mom_start_capped = (min(mom_start, reverse_dcf.HIST_CAGR_CAP)
+                        if isinstance(mom_start, (int, float)) else None)
+    fade_path = (reverse_dcf.compute_fade_path(max(mom_start_capped, 0.0), GDP)
+                 if mom_start_capped is not None else None)
 
-    # Narrative-premium reference = the UPPER anchor: how far the price sits above
-    # "even continuing the company's own history would justify".
-    baseline_price = base_high if base_high is not None else base_low
+    sc_conservative = _feasible(_dcf(A(0.0, 0.0, base_margin, consensus_wacc), data))
+    sc_industry = _feasible(_dcf(A(ind_cagr, GDP, base_margin, consensus_wacc), data))
+    sc_momentum = (_feasible(_dcf(A(0.0, GDP, base_margin, consensus_wacc), data, growth_path=fade_path))
+                   if fade_path is not None else None)
+
+    # Range endpoints (KPI): low = conservative; high = the most optimistic
+    # defensible scenario (momentum, else industry, else conservative).
+    base_low = sc_conservative
+    base_high = next((v for v in (sc_momentum, sc_industry, sc_conservative)
+                      if isinstance(v, (int, float))), None)
+    if (base_low is not None and base_high is not None and base_high < base_low):
+        base_low, base_high = base_high, base_low
+
+    # Narrative-premium reference = the INDUSTRY scenario: how far price sits above
+    # "what the sector's long-run growth alone justifies" → how much the market is
+    # betting this name OUTRUNS its industry. Fallback to high / conservative.
+    baseline_price = next((v for v in (sc_industry, base_high, base_low)
+                           if isinstance(v, (int, float))), None)
 
     # Consensus envelope for the reverse-solve (implied CAGR holds the OTHER vars
     # fixed; the solver overwrites its cagr field, so that value is moot).
@@ -423,10 +440,18 @@ def _lens_dcf(anchor: float, f: Fundamentals) -> dict | None:
             data, "revenue_cagr_5y", consensus, perturbations
         )
 
-    # Shared envelope: live rate + BOTH anchors + the company's own history, so
-    # db.py can render the range + an implied-vs-history contrast from a card
-    # already in the DB.  baseline_dcf_price stays = upper anchor (downstream
-    # narrative-premium reference) to minimize churn.
+    # Implied-number LANDING: translate the reverse-solved CAGR into a checkable
+    # reality — 5y revenue terminal + implied share of the sector TAM.
+    implied_rev_5y = None
+    implied_market_share = None
+    if point is not None and data.revenue_ttm:
+        implied_rev_5y = data.revenue_ttm * (1.0 + point) ** 5
+        if sec_tam:
+            implied_market_share = implied_rev_5y / sec_tam
+
+    # Shared envelope: live rate + THREE scenarios + the company's own history +
+    # the implied-number landing, so db.py renders everything from a card already
+    # in the DB. baseline_dcf_price = the INDUSTRY scenario (premium reference).
     _extra = dict(
         band=band,
         baseline_dcf_price=baseline_price,
@@ -434,6 +459,18 @@ def _lens_dcf(anchor: float, f: Fundamentals) -> dict | None:
         baseline_dcf_high=base_high,
         hist_cagr=hist_cagr,
         hist_cagr_capped=hist_capped,
+        # Tier 2: three scenarios + sector + implied-number landing
+        scenario_conservative=sc_conservative,
+        scenario_industry=sc_industry,
+        scenario_momentum=sc_momentum,
+        sector=sector,
+        industry_cagr=ind_cagr,
+        sector_tam=sec_tam,
+        momentum_start=mom_start_capped,
+        momentum_fade_path=fade_path,
+        implied_rev_5y=implied_rev_5y,
+        implied_market_share=implied_market_share,
+        revenue_ttm=data.revenue_ttm,
         risk_free_used=live_rf,
         risk_free_source=rf_src,
         consensus_wacc=consensus_wacc,
