@@ -38,7 +38,6 @@ os.environ["MIROMIND_API_KEY"] = ""
 os.environ["OFFLINE_MODE"] = "false"
 
 import client
-import db
 import decoder
 from decoder import Fundamentals
 

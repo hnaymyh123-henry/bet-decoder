@@ -125,7 +125,6 @@ def estimate_plan() -> dict:
     # (decoder passes _SKIP_EVIDENCE for legs — cost discipline).  So the portfolio
     # adds ZERO evidence calls; we still note which tickers it newly decodes.
     pf_tickers = [h["ticker"] for h in DEMO_PORTFOLIO]
-    act4_new = [t for t in pf_tickers if t not in seen]
     seen.update(pf_tickers)
     act4_calls = 0
 

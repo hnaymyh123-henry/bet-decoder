@@ -16,9 +16,7 @@ import asyncio
 import json
 import time
 
-import activity
 import db
-import decoder
 from activity import (
     ActivitySink,
     JobQueue,

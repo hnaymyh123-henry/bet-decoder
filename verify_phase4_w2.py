@@ -155,7 +155,6 @@ UNDERVALUED = Fundamentals(
 # the zero-growth lower anchor when no history); the exact figure depends on the live
 # risk-free + sourced ERP, so we assert it's a defensible business value FAR above
 # the $50 anchor (undervalued) rather than a hardcoded number.
-import reverse_dcf  # noqa: E402
 _dcf_view = decoder._run_lens("dcf", 50.0, UNDERVALUED)
 _baseline = (_dcf_view or {}).get("baseline_dcf_price")
 check("#2a DCF baseline survives a no-point-solve (baseline >> $50 anchor)",

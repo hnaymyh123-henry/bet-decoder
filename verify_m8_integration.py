@@ -33,7 +33,6 @@ import tempfile
 os.environ["MIROMIND_API_KEY"] = ""
 os.environ["OFFLINE_MODE"] = "false"
 
-import db
 import decoder
 import synthesizer
 from decoder import Fundamentals
@@ -319,7 +318,6 @@ check("AC8 evidence section present + honestly empty (found=0, $0 actual)",
 # but is NOT run here.
 # ==========================================================================
 print("\n=== AC9: prerun_demo.py dry-run (plan + cost, zero network) ===")
-import importlib  # noqa: E402
 
 # Snapshot modules so we can assert the dry-run path imports no network client.
 _before = set(sys.modules)

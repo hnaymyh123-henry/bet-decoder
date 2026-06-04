@@ -182,12 +182,3 @@ async def stream_evidence_mock(
             "brief": brief,
         },
     )
-
-
-async def stream_evidence_live(
-    ticker: str, assumption_id: str, text: str
-) -> AsyncIterator[str]:
-    """Real path — translates client.call_deepresearch stream into SSE schema.
-    Deferred to Phase C after prerun decisions."""
-    raise NotImplementedError("Live evidence streaming reserved for Phase C")
-    yield  # make this a generator for type checkers

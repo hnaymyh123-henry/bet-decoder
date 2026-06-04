@@ -148,7 +148,6 @@ def run_execute(ticker: str) -> int:
 
     # 1 — agentic decode.
     print(f"\n=== STEP 1: agentic decode {ticker} ===")
-    trace_holder: dict = {}
     card = orchestrator.decode_bet_agentic("market", ticker, "zh", conn=conn)
     dd = getattr(card, "decode_detail", None) or {}
     trace = dd.get("agent_trace") or []

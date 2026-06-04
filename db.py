@@ -16,7 +16,7 @@ import threading
 import uuid
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field, is_dataclass
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from typing import Any, Iterator
 
 
@@ -475,10 +475,6 @@ def _meta_tool_calls(payload: dict | None) -> int | None:
     if not payload:
         return None
     return (payload.get("_meta") or {}).get("tool_call_count")
-
-
-def _safe_get(d: dict | None, key: str, default=None):
-    return (d or {}).get(key, default)
 
 
 # ---------------------------------------------------------------------------

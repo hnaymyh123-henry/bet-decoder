@@ -26,7 +26,6 @@ used as-is).
 from __future__ import annotations
 
 import hashlib
-import json
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional
 
@@ -255,7 +254,6 @@ def _normalize_brief(raw: Any, ticker: str, assumption: dict) -> dict:
             parsed = None
         if isinstance(parsed, dict) and "evidence_items" in parsed:
             brief = parsed
-            meta = raw.get("usage") or {}
             brief.setdefault("_meta", {})
             brief["_meta"].update({
                 "usage": raw.get("usage"),

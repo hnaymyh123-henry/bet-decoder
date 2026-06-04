@@ -12,7 +12,7 @@ judgment layer, as one `xray` block attached to the DCF lens:
   • driver_elasticity  — which assumption is LOAD-BEARING (this is a margin bet, not a growth bet)
   • implied_cap        — how many YEARS of moat the price buys (MICAP)
   • wwhtbt             — "what would have to be true" + a falsifiable KILL line
-  • kelly              — the position size the asymmetry implies (half-Kelly)
+  • kelly              — the risk/reward ASYMMETRY read at the price (upside vs downside; no position size)
 
 Pure compute (yfinance data already pulled; reverse_dcf math reused) — no LLM,
 no network, so it never adds decode cost.
@@ -57,13 +57,35 @@ def _scenario_probs(scenarios: list[dict], price: float) -> dict:
 
 
 def _kelly(scenarios: list[dict], probs: dict, price: float) -> dict | None:
+    """Risk/reward ASYMMETRY read at the current price — deliberately NOT a position
+    size. From the scenario values + their implied probabilities it reads how much
+    probability sits above the price and how lopsided upside vs downside is. It
+    describes the SHAPE of the risk/reward; it does not recommend or size a trade."""
     w = probs.get("weights")
     usable = [s for s in scenarios if isinstance(s.get("value"), (int, float))]
+    by_name = probs.get("by_name") or {}
+
+    def _sv(s):  # compact scenario projection the frontend renders the derivation from
+        return {"name_zh": s["name_zh"], "value": round(s["value"], 2),
+                "prob": by_name.get(s["name"])}
+
+    # vmax / vmin scenarios always exist when there are ≥1 valued scenarios — they
+    # drive the 上行 / 下行 lines and the above_top note even when no simplex solves.
+    top_s = max(usable, key=lambda s: s["value"]) if usable else None
+    bottom_s = min(usable, key=lambda s: s["value"]) if usable else None
+    _ends = ({"top": {"name_zh": top_s["name_zh"], "value": round(top_s["value"], 2)},
+              "bottom": {"name_zh": bottom_s["name_zh"], "value": round(bottom_s["value"], 2)}}
+             if top_s and bottom_s else {})
+
     if not w or len(w) != len(usable):
-        # Out-of-envelope: price above the top scenario = no positive edge here.
-        if probs.get("note") == "above_top":
-            return {"verdict": "no_edge",
-                    "statement_zh": "现价已高于最乐观情景估值 → 无正向 edge,慎追"}
+        # Out-of-envelope: the price sits above every defensible scenario value.
+        if probs.get("note") == "above_top" and _ends:
+            return {"verdict": "above_top", "p_win": 0.0,
+                    "statement_zh": "现价高于所有可辩护情景估值 —— 没有情景能把现价拉回内在价值之上,风险回报极不对称。",
+                    "derivation": {"price": round(price, 2), **_ends,
+                                   "note_zh": (f"现价 ${price:,.0f} 高于所有情景估值 —— 最高情景「{top_s['name_zh']}」"
+                                               f"也只值 ${top_s['value']:,.0f}。没有任何建模情景能把现价拉回内在价值之上,"
+                                               "风险回报极不对称。")}}
         return None
     p_win = sum(w[i] for i, s in enumerate(usable) if s["value"] > price)
     vmax = max(s["value"] for s in usable)
@@ -72,17 +94,37 @@ def _kelly(scenarios: list[dict], probs: dict, price: float) -> dict | None:
     downside = (price - vmin) / price if price else 0.0
     if downside <= 0 or upside <= 0:
         return {"verdict": "degenerate", "p_win": round(p_win, 3),
-                "statement_zh": "情景区间退化,无法定 Kelly 仓位"}
-    odds = upside / downside
-    f_star = p_win - (1.0 - p_win) / odds
-    half = max(0.0, f_star / 2.0)
-    if f_star <= 0:
-        return {"verdict": "no_edge", "p_win": round(p_win, 3), "odds": round(odds, 2),
-                "statement_zh": f"胜率 {p_win*100:.0f}% × 赔率 {odds:.1f}:1 → Kelly≤0,不建仓"}
-    return {"verdict": "edge", "p_win": round(p_win, 3), "odds": round(odds, 2),
-            "half_kelly_pct": round(half * 100, 1),
-            "statement_zh": (f"胜率 {p_win*100:.0f}% · 赔率 {odds:.1f}:1 → 半 Kelly ≈ "
-                             f"{half*100:.0f}% 仓位")}
+                "statement_zh": "情景区间退化,无法给出风险回报不对称读数。",
+                "derivation": {"price": round(price, 2), "p_win": round(p_win, 3), **_ends,
+                               "note_zh": "情景区间退化(上行或下行 ≤ 0),无法给出风险回报不对称读数。"}}
+    ratio = upside / downside
+    favorable = ratio >= 1.0
+    if favorable:
+        shape = "小概率大涨、大概率小跌 —— 风险回报偏有利"
+    elif p_win >= 0.5:
+        shape = "大概率小涨、小概率大跌 —— 风险回报不对称(下行大于上行)"
+    else:
+        shape = "上行有限、下行更大 —— 风险回报不对称"
+    above_list = [s for s in usable if s["value"] > price]
+    below_list = sorted((s for s in usable if s["value"] <= price), key=lambda s: s["value"])
+    return {
+        "verdict": "favorable" if favorable else "unfavorable",
+        "p_win": round(p_win, 3),
+        "upside": round(upside, 3),
+        "downside": round(downside, 3),
+        "ratio": round(ratio, 2),
+        "statement_zh": (f"现价之上的情景占 {p_win*100:.0f}% 概率,"
+                         f"上行 +{upside*100:.0f}% / 下行 −{downside*100:.0f}%"
+                         f" —— {shape}。"),
+        # derivation: every displayed number's operands, so the frontend can print
+        # the arithmetic (= ... ) with real values instead of bare results.
+        "derivation": {
+            "price": round(price, 2),
+            "above": [_sv(s) for s in above_list],   # value > price → these sum into p_win
+            "below": [_sv(s) for s in below_list],
+            **_ends,                                  # top (vmax) drives 上行, bottom (vmin) drives 下行
+        },
+    }
 
 
 def _wwhtbt(implied_cagr, implied_rev_5y, implied_market_share, margin,
@@ -234,7 +276,7 @@ def build_xray(*, data: rdcf.CompanyData, fundamentals, implied_cagr,
     # 5) WWHTBT + kill line
     wwhtbt = _wwhtbt(implied_cagr, implied_rev_5y, implied_market_share, base_margin, br)
 
-    # 6) Kelly position size
+    # 6) risk/reward asymmetry read (deliberately NOT a position size)
     kelly = _kelly(scenarios, probs, price)
 
     headline = (br or {}).get("headline") if br else (scen_statement or "")

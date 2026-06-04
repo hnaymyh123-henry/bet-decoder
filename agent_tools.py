@@ -11,7 +11,7 @@ fabricate sources, which is the product's core integrity guarantee.
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field, is_dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 from typing import Any, Callable
 
 import client

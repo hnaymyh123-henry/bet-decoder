@@ -690,11 +690,6 @@ def anchor_lens(key: str, label: str) -> Callable[[AnchorSolve], AnchorSolve]:
     return _register
 
 
-def register_anchor_lens(lens_obj: AnchorLens) -> None:
-    """Imperative anchor-lens registration."""
-    ANCHOR_LENS_REGISTRY[lens_obj.key] = lens_obj
-
-
 def _anchor_component(*, lens_key: str, lens_label: str, claim: str,
                       implied_amount: float, implied_assumption: str,
                       probability: float | None = None,
@@ -2006,7 +2001,7 @@ def _decode_portfolio(source_input, lang, emit,
             failed_legs[tk] = str(last_err)
             _safe_emit(emit, phase="leg_error", kind="decision",
                        text=f"持仓 {tk} 解码失败(已重试):{failed_legs[tk]} — "
-                            f"诚实留空,不计入主题聚合(避免伪装成'无共同赌注')",
+                            f"诚实留空,不计入主题聚合(避免伪装成'无共同依赖')",
                        subject=subject, payload={"ticker": tk})
 
     # Equal-weight default when no weights were supplied (a plain comma string
