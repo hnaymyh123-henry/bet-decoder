@@ -875,13 +875,21 @@ def _empty_result(card_ids: list[str]) -> dict:
 # happens when an actual LLM call is needed.
 # ---------------------------------------------------------------------------
 
-def _default_chat() -> Callable:
-    """Return a chat callable backed by the real MiroMind client (chat mode).
+def _default_chat() -> "Callable | None":
+    """Return a chat callable backed by the real MiroMind client (chat mode), or
+    None to force the deterministic (no-LLM) synthesis path.
 
     Imported lazily so the deterministic / test path never touches client.py.
     Failures inside the call are handled by the callers (treated as a bad attempt
     → degrade to graph-only)."""
     from client import MODEL_MINI, call_chat
+
+    # A deep-research model has NO fast chat mode — every call is a slow web-research
+    # session, so the multi-call cross-card synthesis hangs. Degrade to the
+    # deterministic relations + headline graph (the 同源 Aha is computed WITHOUT an
+    # LLM; only the prose narrative is skipped) instead of hanging.
+    if "deepresearch" in str(MODEL_MINI).lower():
+        return None
 
     def _chat(prompt: str) -> dict:
         return call_chat(prompt, model=MODEL_MINI)

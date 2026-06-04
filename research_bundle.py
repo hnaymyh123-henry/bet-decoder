@@ -19,6 +19,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from datetime import datetime, timezone
 from typing import Callable, Optional
 
@@ -135,11 +136,24 @@ def _empty_evidence_section(n: int) -> dict:
 # echo its OWN assumption_id ("implied_pe_32.91") instead of the id we asked for
 # ("NVDA_pe"). The two helpers below make the split robust to both.
 
+def _sanitize_json_escapes(s: str) -> str:
+    """A Deep Research model sometimes emits an invalid JSON escape (e.g. `\\$423.7`
+    — escaping a char JSON doesn't allow), which makes json.loads fail with
+    'Invalid \\escape' and lose the whole bundle. Keep the valid escapes
+    (\\" \\\\ \\/ \\b \\f \\n \\r \\t \\uXXXX) and drop the stray backslash from any
+    other `\\X` so the object still parses."""
+    return re.sub(r'\\(["\\/bfnrtu])|\\(.)',
+                  lambda m: m.group(0) if m.group(1) else m.group(2),
+                  s, flags=re.DOTALL)
+
+
 def _parse_content(content: str):
     """Extract the first complete top-level JSON object from `content`, tolerant of
-    leading prose / markdown fences / a trailing reference list. None on failure."""
+    leading prose / markdown fences / a trailing reference list / invalid escapes.
+    None on failure."""
     if not content:
         return None
+    content = _sanitize_json_escapes(content)
     try:
         from client import parse_loose_json
         p = parse_loose_json(content)
