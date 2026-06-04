@@ -1,6 +1,6 @@
 # Bet Decoder
 
-**An X-ray for investment bets.** Paste any bet — a market price, an analyst target, a tweet, or your whole portfolio — and Bet Decoder reverse-decodes *what that bet implicitly believes*, lets you stack multiple bets side by side, and has an AI synthesize the cross-bet insights (e.g. "your portfolio rides the same assumption as Goldman's price target").
+**An X-ray for investment bets.** Paste a bet — a stock's market price, or your whole portfolio — and Bet Decoder reverse-decodes *what that bet implicitly believes*, lets you stack multiple bets side by side, and has an AI synthesize the cross-bet insights (e.g. "your portfolio rides the same assumption across every holding"). *(Decoding analyst price targets and free-text opinions is on the roadmap.)*
 
 Self-hosted, single-file SQLite, open-source. `git clone && uvicorn api:app` and you have your own instance.
 
@@ -39,7 +39,7 @@ A three-zone app:
 
 - **Main canvas** — multiple Bet Cards side by side (single-stock = compact card, portfolio = dashboard).
 - **Activity feed** (right) — the agent's reasoning streamed live over SSE, and replayable per card.
-- **Synthesis panel** (bottom) — select ≥2 cards and the AI surfaces their relationships (consensus / divergence / contradiction / shared-root / drift) with a headline insight.
+- **Synthesis** — decode a portfolio and the AI auto-surfaces its holdings' relationships (consensus / divergence / contradiction / shared-root / drift) with a headline insight.
 
 ## How it works
 
