@@ -21,10 +21,10 @@ pip install -r requirements.txt          # Python 3.11
 uvicorn api:app --reload --port 8000     # open http://127.0.0.1:8000/
 ```
 
-The SQLite database (`pricelens.db`) is created automatically on first run.
+The repo ships a **pre-run `pricelens.db`** — COST, NVDA, TSLA and a 5-holding portfolio are already decoded and cached. A fresh clone therefore shows the **real X-ray output offline, with no API key and $0**: run the command above and the four demo bets load onto the canvas automatically.
 
-- **Without an API key** the workbench runs on built-in fixtures (zero cost) — enough to explore the UI.
-- **With live decoding**, create a `.env` with `MIROMIND_API_KEY=...` (OpenAI-compatible). Decoding spends ~$0.10–3 per stock.
+- **Demo / explore (no key needed)** — the shipped cache is enough to see the full decode on the four demo bets: the scenario ladder, the step-by-step reasoning chain, and the cross-card portfolio synthesis.
+- **Decode your own bets (live)** — create a `.env` with `MIROMIND_API_KEY=...` (OpenAI-compatible). Each new decode spends ~$0.10–3 per stock; re-decoding an already-cached bet is free.
 
 To pre-populate caches before a demo (so nothing runs live on stage):
 

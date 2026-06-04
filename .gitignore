@@ -29,8 +29,11 @@ cache/
 # Legacy per-run JSON outputs (v0.5 and earlier; superseded by SQLite, regenerable)
 outputs/
 
-# SQLite databases (v0.6+) — local, regenerable via `python migrate_to_sqlite.py`
+# SQLite databases are local/regenerable and ignored — EXCEPT pricelens.db, which
+# ships a pre-run demo (COST/NVDA/TSLA + a portfolio) so the workbench renders the
+# real X-ray output offline with no API key. Its transient sidecars stay ignored.
 *.db
+!pricelens.db
 *.db-journal
 *.db-wal
 *.db-shm

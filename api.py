@@ -139,7 +139,7 @@ def get_decode(ticker: str):
     if data is None:
         raise HTTPException(status_code=404, detail={
             "error_code": "no_cached_decode",
-            "message": f"No cached decode for {ticker_upper}. Run python pipeline.py {ticker_upper} --no-evidence first.",
+            "message": f"No cached decode for {ticker_upper}. Decode it first via POST /api/decode, or run prerun_demo.py to populate the demo cache.",
         })
     return JSONResponse(content=data)
 
@@ -156,7 +156,7 @@ def get_short_term(ticker: str):
     if st is None:
         raise HTTPException(status_code=404, detail={
             "error_code": "no_cached_decode",
-            "message": f"No short-term attribution computed for {ticker_upper}. Run python pipeline.py {ticker_upper} --short-term first.",
+            "message": f"No short-term attribution available for {ticker_upper}.",
         })
     return JSONResponse(content=st)
 
