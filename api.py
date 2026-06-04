@@ -161,13 +161,6 @@ def get_short_term(ticker: str):
     return JSONResponse(content=st)
 
 
-# Legacy alias — the path "/5d" was the original endpoint. Keep for any client
-# that was wired to it; new code should use /short-term.
-@app.get("/api/decode/{ticker}/5d")
-def get_short_term_legacy_5d(ticker: str):
-    return get_short_term(ticker)
-
-
 @app.get("/api/offline-mode")
 def get_offline_mode():
     return {"offline": _offline_mode_enabled()}
@@ -383,6 +376,12 @@ def decode_card(body=Body(default=None)):
 
     import decoder
     import orchestrator
+    # MVP supports only market + portfolio; reject V2 source types (analyst_pt/opinion)
+    # with an explicit 400 instead of silently returning an "insufficient" card.
+    if source_type not in decoder._MVP_SOURCES:
+        return _bad_request(
+            f"source_type '{source_type}' 暂不支持(MVP 仅 market / portfolio)。"
+        )
 
     # Agentic decode is PRIMARY (the agent picks the plan); it self-falls-back to
     # the deterministic decode when the provider can't tool-call. Set agentic:false

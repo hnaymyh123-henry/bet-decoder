@@ -93,16 +93,18 @@ def main() -> int:
         f"canvas={has_canvas} feed={has_feed} grid_areas={grid_areas}",
     )
 
-    # AC: main flow wiring — composer input + source-type select + decode → /api/decode → card grid.
+    # AC: main flow wiring — composer input + decode → /api/decode → card grid.
+    # The explicit source-type dropdown was removed 2026-06: source type is now inferred
+    # from the input (comma → portfolio, single → market). Switching the dropdown had no
+    # visible effect and read as a logic hole; analyst_pt/opinion were never MVP-supported.
     has_input = 'id="bet-input"' in body
-    has_select = 'id="source-type"' in body and all(
-        v in body for v in ('value="market"', 'value="analyst_pt"', 'value="opinion"', 'value="portfolio"')
-    )
+    has_select = ('id="source-type"' not in body
+                  and 'function inferSource' in body and "includes(',')" in body)
     has_decode_btn = 'id="decode-btn"' in body
     posts_decode = "fetch('/api/decode'" in body and "method: 'POST'" in body
     renders_grid = 'id="card-grid"' in body and "renderCanvas" in body
     check(
-        "main flow: input + source-type select → POST /api/decode → card grid",
+        "main flow: input + inferred source type → POST /api/decode → card grid",
         has_input and has_select and has_decode_btn and posts_decode and renders_grid,
         f"input={has_input} select={has_select} btn={has_decode_btn} post={posts_decode} grid={renders_grid}",
     )
@@ -145,15 +147,13 @@ def main() -> int:
     check("hero row (THE BET + price chart) + sticky AGENT panel showing full decode activity (option B)",
           panel, f"panel={panel}")
 
-    # AC: every card leads with ONE consistent "what is the market betting?" headline
-    # (THE BET), computed server-side (_bet_statement) — implied growth or narrative premium.
-    thebet = ("function _betHeadline" in body and 'class="cp-bet"' in body
-              and "市场在 bet 什么" in body and "bet_statement" in body
-              and "function _betWhy" in body and "cb-why" in body
-              and "为什么这么判断" in body
-              # auditable conclusion derived from the cross-check (evidence tally)
-              and "cb-why-tally" in body and "证据对账" in body)
-    check("unified THE BET headline (consistent decode answer on every card)",
+    # AC: every card leads with ONE consistent reasoning chain — the reasoning tree
+    # (现价 → 隐含增速 → 6 reads) + the X-RAY verdict. (The old THE BET headline
+    # _betHeadline/_betWhy was retired 2026-06 in favor of the reasoning tree.)
+    thebet = ("function _reasoningTree" in body and 'class="cp-rtree"' in body
+              and "推理链" in body and "function renderXrayTop" in body
+              and "verdict_zh" in body and "解码结论" in body)
+    check("unified reasoning-chain lead (reasoning tree + X-RAY verdict on every card)",
           thebet, f"thebet_present={thebet}")
 
     # AC: DEEP ANALYSIS section — elevated bull/bear debate + per-assumption cross-check
@@ -283,25 +283,25 @@ def main() -> int:
     check("endpoint strings match API_CONTRACT", fe_has and contract_has,
           f"frontend={fe_has} contract={contract_has}")
 
-    # AC: bilingual disclaimer + lang toggle preserved.
-    bilingual = ('id="disclaimer-text"' in body and 'id="lang-zh"' in body
-                 and 'id="lang-en"' in body and "function setLang" in body
-                 and "disclaimers" in body)
-    check("bilingual disclaimer + lang toggle preserved", bilingual,
+    # AC: disclaimer present. (The 中/EN lang toggle was removed 2026-06 — it only
+    # swapped one footer line while the whole workbench stayed hardcoded zh; misleading.)
+    bilingual = ('id="disclaimer-text"' in body and 'Disclaimer.' in body
+                 and 'id="lang-zh"' not in body and 'id="lang-en"' not in body)
+    check("disclaimer present + misleading lang toggle removed", bilingual,
           f"bilingual={bilingual}")
 
     # AC: reasoning-visualization layer — the flow diagram (现价→隐含假设节点) with a
-    # folded Monte-Carlo band ruler, the revived SVG price chart, the price-
-    # decomposition waterfall, and the scenario chips that fire the LLM what-if.
+    # folded Monte-Carlo band ruler, the revived SVG price chart, and the scenario
+    # chips that fire the LLM what-if. (Price-decomposition waterfall renderDecomp was
+    # removed 2026-06 — dead code with no call site after the audit-fold slimming.)
     viz = (
         "function renderFlowDiagram" in body and 'class="bc-flow"' in body
         and "function _bandViz" in body and '"fn-band"' in body
-        and "function renderDecomp" in body and '"dc-bar"' in body
         and "function _paintChart" in body and "price-chart-wrap" in body
         and "pc-line-baseline" in body and "ensurePriceHistory" in body
         and "function renderScenarioChips" in body and "data-chip" in body
     )
-    check("reasoning viz: flow diagram + band ruler + price chart + decomp + scenario chips",
+    check("reasoning viz: flow diagram + band ruler + price chart + scenario chips",
           viz, f"viz_present={viz}")
 
     # AC: de-clutter — the flow diagram REPLACED the thin always-list decision chain

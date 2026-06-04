@@ -64,33 +64,21 @@
     text-transform: uppercase;
   }
   .masthead-inner {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
+    display: flex;
+    justify-content: space-between;
     gap: 32px;
     align-items: center;
+    background: transparent;   /* let the dark .masthead show through — the .page white bg was bleeding in */
   }
-  .masthead .brand { font-weight: 600; letter-spacing: 0.22em; }
-  .masthead .brand .v { color: var(--ink-5); margin-left: 8px; font-weight: 400; letter-spacing: 0.08em; }
-  .masthead .crumb {
-    color: var(--ink-5);
-    display: flex; gap: 20px; justify-content: center;
-  }
-  .masthead .crumb span { display: flex; align-items: center; gap: 8px; }
-  .masthead .crumb span::before {
-    content: '/'; color: var(--ink-4); margin-right: 8px;
-  }
-  .masthead .crumb span:first-child::before { content: none; margin: 0; }
-  .masthead .crumb .active { color: var(--paper); }
+  /* brand lockup: mark + wordmark + one-line product intro (left) */
+  .masthead .brand { display: flex; align-items: center; gap: 11px; font-weight: 600; letter-spacing: 0.22em; }
+  .masthead .brand-mark { display: flex; align-items: center; color: var(--paper); }
+  .masthead .brand-mark svg { display: block; }
+  .masthead .brand-txt { display: flex; flex-direction: column; gap: 2px; line-height: 1.15; }
+  .masthead .brand-name { font-size: 12px; color: var(--paper); }
+  .masthead .brand-tag { font-weight: 400; font-size: 9px; letter-spacing: 0.03em; text-transform: none; color: var(--ink-5); }
   .masthead .right { display: flex; gap: 20px; align-items: center; color: var(--ink-5); }
-  .masthead .right .live::before {
-    content: ''; display: inline-block;
-    width: 6px; height: 6px;
-    background: #5BC97E;
-    border-radius: 50%;
-    margin-right: 7px;
-    transform: translateY(-1px);
-    animation: pulse 2s ease-in-out infinite;
-  }
+  .masthead .right .ver { letter-spacing: 0.1em; }
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
   /* ============================ TICKER PICKER ============================ */
@@ -1545,23 +1533,6 @@
     letter-spacing: 0.02em;
   }
   .disclaimer-text strong { color: var(--ink); font-weight: 500; }
-  .lang-toggle {
-    display: flex;
-    border: 1px solid var(--line);
-    background: var(--paper);
-  }
-  .lang-toggle button {
-    background: transparent;
-    border: none;
-    padding: 6px 12px;
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.14em;
-    color: var(--ink-3);
-    cursor: pointer;
-    font-weight: 500;
-  }
-  .lang-toggle button.active { background: var(--ink); color: var(--paper); }
 
   .foot-bot {
     display: flex; justify-content: space-between;
@@ -1834,13 +1805,10 @@
     background: var(--paper);
     display: flex; flex-direction: column;
   }
-  .bet-card.selected { box-shadow: 0 0 0 2px var(--accent); }
   .bet-card .bc-head {
     padding: 14px 16px; border-bottom: 1px solid var(--line);
     display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
   }
-  .bet-card .bc-sel { margin-top: 3px; }
-  .bet-card .bc-sel input { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
   .bet-card .bc-id { flex: 1; }
   .bet-card .bc-subj { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
   .bet-card .bc-badge {
@@ -1854,30 +1822,6 @@
   .bet-card .bc-dcf .val.np { font-size: 14px; color: var(--ink); font-weight: 600; }
   .bet-card .bc-dcf .val.np.hot { color: var(--accent); }
   .bet-card .bc-dcf .val + .lab { margin-top: 5px; }
-  /* Market narrative zone (the live multi/空 debate behind the implied numbers) */
-  .bet-card .bc-narr { padding: 11px 16px; border-top: 1px solid var(--line); background: var(--paper); }
-  .bet-card .bc-narr .mn-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
-  .bet-card .bc-narr .mn-head .lab { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-4); }
-  .bet-card .bc-narr .mn-regime { font-family: var(--mono); font-size: 10px; letter-spacing: 0.03em; padding: 1px 6px; border: 1px solid var(--line); border-radius: 3px; color: var(--ink-2); }
-  .bet-card .bc-narr .mn-bb { font-family: var(--mono); font-size: 10px; color: var(--ink-4); margin-left: auto; }
-  .bet-card .bc-narr .mn-headline { font-size: 12px; color: var(--ink-2); line-height: 1.5; margin-bottom: 9px; }
-  .bet-card .bc-narr .mn-bind { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 3px 0 3px 8px; margin: 2px 0; border-left: 2px solid var(--line); }
-  .bet-card .bc-narr .mn-bind .mn-asm { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); }
-  .bet-card .bc-narr .mn-bind .mn-lean { font-family: var(--mono); font-size: 10.5px; font-weight: 600; white-space: nowrap; }
-  .bet-card .bc-narr .mn-bind.lean-bull { border-left-color: var(--positive); }
-  .bet-card .bc-narr .mn-bind.lean-bull .mn-lean { color: var(--positive); }
-  .bet-card .bc-narr .mn-bind.lean-bear { border-left-color: var(--accent); }
-  .bet-card .bc-narr .mn-bind.lean-bear .mn-lean { color: var(--accent); }
-  .bet-card .bc-narr .mn-bind.lean-mixed .mn-lean { color: var(--neutral); }
-  /* cross-check: narrative verdict vs the independent evidence verdict per number */
-  .bet-card .bc-narr .mn-verdicts { display: flex; align-items: baseline; gap: 7px; font-family: var(--mono); font-size: 10px; white-space: nowrap; }
-  .bet-card .bc-narr .mn-ev { color: var(--ink-4); }
-  .bet-card .bc-narr .mn-bind.diverge { border-left-color: var(--accent); }
-  .bet-card .bc-narr .mn-bind.diverge .mn-ev { color: var(--accent); font-weight: 600; }
-  .bet-card .bc-narr .mn-xnote { font-family: var(--mono); font-size: 9px; color: var(--accent); margin: 2px 0 6px 8px; }
-  .bet-card .bc-narr .mn-sq { font-family: var(--mono); font-size: 9.5px; color: var(--ink-4); margin-top: 8px; }
-  .bet-card .bc-narr.unavail { color: var(--ink-4); font-size: 11px; }
-  .bet-card .bc-narr.unavail .lab { margin-right: 6px; }
   .bet-card .bc-del {
     border: none; background: none; color: var(--ink-5); cursor: pointer;
     font-family: var(--mono); font-size: 14px; line-height: 1; padding: 0 2px;
@@ -2008,25 +1952,6 @@
   .price-chart-wrap .pc-foot { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line); font-family: var(--mono); font-size: 9px; color: var(--ink-4); letter-spacing: 0.02em; }
   .price-chart-wrap .pc-empty { padding: 26px 12px; text-align: center; font-family: var(--mono); font-size: 10.5px; color: var(--ink-4); letter-spacing: 0.04em; }
 
-  /* ---- Price-decomposition waterfall (anchor cards): base + 溢价/成分 = 现价 ---- */
-  .bet-card .bc-decomp { margin: 12px 0 2px; padding-top: 12px; border-top: 1px solid var(--line); }
-  .bet-card .bc-decomp .dc-lab { font-family: var(--mono); font-size: 9px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 8px; }
-  .bet-card .bc-decomp .dc-bar { display: flex; width: 100%; height: 24px; overflow: hidden; gap: 1px; background: var(--line); }
-  .bet-card .bc-decomp .dc-seg { height: 100%; min-width: 2px; }
-  .bet-card .bc-decomp .dc-seg.base { background: var(--ink-3); }
-  .bet-card .bc-decomp .dc-seg.part.p1 { background: var(--accent); }
-  .bet-card .bc-decomp .dc-seg.part.p2 { background: var(--ink-4); }
-  .bet-card .bc-decomp .dc-seg.part.p3 { background: var(--neutral); }
-  .bet-card .bc-decomp .dc-seg.resid { background: var(--paper-3); }
-  .bet-card .bc-decomp .dc-legend { display: flex; flex-wrap: wrap; gap: 5px 16px; margin-top: 9px; }
-  .bet-card .bc-decomp .dc-leg { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-2); }
-  .bet-card .bc-decomp .dc-leg .sw { width: 9px; height: 9px; display: inline-block; }
-  .bet-card .bc-decomp .dc-leg .sw.base { background: var(--ink-3); }
-  .bet-card .bc-decomp .dc-leg .sw.part.p1 { background: var(--accent); }
-  .bet-card .bc-decomp .dc-leg .sw.part.p2 { background: var(--ink-4); }
-  .bet-card .bc-decomp .dc-leg .sw.part.p3 { background: var(--neutral); }
-  .bet-card .bc-decomp .dc-leg .sw.resid { background: var(--paper-3); border: 1px solid var(--line); }
-  .bet-card .bc-decomp .dc-leg .amt { font-family: var(--mono); font-size: 11px; color: var(--ink); font-weight: 600; }
 
   /* ---- Suggested scenario chips (fire the LLM what-if / Q&A) ---- */
   .bc-discuss .bc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 11px; }
@@ -2043,13 +1968,11 @@
   .wb-tabs .wb-tab .tb-badge { font-family: var(--mono); font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-4); border: 1px solid var(--line); padding: 1px 4px; }
   .wb-tabs .wb-tab .tb-pin { border: none; background: none; cursor: pointer; color: var(--ink-5); font-size: 11px; line-height: 1; padding: 0; }
   .wb-tabs .wb-tab.pinned .tb-pin { color: var(--accent); }
-  .wb-tabs .wb-tab .tb-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
   .wb-tabs .wb-tab .tb-close { border: none; background: none; cursor: pointer; color: var(--ink-5); font-size: 11px; line-height: 1; padding: 0 0 0 2px; }
   .wb-tabs .wb-tab .tb-close:hover { color: var(--accent); }
   .wb-tabs .tb-rename { font-family: var(--sans); font-size: 12.5px; border: 1px solid var(--ink); padding: 1px 4px; width: 96px; }
 
   .bet-card.card-page { border: none; }                       /* full-bleed page: drop card chrome */
-  .bet-card.card-page.selected { box-shadow: none; }          /* selection shown via tab dot + checkbox, not a page ring */
   .card-page .cp-head { display: flex; align-items: flex-start; gap: 20px; padding: 0 0 14px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
   .card-page .cp-id { flex: 1; min-width: 0; }
   .card-page .cp-subj { font-family: var(--sans); font-size: 26px; font-weight: 600; color: var(--ink); letter-spacing: -0.015em; }
@@ -2059,9 +1982,6 @@
   .card-page .cp-kpis .kpi .lab { font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-4); }
   .card-page .cp-kpis .kpi .val { font-family: var(--mono); font-size: 18px; font-weight: 600; color: var(--ink); }
   .card-page .cp-kpis .kpi .val.hot { color: var(--accent); }
-  .card-page .cp-synth { font-family: var(--mono); font-size: 10px; letter-spacing: 0.04em; color: var(--ink-3); display: inline-flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap; }
-  .card-page .cp-synth.on { color: var(--accent); }
-  .card-page .cp-synth input { accent-color: var(--accent); cursor: pointer; }
   .card-page .cp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
   .card-page .cp-col { min-width: 0; }
   /* Hero row: THE BET skeleton (left) + price chart (right), paired at the top. */
@@ -2084,21 +2004,6 @@
   .card-page .cp-bet .cb-text b { color: var(--ink); font-weight: 600; }
   .card-page .cp-bet .cb-core { color: var(--accent); font-weight: 600; }
   .card-page .cp-bet .cb-detail { font-family: var(--mono); font-size: 11px; color: var(--ink-4); margin-top: 7px; letter-spacing: 0.02em; line-height: 1.5; }
-  /* WHY digest: a summary of the deep analysis, so THE BET balances the price chart. */
-  .card-page .cp-bet .cb-why { margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line); }
-  .card-page .cp-bet .cb-why.dim { color: var(--ink-4); font-size: 11.5px; line-height: 1.6; }
-  .card-page .cp-bet .cb-why-h { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 7px; }
-  .card-page .cp-bet .cb-why-reg { font-family: var(--mono); font-size: 11px; color: var(--ink-2); margin-bottom: 6px; }
-  .card-page .cp-bet .cb-why-reg b { color: var(--ink); font-weight: 600; }
-  .card-page .cp-bet .cb-why-tally { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); margin-bottom: 7px; letter-spacing: 0.01em; }
-  .card-page .cp-bet .cb-why-tally b.up { color: var(--positive); font-weight: 600; }
-  .card-page .cp-bet .cb-why-tally b.dn { color: var(--negative); font-weight: 600; }
-  .card-page .cp-bet .cb-why-tally .div { color: var(--accent); font-weight: 600; }
-  .card-page .cp-bet .cb-why-rat { font-size: 12.5px; color: var(--ink-3); line-height: 1.6; margin-bottom: 8px; }
-  .card-page .cp-bet .cb-why-pt { font-size: 12.5px; color: var(--ink-2); line-height: 1.55; margin-top: 5px; }
-  .card-page .cp-bet .cb-why-pt .k { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; margin-right: 7px; padding: 1px 5px; border: 1px solid var(--line); }
-  .card-page .cp-bet .cb-why-pt .k.bull { color: var(--positive); border-color: var(--positive); }
-  .card-page .cp-bet .cb-why-pt .k.bear { color: var(--negative); border-color: var(--negative); }
 
   /* ============ DEEP ANALYSIS (elevated, complete market-narrative) ============ */
   .card-page .cp-deep { margin-bottom: 22px; }
@@ -2242,11 +2147,11 @@
   /* lead verdict (the punchline) + numbered logical spine */
   .xr-verdict { display: flex; gap: 12px; background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 13px 16px; margin-bottom: 20px; align-items: baseline; }
   .xr-verdict .xr-vlab { font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); font-weight: 600; white-space: nowrap; }
-  .xr-verdict .xr-vtext { font-size: 13.5px; color: var(--ink); line-height: 1.6; font-weight: 500; }
+  .xr-verdict .xr-vtext { font-size: 16px; color: var(--ink); line-height: 1.55; font-weight: 600; max-width: 780px; }
   .xr-step, .xr-bridge { display: flex; gap: 13px; margin-bottom: 18px; }
-  .xr-snum { flex: none; width: 22px; height: 22px; border: 1px solid var(--ink); color: var(--ink); font-family: var(--mono); font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+  .xr-snum { flex: none; width: 18px; height: 18px; border: 1px solid var(--ink-3); color: var(--ink-3); font-family: var(--mono); font-size: 10px; font-weight: 600; display: flex; align-items: center; justify-content: center; border-radius: 2px; }
   .xr-bridge .xr-snum { border-style: dashed; color: var(--ink-3); border-color: var(--line-2); }
-  .xr-sbody { flex: 1; min-width: 0; }
+  .xr-sbody { flex: 1; min-width: 0; max-width: 780px; }
   .xr-stitle { font-size: 13.5px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
   .xr-sread { font-size: 11.5px; color: var(--ink-4); line-height: 1.55; margin-bottom: 11px; }
   .xr-step .xray-hero { margin-bottom: 0; }
@@ -2255,18 +2160,20 @@
   .xray-hero { border: 1px solid var(--line); border-left: 2px solid var(--ink); background: var(--paper); padding: 13px 16px; margin-bottom: 14px; }
   .xray-hero .xr-top { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
   .xray-hero .xr-implied { font-size: 12px; color: var(--ink-3); }
-  .xray-hero .xr-implied b { font-family: var(--mono); font-size: 19px; font-weight: 600; color: var(--ink); }
-  .xray-hero .xr-pct { font-family: var(--mono); font-size: 26px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; white-space: nowrap; }
+  .xray-hero .xr-implied b { font-family: var(--mono); font-feature-settings: "tnum" 1; font-size: 18px; font-weight: 600; color: var(--ink); }
+  .xray-hero .xr-pct { font-family: var(--mono); font-feature-settings: "tnum" 1; font-size: 26px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; white-space: nowrap; }
   .xray-hero .xr-pct.hot { color: var(--accent); }
   .xray-hero .xr-pct .u { font-size: 11px; color: var(--ink-4); font-weight: 500; }
   .xr-dist { position: relative; height: 30px; margin: 16px 0 6px; }
   .xr-dist .axis { position: absolute; left: 0; right: 0; top: 19px; height: 2px; background: var(--paper-3); }
   .xr-dist .fillbar { position: absolute; left: 0; top: 18px; height: 4px; background: var(--ink-4); opacity: 0.35; }
-  .xr-dist .mk { position: absolute; top: 11px; width: 2px; height: 18px; background: var(--accent); }
-  .xr-dist .mk .cap { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); font-family: var(--mono); font-size: 9px; color: var(--accent); white-space: nowrap; }
+  .xr-dist .mk { position: absolute; top: 11px; width: 2px; height: 18px; background: var(--ink-2); }
+  .xray-hero.hot .xr-dist .mk { background: var(--accent); }
+  .xr-dist .mk .cap { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); font-family: var(--mono); font-feature-settings: "tnum" 1; font-size: 9px; color: var(--ink-4); white-space: nowrap; }
+  .xray-hero.hot .xr-dist .mk .cap { color: var(--accent); }
   .xr-dist .tick { position: absolute; top: 23px; font-family: var(--mono); font-size: 8px; color: var(--ink-4); transform: translateX(-50%); white-space: nowrap; }
   .xray-hero .xr-headline { font-size: 12.5px; color: var(--ink-2); line-height: 1.55; margin-top: 8px; }
-  .xray-hero .xr-headline b { color: var(--accent); font-weight: 600; }
+  .xray-hero .xr-headline b { color: var(--ink); font-weight: 600; }
   .xray-quote { font-family: var(--mono); font-size: 10px; color: var(--ink-4); line-height: 1.55; margin-top: 6px; padding-left: 11px; border-left: 1px solid var(--line); }
   .xr-scen { margin-bottom: 14px; }
   .xr-scen .xr-lab, .xr-wwh .xr-lab { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 9px; }
@@ -2275,12 +2182,14 @@
   .xr-srow .xr-sname { font-size: 12.5px; color: var(--ink-2); }
   .xr-srow .xr-sname .g { font-family: var(--mono); font-size: 10px; color: var(--ink-4); margin-left: 6px; }
   .xr-srow .xr-sval { font-family: var(--mono); font-size: 11px; color: var(--ink-4); }
-  .xr-srow .xr-sp { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--ink-3); }
+  .xr-srow .xr-sp { font-family: var(--mono); font-feature-settings: "tnum" 1; font-size: 14px; font-weight: 600; color: var(--ink-3); }
   .xr-srow.top .xr-sname { color: var(--ink); font-weight: 600; }
-  .xr-srow.top .xr-sp { color: var(--accent); }
+  .xr-srow.top .xr-sp { color: var(--ink); }
+  .xr-srow.top.extreme .xr-sp { color: var(--accent); }
   .xr-sbar { height: 9px; background: var(--paper-3); position: relative; overflow: hidden; }
   .xr-sbar .fill { height: 100%; background: var(--ink-3); }
-  .xr-srow.top .xr-sbar .fill { background: var(--accent); }
+  .xr-srow.top .xr-sbar .fill { background: var(--ink-2); }
+  .xr-srow.top.extreme .xr-sbar .fill { background: var(--accent); }
   .xr-scen .xr-note { font-size: 12.5px; color: var(--ink-2); line-height: 1.55; margin-top: 9px; }
   .xr-scen .xr-note b { color: var(--accent); font-weight: 600; }
   .xr-envelope { background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 11px 14px; font-size: 12.5px; color: var(--ink); line-height: 1.55; }
@@ -2297,8 +2206,8 @@
   .xr-wwh td.v { text-align: right; font-family: var(--mono); color: var(--ink); white-space: nowrap; }
   .xr-wwh tr.flag td { color: var(--ink-3); }
   .xr-wwh tr.flag td.v { white-space: normal; font-family: inherit; }
-  .xr-wwh tr.kill td { background: var(--accent-soft); }
-  .xr-wwh tr.kill td.k { color: var(--accent); font-weight: 600; }
+  .xr-wwh tr.kill td { background: var(--paper); }
+  .xr-wwh tr.kill td.k { color: var(--accent); font-weight: 600; border-left: 2px solid var(--accent); padding-left: 11px; }
   .xr-wwh tr.kill td.v { text-align: left; font-family: inherit; color: var(--ink); white-space: normal; }
   .xr-kelly { font-family: var(--mono); font-size: 11px; color: var(--ink-4); margin-top: 9px; padding-left: 2px; }
   /* portfolio → constituents' compact deep-decode (stacked below the dashboard) */
@@ -2317,7 +2226,7 @@
   .pf-cx-tags .tag.hot { color: var(--accent); border-color: var(--accent); }
   /* connective microcopy welding each beat to the next (one reading chain) */
   .xr-flow-conn { display: flex; gap: 9px; align-items: baseline; margin: 2px 0 20px; padding-left: 3px; }
-  .xr-flow-conn .arr { font-family: var(--mono); font-size: 13px; color: var(--accent); line-height: 1; }
+  .xr-flow-conn .arr { font-family: var(--mono); font-size: 13px; color: var(--ink-3); line-height: 1; }
   .xr-flow-conn .t { font-size: 12.5px; color: var(--ink-3); line-height: 1.6; }
   .xr-flow-conn .t b { color: var(--ink); font-weight: 600; }
   .card-page .cp-xray-end { margin-top: 6px; }
@@ -2336,13 +2245,13 @@
   .rt-empty { font-size: 12px; color: var(--ink-4); }
   .rt-root { display: inline-flex; align-items: baseline; gap: 9px; flex-wrap: wrap; border: 1px solid var(--rule); background: var(--paper-2); padding: 8px 13px; }
   .rt-root-lab { font-family: var(--mono); font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-4); }
-  .rt-root-val { font-family: var(--mono); font-size: 19px; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; }
+  .rt-root-val { font-family: var(--mono); font-feature-settings: "tnum" 1; font-size: 18px; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; }
   .rt-root-sub { font-size: 11.5px; color: var(--ink-3); }
   .rt-branches { border-left: 2px solid var(--ink); margin-left: 15px; }
   .rt-node { position: relative; display: flex; align-items: baseline; gap: 8px; padding: 7px 0 7px 20px; border-bottom: 1px dotted var(--line); }
   .rt-node:last-child { border-bottom: none; }
   .rt-node::before { content: ""; position: absolute; left: 0; top: 14px; width: 16px; border-top: 2px solid var(--ink); }
-  .rt-n { flex: none; width: 16px; height: 16px; border: 1px solid var(--ink-3); color: var(--ink-3); font-family: var(--mono); font-size: 9px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
+  .rt-n { flex: none; width: 16px; height: 16px; border: 1px solid var(--ink-3); color: var(--ink-3); font-family: var(--mono); font-size: 9px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; border-radius: 2px; }
   .rt-n.hot { border-color: var(--accent); color: var(--accent); }
   .rt-q { font-size: 12px; color: var(--ink-3); min-width: 76px; flex: none; }
   .rt-arrow { font-family: var(--mono); font-size: 11px; color: var(--ink-4); }
@@ -2539,21 +2448,26 @@
 <!-- ============================ MASTHEAD ============================ -->
 <div class="masthead">
   <div class="page masthead-inner">
-    <div class="brand">Bet Decoder<span class="v">v 1.0</span></div>
-    <div class="crumb">
-      <span class="active">Workbench</span>
-      <span>Decode</span>
-      <span>Synthesize</span>
-      <span>Methodology</span>
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <rect x="1.6" y="1.6" width="18.8" height="18.8" rx="2.4" stroke="currentColor" stroke-width="1.3"/>
+        <line x1="5.4" y1="7" x2="16.6" y2="7" stroke="currentColor" stroke-width="1.3"/>
+        <line x1="5.4" y1="11" x2="12.4" y2="11" stroke="currentColor" stroke-width="1.3" opacity="0.5"/>
+        <line x1="5.4" y1="15" x2="14.6" y2="15" stroke="currentColor" stroke-width="1.4"/>
+      </svg></span>
+      <span class="brand-txt">
+        <span class="brand-name">Bet Decoder</span>
+        <span class="brand-tag">拆解任意押注背后的隐含假设</span>
+      </span>
     </div>
     <div class="right">
       <span class="offline-badge" id="offline-badge">OFFLINE</span>
-      <label class="offline-toggle" id="offline-toggle" title="Offline mode disables live decode / synthesis">
+      <label class="offline-toggle" id="offline-toggle" title="Offline 模式禁用联网解码 / 综合">
         <span class="sw"></span>
         <span>Offline</span>
       </label>
-      <span id="masthead-ts">29 · 05 · 2026</span>
-      <span class="live">NYSE OPEN</span>
+      <span id="masthead-ts">—</span>
+      <span class="ver">v1.0</span>
     </div>
   </div>
 </div>
@@ -2564,13 +2478,7 @@
   <div class="composer">
     <div class="lbl">Decode a bet</div>
     <div class="composer-inputs">
-      <select class="src-select" id="source-type">
-        <option value="market">Market price</option>
-        <option value="analyst_pt">Analyst PT</option>
-        <option value="opinion">Opinion</option>
-        <option value="portfolio">Portfolio</option>
-      </select>
-      <input type="text" id="bet-input" placeholder="NVDA  ·  or  NVDA,MSFT,GOOG for a portfolio">
+      <input type="text" id="bet-input" placeholder="输入 ticker(如 NVDA),逗号分隔多个解码组合(如 NVDA,MSFT,GOOG)">
       <button class="go" id="decode-btn">Decode</button>
       <div class="presets">
         <button class="preset" data-src="market" data-input="COST">COST</button>
@@ -2654,10 +2562,6 @@
       <p class="disclaimer-text" id="disclaimer-text">
         <strong>Disclaimer.</strong> Bet Decoder 是研究性工具，展示价格 / 目标价 / 组合背后的隐含假设。所有数值不构成投资建议，使用者需自行判断。
       </p>
-      <div class="lang-toggle">
-        <button id="lang-zh" class="active">中</button>
-        <button id="lang-en">EN</button>
-      </div>
     </div>
 
     <div class="foot-bot">
@@ -2777,7 +2681,6 @@ const FIXTURE_CARDS = {
    ============================================================ */
 const state = {
   cards: [],            // array of card objects (card_to_json shape, optional _display)
-  selected: new Set(),  // selected card_ids for synthesis
   lang: 'zh',
   offline: false,
   busy: false,          // a decode/synthesize is in flight
@@ -2939,6 +2842,8 @@ async function decodeBet(sourceType, sourceInput) {
 
   let card = null, jobId = null;
   try {
+    // Offline toggle ON → never hit the network; fall through to the local fixture path.
+    if (state.offline) throw new Error('offline');
     const r = await fetch('/api/decode', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2957,7 +2862,7 @@ async function decodeBet(sourceType, sourceInput) {
       setStatus('Decoded (dev fixture)', sourceType);
     } else {
       setStatus('No data for ' + sourceInput, sourceType);
-      showToast('<strong>' + escapeHTML(sourceInput) + '</strong> not available. Start the backend or use a preset (COST / NVDA / TSLA / Portfolio).');
+      showToast('<strong>' + escapeHTML(sourceInput) + '</strong> not available. Start the backend or use a preset (COST / NVDA / Portfolio).');
       state.busy = false; setBusy(false);
       return;
     }
@@ -2987,7 +2892,6 @@ function removeCard(cardId) {
   const idx = ord.indexOf(cardId);
   // drop the card AND any derived what-if children railed under it
   state.cards = state.cards.filter(c => c.card_id !== cardId && c.derived_from !== cardId);
-  state.selected.delete(cardId);
   state.tabOrder = state.tabOrder.filter(id => id !== cardId);
   state.pinned.delete(cardId);
   delete state.tabNames[cardId];
@@ -3010,6 +2914,7 @@ async function askCard(cardId, question) {
   if (!question) return;
   const card = state.cards.find(c => c.card_id === cardId);
   if (!card) return;
+  if (state.offline && !String(cardId).startsWith('fix')) { showToast('离线模式已开启 —— 联网追问已禁用,请先关闭 Offline。'); return; }
   (state.chat[cardId] = state.chat[cardId] || []).push({ role: 'you', text: question });
   state.chat[cardId].push({ role: 'agent', text: '…思考中', pending: true });
   renderCanvas();
@@ -3158,14 +3063,12 @@ function renderTabBar() {
     const name = state.tabNames[id] || c.subject;
     const active = id === state.activeTab;
     const pinned = state.pinned.has(id);
-    const selected = state.selected.has(id);
     const badge = c.card_kind === 'portfolio' ? '组合' : badgeLabel(c.source_type);
-    return '<div class="wb-tab' + (active ? ' active' : '') + (pinned ? ' pinned' : '') + (selected ? ' selected' : '') +
+    return '<div class="wb-tab' + (active ? ' active' : '') + (pinned ? ' pinned' : '') +
       '" draggable="true" data-tab="' + escapeHTML(id) + '">' +
       '<button class="tb-pin" data-tabpin="' + escapeHTML(id) + '" title="固定/取消固定">' + (pinned ? '★' : '☆') + '</button>' +
       '<span class="tb-name" data-tabname="' + escapeHTML(id) + '" title="双击重命名">' + escapeHTML(name) + '</span>' +
       '<span class="tb-badge">' + escapeHTML(badge) + '</span>' +
-      (selected ? '<span class="tb-dot" title="已选入综合"></span>' : '') +
       '<button class="tb-close" data-tabclose="' + escapeHTML(id) + '" title="关闭">✕</button>' +
     '</div>';
   }).join('');
@@ -3342,6 +3245,7 @@ function _renderRelations(res) {
 // Auto-run cross-holding synthesis when the portfolio page is viewed (cached by
 // holding-set, fired once per set; server also caches → ~1 LLM call per unique set).
 async function ensurePortfolioSynth(pf) {
+  if (state.offline) return;   // offline toggle ON → skip live cross-card synthesis
   const decoded = {};
   state.cards.forEach(c => { if (c.card_kind !== 'portfolio' && !c.derived_from) decoded[String(c.subject).toUpperCase()] = c.card_id; });
   const ids = (pf.holdings || []).map(h => decoded[String(h.ticker || '').toUpperCase()]).filter(Boolean);
@@ -3381,38 +3285,6 @@ const _LEAN = { lean_bull: ['偏多', 'lean-bull'], contested: ['分歧', 'lean-
   lean_bear: ['偏空', 'lean-bear'] };
 const _VERDICT = { bull: '偏多', mixed: '中性', bear: '偏空' };  // evidence-side 3-point axis
 function regimeLabel(r) { return _REGIME_ZH[r] || r || '—'; }
-
-function renderNarrativeZone(mn) {
-  if (!mn || !mn.coverage) return '';
-  if (mn.coverage === 'unavailable' || mn.coverage === 'unparseable') {
-    return '<div class="bc-narr unavail"><span class="lab">市场叙事</span>材料不足 / 未联网</div>';
-  }
-  const binds = (mn.bindings || []).map(b => {
-    const lean = _LEAN[b.leans] || [b.leans || '', ''];
-    const evLabel = b.evidence_verdict ? (_VERDICT[b.evidence_verdict] || b.evidence_verdict) : '';
-    const mark = b.diverges ? ' ⚠' : '';
-    const evHtml = evLabel
-      ? '<span class="mn-ev">· 证据 ' + escapeHTML(evLabel) + escapeHTML(mark) + '</span>' : '';
-    return '<div class="mn-bind ' + lean[1] + (b.diverges ? ' diverge' : '') + '">' +
-      '<span class="mn-asm">' + escapeHTML(b.assumption || '') + '</span>' +
-      '<span class="mn-verdicts"><span class="mn-lean">叙事 ' + escapeHTML(lean[0]) + '</span>' + evHtml + '</span>' +
-    '</div>';
-  }).join('');
-  const sq = mn.source_quality || {};
-  const byt = sq.by_tier || {};
-  const tierStr = ['A', 'B', 'C'].filter(t => byt[t]).map(t => t + '×' + byt[t]).join(' ');
-  const sqLine = (tierStr ? '信源 ' + tierStr : '') +
-    (sq.unverified_claims ? ' · ' + sq.unverified_claims + ' 条未经一手核实' : '');
-  return '<div class="bc-narr">' +
-    '<div class="mn-head"><span class="lab">市场叙事</span>' +
-      '<span class="mn-regime">' + escapeHTML(regimeLabel(mn.regime)) + '</span>' +
-      '<span class="mn-bb">多 ' + (mn.bull_count || 0) + ' · 空 ' + (mn.bear_count || 0) + '</span>' +
-    '</div>' +
-    (mn.headline ? '<div class="mn-headline">' + escapeHTML(mn.headline) + '</div>' : '') +
-    binds +
-    (sqLine ? '<div class="mn-sq">' + escapeHTML(sqLine) + '</div>' : '') +
-  '</div>';
-}
 
 // ---- Tiny, SAFE markdown → HTML (escape FIRST, then format) ----
 function _mdInline(s) { return s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>'); }
@@ -3690,42 +3562,6 @@ function renderFlowDiagram(c) {
   '</div>';
 }
 
-// ---- Price-decomposition WATERFALL (anchor/narrative cards): base business
-// value (DCF) + 叙事/期权/TAM 成分 = 现价. Visualizes "what the price is made of".
-// Renders only when _display.decomp exists (anchor mode); '' otherwise. ----
-function renderDecomp(c) {
-  const dc = (c._display || {}).decomp;
-  if (!dc || typeof dc.anchor !== 'number' || dc.anchor <= 0) return '';
-  const anchor = dc.anchor;
-  const segs = [];
-  if (typeof dc.base === 'number' && dc.base > 0) {
-    segs.push({ cls: 'base', label: '基础业务价值(DCF)', amt: dc.base });
-  }
-  (dc.parts || []).forEach((p, i) => {
-    if (typeof p.amt === 'number' && p.amt > 0) {
-      segs.push({ cls: 'part p' + ((i % 3) + 1), label: p.label || '成分', amt: p.amt, theme: p.theme });
-    }
-  });
-  const sumSeg = segs.reduce((s, x) => s + x.amt, 0);
-  const resid = anchor - sumSeg;
-  if (Math.abs(resid) > anchor * 0.02) segs.push({ cls: 'resid', label: '残差 / 未解释', amt: Math.abs(resid) });
-  if (!segs.length) return '';
-  const total = segs.reduce((s, x) => s + x.amt, 0) || anchor;
-  const dollars = (v) => '$' + Math.round(v).toLocaleString('en-US');
-  const bar = segs.map(s =>
-    '<div class="dc-seg ' + s.cls + '" style="width:' + (s.amt / total * 100).toFixed(2) + '%" title="' +
-      escapeHTML(s.label) + ' ' + dollars(s.amt) + '"></div>').join('');
-  const legend = segs.map(s =>
-    '<div class="dc-leg"><span class="sw ' + s.cls + '"></span>' +
-      '<span class="lg-l">' + escapeHTML(s.label) + (s.theme ? ' · ' + escapeHTML(s.theme) : '') + '</span>' +
-      '<span class="amt">' + dollars(s.amt) + '</span></div>').join('');
-  return '<div class="bc-decomp">' +
-    '<div class="dc-lab">价格构成 · 现价 ' + dollars(anchor) + ' 由什么撑起</div>' +
-    '<div class="dc-bar">' + bar + '</div>' +
-    '<div class="dc-legend">' + legend + '</div>' +
-  '</div>';
-}
-
 // ---- Revived price chart (SVG: 5y monthly close + dashed DCF baseline + MKT
 // price marker). Ported from the pre-pivot single-stock mockup, slider dropped.
 // Lazy-loaded on card expand, cached in state.priceHistory; honest empty/offline. ----
@@ -3825,65 +3661,6 @@ async function ensurePriceHistory(ticker, cardId) {
   _paintChart(cardId, card);
 }
 
-// THE BET — the one consistent headline every card leads with, answering "what is
-// the market betting at this price?" (implied growth; or narrative premium for
-// narrative-priced names). Computed server-side in _display.bet_statement.
-function _betHeadline(c) {
-  const d = c._display || {};
-  const bs = d.bet_statement;
-  const px = (d.anchor != null) ? ('$' + Number(d.anchor).toLocaleString('en-US', { maximumFractionDigits: 2 })) : '现价';
-  const body = bs
-    ? '<div class="cb-text">在 <b>' + px + '</b>,市场 bet <b>' + escapeHTML(c.subject) + '</b> ' +
-        '<span class="cb-core">' + escapeHTML(bs.core) + '</span></div>' +
-      (bs.detail ? '<div class="cb-detail">' + escapeHTML(bs.detail) + '</div>' : '')
-    : '<div class="cb-text">数据不足,暂无法判定市场在 bet 什么。</div>';
-  return '<div class="cp-bet"><div class="cb-lab">市场在 bet 什么 · THE BET</div>' + body + _betWhy(c) + '</div>';
-}
-
-// A compact WHY digest under THE BET — a summary of the deep analysis below (market
-// regime + the crux rationale + the single strongest bull & bear), so the box
-// carries real substance and balances the price chart beside it. Falls back to an
-// honest "not researched" note when no market-narrative coverage exists.
-function _betWhy(c) {
-  const sum = c.market_narrative || {};
-  const full = ((c.decode_detail || {}).market_narrative || {}).full || null;
-  const cov = sum.coverage || (full && full.coverage);
-  if (!cov || cov === 'unavailable' || cov === 'unparseable') {
-    return '<div class="cb-why dim">深度分析未联网 —— 对这张卡运行 deep research 后,这里汇总市场为何这么定价(情绪 · 核心多空)。</div>';
-  }
-  const reg = (full && full.sentiment_regime) || {};
-  const regime = (typeof regimeLabel === 'function') ? regimeLabel(sum.regime || reg.label) : (sum.regime || reg.label || '');
-  const bn = sum.bull_count != null ? sum.bull_count : ((full && full.bull_case) ? full.bull_case.length : 0);
-  const sn = sum.bear_count != null ? sum.bear_count : ((full && full.bear_case) ? full.bear_case.length : 0);
-  const rationale = reg.rationale || sum.regime_rationale || sum.headline || (full && full.headline) || '';
-  const bull0 = (full && full.bull_case && full.bull_case[0]) ? (full.bull_case[0].claim || '') : '';
-  const bear0 = (full && full.bear_case && full.bear_case[0]) ? (full.bear_case[0].claim || '') : '';
-  // Auditable conclusion: derive an evidence tally from the per-assumption cross-check
-  // (not just the LLM regime label) — N 个隐含假设里证据撑/空/分歧各多少。This is the
-  // conclusion's provenance: the regime is the narrative read, this is the evidence read.
-  const binds = sum.bindings || (full && full.assumption_bindings) || [];
-  let _sup = 0, _ag = 0, _neu = 0, _div = 0;
-  binds.forEach(b => {
-    const v = b && (b.evidence_verdict || '');
-    if (v === 'bull') _sup++; else if (v === 'bear') _ag++; else if (v === 'mixed') _neu++;
-    if (b && b.diverges) _div++;
-  });
-  const tally = binds.length
-    ? '<div class="cb-why-tally">证据对账 · ' + binds.length + ' 个隐含假设:' +
-        (_sup ? '<b class="up">' + _sup + '</b> 撑 ' : '') + (_neu ? _neu + ' 中性 ' : '') +
-        (_ag ? '<b class="dn">' + _ag + '</b> 空 ' : '') +
-        (_div ? '· <span class="div">⚠ ' + _div + ' 处分歧</span>' : '· 无分歧') + '</div>'
-    : '';
-  return '<div class="cb-why">' +
-    '<div class="cb-why-h">为什么这么判断 · WHY</div>' +
-    '<div class="cb-why-reg">市场情绪(叙事) <b>' + escapeHTML(regime) + '</b> · 多 ' + bn + ' / 空 ' + sn + '</div>' +
-    tally +
-    (rationale ? '<div class="cb-why-rat">' + escapeHTML(rationale) + '</div>' : '') +
-    (bull0 ? '<div class="cb-why-pt"><span class="k bull">多方</span>' + escapeHTML(bull0) + '</div>' : '') +
-    (bear0 ? '<div class="cb-why-pt"><span class="k bear">空方</span>' + escapeHTML(bear0) + '</div>' : '') +
-  '</div>';
-}
-
 // ---- Multi-level DERIVATION TREE (the page hero) ----
 // Renders _display.derivations: root 现价 → a branch per lens (or base/premium for
 // anchor) → mechanical chain (固定共识 → 基线DCF → 反解) → implied value (band ruler)
@@ -3923,20 +3700,22 @@ function _dcfBuildup(bd) {
     '<div class="bd-bridge">③ 企业价值 ' + _moneyB(bd.ev) + ' ' + ndStr + ' = 股权 ' + _moneyB(bd.equity) + ' ÷ ' + sh + ' 股 = <span class="bd-ps">每股 ' + ps + '</span> ≈ ' + escapeHTML(reconLab) + '</div>' +
   '</details>';
 }
-function renderDerivLevel(lv, branch, rev) {
+function renderDerivLevel(lv, branch, rev, allowBuildup) {
   const kind = lv.kind || 'imply';
   if (kind === 'implied') {
     const b = { band: lv.band, impl_num: lv.impl_num, unit: lv.unit, impl: lv.impl,
                 metric: lv.label, lens: branch.lens, nosol: lv.nosol };
     const bv = lv.band ? _bandViz(b) : { ruler: '', note: '' };
-    const ev = lv.ev ? _evChip(lv.ev) : '';
-    const foot = (bv.note || ev)
-      ? '<div class="dl-foot"><span class="fn-note">' + (bv.note || '') + '</span>' + ev + '</div>' : '';
+    // Audit fold = PROOF only: the per-node evidence chip + what-if stamp are
+    // judgment-layer signals already carried by the X-RAY layer up top, so the
+    // worksheet drops them and shows just the math (band ruler + ONE DCF table).
+    const foot = bv.note
+      ? '<div class="dl-foot"><span class="fn-note">' + bv.note + '</span></div>' : '';
     return '<div class="dt-level implied' + (lv.nosol ? ' nosol' : '') + '">' +
       '<div class="dl-top"><span class="dl-label">' + escapeHTML(lv.label || '') + '</span>' +
         '<span class="dl-impl">' + escapeHTML(lv.impl || '') + '</span></div>' +
       (lv.text ? '<div class="dl-sub">' + escapeHTML(lv.text) + '</div>' : '') +
-      bv.ruler + foot + _whatifStamp(b, rev) + _dcfBuildup(lv.breakdown) +
+      bv.ruler + foot + (allowBuildup ? _dcfBuildup(lv.breakdown) : '') +
     '</div>';
   }
   return '<div class="dt-level ' + escapeHTML(kind) + '">' +
@@ -3947,14 +3726,22 @@ function renderDerivationTree(c) {
   if (!der || !der.branches || !der.branches.length) return renderFlowDiagram(c);  // safety fallback
   const rev = state.revision[c.card_id];
   const root = der.root || {};
-  const branches = der.branches.map(b => {
-    const levels = (b.levels || []).map(lv => renderDerivLevel(lv, b, rev)).join('');
-    return '<div class="dt-branch' + (b.primary ? ' primary' : '') + '">' +
-      '<div class="dt-bhead"><span class="dt-blabel">' + escapeHTML(b.label || b.lens || '') + '</span>' +
-        (b.primary ? '<span class="dt-primary">PRIMARY</span>' : '') + '</div>' +
-      '<div class="dt-levels">' + levels + '</div>' +
-    '</div>';
+  // Slimmed 底稿: render ONLY the PRIMARY valuation branch — the single load-bearing
+  // reverse-derivation chain — and at most ONE year-by-year DCF table within it. The
+  // other lenses' branches + per-node tables are redundant with the X-RAY layer up top.
+  const primary = der.branches.find(b => b.primary) || der.branches[0];
+  let bdShown = false;
+  const levels = (primary.levels || []).map(lv => {
+    const has = !!(lv.breakdown && lv.breakdown.years && lv.breakdown.years.length);
+    const allow = has && !bdShown;
+    if (allow) bdShown = true;
+    return renderDerivLevel(lv, primary, rev, allow);
   }).join('');
+  const branches = '<div class="dt-branch primary">' +
+    '<div class="dt-bhead"><span class="dt-blabel">' + escapeHTML(primary.label || primary.lens || '') + '</span>' +
+      '<span class="dt-primary">PRIMARY</span></div>' +
+    '<div class="dt-levels">' + levels + '</div>' +
+  '</div>';
   return '<div class="dt">' +
     '<div class="dt-root">' +
       '<div class="dt-root-top"><span class="dt-root-lab">' + escapeHTML(root.label || '现价') + '</span>' +
@@ -3993,7 +3780,7 @@ function _xrayFrags(c) {
       .map(q => '<div class="xray-quote">▸ ' + escapeHTML(q) + '</div>').join('');
     const cohortStr = (live.cohort && live.cohort !== 'all')
       ? ' · 同体量(' + escapeHTML(live.cohort) + ')仅 <b>' + live.cohort_share_ge_pct + '%</b>' : '';
-    s1 = '<div class="xray-hero">' +
+    s1 = '<div class="xray-hero' + (hot ? ' hot' : '') + '">' +
       '<div class="xr-top"><span class="xr-implied">隐含 5 年营收增速 <b>' + fp(br.implied_cagr) + '</b></span>' +
         '<span class="xr-pct' + (hot ? ' hot' : '') + '">' + pct + '<span class="u">th 分位</span></span></div>' +
       '<div class="xr-dist"><div class="axis"></div><div class="fillbar" style="width:' + pos + '%"></div>' +
@@ -4013,7 +3800,7 @@ function _xrayFrags(c) {
     const top = names.reduce((a, b) => (sp.by_name[a] >= sp.by_name[b] ? a : b), names[0]);
     const rows = scenarios.filter(s => sp.by_name[s.name] != null).map(s => {
       const p = sp.by_name[s.name], isTop = s.name === top;
-      return '<div class="xr-srow' + (isTop ? ' top' : '') + '"><div class="xr-stop">' +
+      return '<div class="xr-srow' + (isTop ? (' top' + (s.name === 'moonshot' && p >= 0.5 ? ' extreme' : '')) : '') + '"><div class="xr-stop">' +
         '<span class="xr-sname">' + escapeHTML(s.name_zh) + '<span class="g">' + fp(s.growth) + ' 增速</span></span>' +
         '<span><span class="xr-sval">≈' + (s.value != null ? $(s.value) : '—') + '&nbsp;&nbsp;</span><span class="xr-sp">' + fp(p) + '</span></span></div>' +
         '<div class="xr-sbar"><div class="fill" style="width:' + Math.min(100, p * 100).toFixed(0) + '%"></div></div></div>';
@@ -4135,18 +3922,36 @@ function _reasoningTree(c) {
       : (x.kelly.verdict === 'no_edge' ? 'Kelly ≤ 0 · 不建仓'
         : String(x.kelly.statement_zh || '').slice(0, 26));
   }
+  // accent rationing (design system §2.2): at most ONE hot node in the tree —
+  // priority conviction(moonshot) > rarity(top-tail) > debate divergence; falsify never red.
+  hot5 = false;
+  if (hot2) { hot1 = false; hot4 = false; }
+  else if (hot1) { hot4 = false; }
   const cid = c.card_id || '';
-  const node = (n, q, a, hot, anchor) => '<div class="rt-node jump" data-rtjump="rtb-' + escapeHTML(cid) + '-' + anchor + '"><span class="rt-n' + (hot ? ' hot' : '') + '">' + n + '</span>' +
+  // A node is only clickable when its target section actually renders (mirrors the
+  // step() body conditions in _xrayFrags / renderDeepAnalysis) — no fake "可点" affordance.
+  const hasRarity = !!br || sp.note === 'above_top';
+  const hasConviction = Object.keys(bn).length > 0 || !!sp.statement_zh;
+  const hasNature = !!(x.load_bearing && x.load_bearing.statement_zh) || !!(x.implied_cap && x.implied_cap.statement_zh);
+  const hasDebate = !!(cov && cov !== 'unavailable' && cov !== 'unparseable');
+  const hasFalsify = (x.wwhtbt || []).length > 0;
+  const hasSize = !!(x.kelly && x.kelly.statement_zh);
+  const node = (n, q, a, hot, anchor, can) =>
+    '<div class="rt-node' + (can ? ' jump' : '') + '"' + (can ? ' data-rtjump="rtb-' + escapeHTML(cid) + '-' + anchor + '"' : '') + '>' +
+    '<span class="rt-n' + (hot ? ' hot' : '') + '">' + n + '</span>' +
     '<span class="rt-q">' + q + '</span><span class="rt-arrow">→</span>' +
-    '<span class="rt-a' + (hot ? ' hot' : '') + '">' + escapeHTML(a) + '</span><span class="rt-jarr">›</span></div>';
+    '<span class="rt-a' + (hot ? ' hot' : '') + '">' + escapeHTML(a) + '</span>' +
+    (can ? '<span class="rt-jarr">›</span>' : '') + '</div>';
+  // Numbering matches the X-RAY steps below: 1·2·3 are the pre-debate reads, the
+  // 多空论战 is the unnumbered evidence interlude (·), 4·5 are the post-debate conclusions.
   return '<div class="cp-rtree">' + lab +
     '<div class="rt">' +
       '<div class="rt-root"><span class="rt-root-lab">现价</span><span class="rt-root-val">' + px + '</span>' +
         (rootSub ? '<span class="rt-root-sub">' + escapeHTML(rootSub) + '</span>' : '') + '</div>' +
       '<div class="rt-branches">' +
-        node('1', '有多稀有', a1, hot1, 'rarity') + node('2', '市场多大信心', a2, hot2, 'conviction') +
-        node('3', '本质什么 bet', a3, false, 'nature') + node('4', '凭什么 · 多空论战', a4, hot4, 'debate') +
-        node('5', '什么会证伪', a5, hot5, 'falsify') + node('6', '该怎么下注', a6, false, 'size') +
+        node('1', '有多稀有', a1, hot1, 'rarity', hasRarity) + node('2', '市场多大信心', a2, hot2, 'conviction', hasConviction) +
+        node('3', '本质什么 bet', a3, false, 'nature', hasNature) + node('·', '凭什么 · 多空论战', a4, hot4, 'debate', hasDebate) +
+        node('4', '什么会证伪', a5, hot5, 'falsify', hasFalsify) + node('5', '该怎么下注', a6, false, 'size', hasSize) +
       '</div>' +
     '</div></div>';
 }
@@ -4156,7 +3961,7 @@ function _reasoningTree(c) {
 // discuss / chart) still applies; `card-page` adds the page layout. Left col =
 // reasoning-chain tree (the skeleton) + market narrative; right col = price chart.
 function renderSingleCard(c) {
-  const sel = state.selected.has(c.card_id);
+  const insuf = (c.decode_detail || {}).status === 'insufficient';
   const d = c._display || {};
   const _usd = v => '$' + Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 });
   // Tier 1: base business value is a RANGE (conservative zero-growth ↔ historical
@@ -4174,7 +3979,9 @@ function renderSingleCard(c) {
   // → the reverse-derivation tree → the deep-analysis debate → the support row
   // (decomposition + risks). The per-card conversation is NOT inline — it lives in
   // the sticky right-hand AGENT panel (renderAgentPanel).
-  const priceChart = '<div class="price-chart-wrap">' +
+  const priceChart = insuf
+    ? '<div class="price-chart-wrap"><div class="pc-head"><span class="lbl">价格走势</span></div><div class="pc-host"><div class="pc-empty">该来源 / 标的无价格序列</div></div></div>'
+    : '<div class="price-chart-wrap">' +
       '<div class="pc-head"><span class="lbl">价格走势</span><span class="title">' + escapeHTML(c.subject) + ' · 5 年月线</span><span class="src">yfinance</span></div>' +
       '<div class="pc-host" data-pchost="' + escapeHTML(c.card_id) + '"><div class="pc-empty">加载 5 年价格走势…</div></div>' +
       '<div class="pc-foot">实线 MKT 现价 · 虚线 DCF 基线 · 浅线 历史月收盘</div>' +
@@ -4182,18 +3989,18 @@ function renderSingleCard(c) {
   const hero2 = '<div class="cp-hero2"><div class="cp-hero-l">' + _reasoningTree(c) + '</div>' +
     '<div class="cp-hero-r">' + priceChart + '</div></div>';
 
-  return '<div class="bet-card card-page' + (sel ? ' selected' : '') + '" data-card="' + escapeHTML(c.card_id) + '">' +
+  return '<div class="bet-card card-page" data-card="' + escapeHTML(c.card_id) + '">' +
     '<div class="cp-head">' +
       '<div class="cp-id">' +
         '<div class="cp-subj">' + escapeHTML(c.subject) + '<span class="bc-badge">' + escapeHTML(badgeLabel(c.source_type)) + '</span></div>' +
         '<div class="cp-source">' + escapeHTML(c.source_ref || '') + '</div>' +
       '</div>' +
       '<div class="cp-kpis">' +
-        kpi('现价', anchor, false) +
         (dcf != null ? kpi('基础价值', dcf, false) : '') +
         (np != null ? kpi('叙事溢价', Math.round(np * 100) + '%', np >= 0.5) : '') +
       '</div>' +
     '</div>' +
+    (insuf ? '<div class="xr-envelope" style="margin:14px 0 0;">⚠ 未能解码:' + escapeHTML((c.decode_detail || {}).reason || '该标的 / 来源数据不足,无法解码。') + '</div>' : '') +
     (stale ? '<div class="bc-stale"><span class="dot"></span>基于 ' + escapeHTML(c.trade_date) + ' 收盘 · 历史快照</div>' : '') +
     hero2 +
     // ONE continuous reading chain (adversarial-experiment-converged):
@@ -4213,17 +4020,15 @@ function _flowConn(html) {
   return '<div class="xr-flow-conn"><span class="arr">↓</span><span class="t">' + html + '</span></div>';
 }
 
-// The AUDIT fold — derivation tree + price decomposition + risks + method limits all
-// demoted into ONE collapsed disclosure at the very bottom. These are the "show your
-// work" layer (HOW the number was derived), not part of the argument spine, so they
-// no longer break the reading flow up top. Open it to audit; ignore it to just read.
+// The AUDIT fold — the PROOF layer (HOW the implied number was derived), demoted into
+// ONE collapsed disclosure at the very bottom so it never breaks the reading flow up
+// top. Open it to audit; ignore it to just read.
 function _auditFold(c) {
-  // Slimmed to the "底稿" (show-your-work) layer: the reverse-derivation worksheet
-  // (the actual math behind the implied number) + the honest method/limits caveats.
-  // The reasoning tree up top gives the CONCLUSIONS; this gives the PROOF. Price
-  // decomposition + the standalone risks line were dropped (redundant with the KPI
-  // 叙事溢价 + the debate's contested axis).
-  const tree = '<div class="cp-tree"><div class="cp-sec-lab">反解推导 · 这个 bet 怎么从现价倒推出来的(逐年现金流底稿)</div>' +
+  // Truly slimmed to two things: (1) the PRIMARY-lens reverse-derivation worksheet —
+  // just the one load-bearing chain + at most ONE year-by-year DCF table — and (2) the
+  // method/limits caveats. The full multi-branch tree, per-node evidence chips and
+  // what-if stamps were dropped: those are the X-RAY layer's job up top, not the proof.
+  const tree = '<div class="cp-tree"><div class="cp-sec-lab">反解推导 · 主估值法(PRIMARY)如何从现价倒推 —— 逐年现金流底稿</div>' +
     renderDerivationTree(c) + '</div>';
   return '<details class="cp-audit"><summary>底稿 · 反解推导 + 方法局限(每个结论背后的实际计算与诚实假设)</summary>' +
     '<div class="cp-audit-body">' + tree + _methodLimits(c) + '</div></details>';
@@ -4401,7 +4206,7 @@ function bindCardEvents() {
   document.querySelectorAll('[data-rtjump]').forEach(el =>
     el.addEventListener('click', () => {
       const t = document.getElementById(el.getAttribute('data-rtjump'));
-      if (!t) return;
+      if (!t) { showToast('该小节本卡暂无数据'); return; }
       t.scrollIntoView({ behavior: 'smooth', block: 'center' });
       t.classList.add('rt-flash');
       setTimeout(() => t.classList.remove('rt-flash'), 1300);
@@ -4452,49 +4257,45 @@ async function loadExistingCards() {
 }
 
 /* ============================================================
-   LANGUAGE TOGGLE (preserved)
-   ============================================================ */
-const disclaimers = {
-  zh: '<strong>Disclaimer.</strong> Bet Decoder 是研究性工具，展示价格 / 目标价 / 组合背后的隐含假设。所有数值不构成投资建议，使用者需自行判断。',
-  en: '<strong>Disclaimer.</strong> Bet Decoder is a research tool that decodes implied assumptions behind prices, targets, and portfolios. Outputs are not investment advice. Use at your own discretion.'
-};
-function setLang(lang) {
-  state.lang = lang;
-  const d = document.getElementById('disclaimer-text');
-  if (d) d.innerHTML = disclaimers[lang];
-  const z = document.getElementById('lang-zh'), e = document.getElementById('lang-en');
-  if (z) z.classList.toggle('active', lang === 'zh');
-  if (e) e.classList.toggle('active', lang === 'en');
-}
-
-/* ============================================================
    BINDINGS + BOOT
    ============================================================ */
-function currentSource() {
-  const s = document.getElementById('source-type');
-  return s ? s.value : 'market';
+// Source type is inferred from the input — a comma-separated list is a portfolio,
+// a single ticker is a market-price single bet. (The explicit dropdown was removed
+// 2026-06: switching it had no visible effect and read as a logic hole.)
+function inferSource(input) {
+  return String(input || '').includes(',') ? 'portfolio' : 'market';
+}
+// Live hint so the user SEES what the input will decode as (replaces the dead dropdown).
+function _liveMode() {
+  const field = document.getElementById('bet-input');
+  const tag = document.getElementById('mode-tag');
+  if (!field || !tag) return;
+  const v = field.value.trim();
+  tag.textContent = v ? (inferSource(v) === 'portfolio' ? '将解码 · 组合' : '将解码 · 单股') : '—';
 }
 document.getElementById('decode-btn').addEventListener('click', () => {
-  decodeBet(currentSource(), document.getElementById('bet-input').value);
+  const v = document.getElementById('bet-input').value;
+  decodeBet(inferSource(v), v);
 });
 document.getElementById('bet-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') decodeBet(currentSource(), e.target.value);
+  if (e.key === 'Enter') decodeBet(inferSource(e.target.value), e.target.value);
 });
+document.getElementById('bet-input').addEventListener('input', _liveMode);
 document.querySelectorAll('.composer .preset').forEach(b => {
   b.addEventListener('click', () => {
-    const src = b.getAttribute('data-src'), inp = b.getAttribute('data-input');
-    const sel = document.getElementById('source-type');
-    if (sel) sel.value = src;
+    const inp = b.getAttribute('data-input');
     const field = document.getElementById('bet-input');
     if (field) field.value = inp;
-    decodeBet(src, inp);
+    _liveMode();
+    decodeBet(inferSource(inp), inp);
   });
 });
-document.getElementById('lang-zh').addEventListener('click', () => setLang('zh'));
-document.getElementById('lang-en').addEventListener('click', () => setLang('en'));
-
 /* boot */
-setLang('zh');
+(function () {  // masthead date — honest "as of today", not a hardcoded/fake-live value
+  const t = document.getElementById('masthead-ts');
+  if (t) { const d = new Date();
+    t.textContent = String(d.getDate()).padStart(2, '0') + ' · ' + String(d.getMonth() + 1).padStart(2, '0') + ' · ' + d.getFullYear(); }
+})();
 initOfflineToggle();
 renderCanvas();
 loadExistingCards();
