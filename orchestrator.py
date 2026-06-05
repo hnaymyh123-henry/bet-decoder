@@ -266,6 +266,44 @@ _QA_SYSTEM_PROMPT = (
 )
 
 
+def _plain_chat_followup(card, question: str, lang: str = "zh", *, emit=None):
+    """Grounded plain-chat follow-up for providers that support chat completions but
+    NOT OpenAI tool-calling (e.g. MiroMind, whose API exposes chat but no `tools`).
+    Answers the question from this card's implied numbers only — no live web tools and
+    no tool-driven what-if/revise (so revision is always None). Never raises."""
+    import decoder
+    dd = getattr(card, "decode_detail", None) or {}
+    ticker = card.subject
+    implied = (decoder._implied_assumptions_block(dd) if dd
+               else ("(无隐含假设)" if lang == "zh" else "(no implied assumptions)"))
+    lang_name = "Chinese" if lang == "zh" else "English"
+    prompt = (
+        "You are Bet Decoder's analyst answering a follow-up about a bet the user "
+        "already decoded. Ground your answer ONLY in this card's implied numbers "
+        "below. You have NO live web tools here, so do not invent sources or figures — "
+        "reason from the given numbers and standard finance, and say plainly when "
+        "something can't be web-verified. Be concise and concrete.\n\n"
+        f"Answer in {lang_name}.\n"
+        f"Card: {ticker} (mode={dd.get('mode')}, anchor=~{dd.get('anchor_price')}).\n"
+        f"Implied numbers:\n{implied}\n\n"
+        f"Question: {question}"
+    )
+    _emit(emit, ticker, "decision",
+          (f"追问(plain chat):{question}" if lang == "zh"
+           else f"Follow-up (plain chat): {question}"))
+    try:
+        resp = client.call_chat(prompt, model=client.MODEL_MINI)
+    except Exception as exc:
+        return {"answer": (f"(追问失败:{exc})" if lang == "zh"
+                           else f"(follow-up failed: {exc})"),
+                "revision": None, "tool_trace": [], "cost_usd": 0.0}
+    ans = (resp.get("content") or "").strip() or (
+        "(模型未返回答复)" if lang == "zh" else "(no answer returned)")
+    _emit(emit, ticker, "decision", ans)
+    return {"answer": ans, "revision": None, "tool_trace": [],
+            "cost_usd": float(resp.get("cost_usd") or 0.0)}
+
+
 def answer_followup(card, question: str, lang: str = "zh", emit=None, *,
                     llm=_SENTINEL, fundamentals_fn=None, conn=None, hunter=None,
                     narrator=None, max_rounds: int = 8, max_tool_calls: int = 16):
@@ -279,8 +317,19 @@ def answer_followup(card, question: str, lang: str = "zh", emit=None, *,
     ff = fundamentals_fn or decoder.fetch_fundamentals
     llm_fn = _resolve_llm(llm)
     if llm_fn is None:
-        return {"answer": "(当前 LLM 提供方不可用,无法回答追问)",
-                "revision": None, "tool_trace": [], "cost_usd": 0.0}
+        # Tool-calling agent path unavailable. If a live key is still present (e.g.
+        # MiroMind supports chat completions but not OpenAI tool-calling), answer via a
+        # grounded plain-chat completion — conversational Q&A on this card, minus the
+        # tool-driven what-if. Only fall back to the honest "unavailable" message when
+        # there is no provider key at all. (api.py already refuses /ask in OFFLINE_MODE
+        # before reaching here, and a stub LLM makes llm_fn non-None.)
+        if client.api_key_present():
+            return _plain_chat_followup(card, question, lang, emit=emit)
+        msg = ("(实时追问不可用:未配置模型提供方;自托管并配置 API key 后可用。)"
+               if lang == "zh" else
+               "(Live Q&A unavailable: no model provider configured. Self-host with an "
+               "API key to enable follow-up questions.)")
+        return {"answer": msg, "revision": None, "tool_trace": [], "cost_usd": 0.0}
 
     anchor = dd.get("anchor_price")
     try:
