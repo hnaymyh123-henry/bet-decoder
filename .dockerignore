@@ -2,11 +2,12 @@
 .env
 *.key
 
-# Local data / caches (regenerable; mount a volume instead)
-*.db
+# Local caches (regenerable). NOTE: the pre-run demo DB (pricelens.db) is
+# intentionally shipped so a deployed instance shows the four demo bets offline.
 *.db-journal
 *.db-wal
 *.db-shm
+*.bak
 cache/
 outputs/
 data/

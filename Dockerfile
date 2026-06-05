@@ -19,4 +19,6 @@ COPY . .
 #   docker run -p 8000:8000 -v "$PWD/data:/app" --env-file .env bet-decoder
 EXPOSE 8000
 
-CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+# Shell form so $PORT (Render / Cloud hosts) is honored; defaults to 8000,
+# which matches Hugging Face Spaces app_port: 8000.
+CMD uvicorn api:app --host 0.0.0.0 --port ${PORT:-8000}
