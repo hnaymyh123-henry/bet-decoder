@@ -586,7 +586,7 @@
   .bet-card .chain-step.break .m { color: var(--accent); }
   .bet-card .chain-step.break .c { color: var(--accent); font-size: 11px; font-weight: 500; }
 
-  /* ---- Reverse-derivation flow diagram (现价 → 隐含假设节点) ---- */
+  /* ---- Reverse-derivation flow diagram (Current price → implied-assumption node) ---- */
   .bet-card .bc-flow { margin-bottom: 4px; }
   .bet-card .flow-cap { font-family: var(--mono); font-size: 9px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 11px; }
   .bet-card .bc-flow-grid { display: grid; grid-template-columns: 122px 1fr; gap: 0 20px; align-items: center; }
@@ -808,7 +808,7 @@
   .dt .dt-level.nosol .dl-impl { color: var(--neutral); font-size: 13px; }
   .dt .dt-level .dl-sub { font-size: 11px; color: var(--ink-3); margin-top: 4px; line-height: 1.5; }
   .dt .dt-level .dl-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 6px; }
-  /* DCF build-up worksheet (collapsed under the 反解 node) */
+  /* DCF build-up worksheet (collapsed under the reverse-solve node) */
   .dt .dcf-bd { margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 8px; }
   .dt .dcf-bd > summary { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--ink-3); cursor: pointer; list-style: none; }
   .dt .dcf-bd > summary::-webkit-details-marker { display: none; }
@@ -911,7 +911,7 @@
   .xr-deriv-r .dv b { font-size: 12px; font-weight: 600; color: var(--ink); }
   .xr-deriv-r .dv.strong { font-size: 12px; font-weight: 600; color: var(--ink); }
   .xr-deriv-r .dv.warn, .xr-deriv-r .dv.warn b { color: var(--accent); }
-  /* ② 情景阶梯 — 对齐 4 列表(情景含义 | 营收增速 | 内在价值 | 概率),进度条独占整行 */
+  /* ② scenario ladder — align the 4-column table(Scenario implication | Revenue growth | intrinsic value | probability),Progress bar takes the whole row */
   .xr-ladder { margin-bottom: 5px; }
   .xr-lad-head, .xr-lrow { display: grid; grid-template-columns: 1.7fr 1fr auto 46px; column-gap: 12px; align-items: baseline; }
   .xr-lad-head { font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.05em; color: var(--ink-4); padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--line); }
@@ -936,7 +936,7 @@
     .xr-lrow { grid-template-columns: 1fr auto; row-gap: 1px; }
     .xr-lrow .lr-g, .xr-lrow .lr-v { grid-column: 1; text-align: left; }
   }
-  /* ② 方法折叠块(复用 .cp-limits / .da-body)— 收紧 step 内的上边距 + 恒等式行 */
+  /* ② method fold-out(reuse .cp-limits / .da-body)— tighten the top margin within step + Identity row */
   .card-page .xr-lad-method { margin-top: 11px; padding-top: 9px; }
   .card-page .da-body .m2-eq { font-family: var(--mono); font-feature-settings: "tnum" 1; font-size: 10.5px; color: var(--ink-3); background: var(--paper-2); border-left: 2px solid var(--line-2); padding: 7px 11px; margin: 2px 0 8px; letter-spacing: -0.01em; line-height: 1.5; }
   .xr-lrow .lr-yr { color: var(--ink-4); font-size: 9px; font-weight: 400; margin-left: 1px; }
@@ -1182,12 +1182,12 @@
       </svg></span>
       <span class="brand-txt">
         <span class="brand-name">Bet Decoder</span>
-        <span class="brand-tag">拆解任意押注背后的隐含假设</span>
+        <span class="brand-tag">Decompose the implied assumptions behind any bet</span>
       </span>
     </div>
     <div class="right">
       <span class="offline-badge" id="offline-badge">OFFLINE</span>
-      <label class="offline-toggle" id="offline-toggle" title="Offline 模式禁用联网解码 / 综合">
+      <label class="offline-toggle" id="offline-toggle" title="Offline mode disables live decode / Synthesis">
         <span class="sw"></span>
         <span>Offline</span>
       </label>
@@ -1199,11 +1199,11 @@
 
 <div class="page">
 
-  <!-- ============================ COMPOSER (主流程入口) ============================ -->
+  <!-- ============================ COMPOSER (Main flow entry) ============================ -->
   <div class="composer">
     <div class="lbl">Decode a bet</div>
     <div class="composer-inputs">
-      <input type="text" id="bet-input" placeholder="输入 ticker(如 NVDA),逗号分隔多个解码组合(如 NVDA,MSFT,GOOG)">
+      <input type="text" id="bet-input" placeholder="Enter ticker(e.g. NVDA),comma-separated multiple decode combinations(e.g. NVDA,MSFT,GOOG)">
       <button class="go" id="decode-btn">Decode</button>
       <div class="presets">
         <button class="preset" data-src="market" data-input="COST">COST</button>
@@ -1285,7 +1285,7 @@
 
     <div class="disclaimer-block">
       <p class="disclaimer-text" id="disclaimer-text">
-        <strong>Disclaimer.</strong> Bet Decoder 是研究性工具，展示价格 / 目标价 / 组合背后的隐含假设。所有数值不构成投资建议，使用者需自行判断。
+        <strong>Disclaimer.</strong> Bet Decoder is a research tool that reveals what a price / Target price / The implied assumptions behind the portfolio. No figure constitutes investment advice; users must judge for themselves.
       </p>
     </div>
 
@@ -1321,72 +1321,72 @@
 const FIXTURE_CARDS = {
   NVDA: {
     card_id: "fix_nvda", subject: "NVDA", source_type: "market", card_kind: "single",
-    source_ref: "$214.86 · 2026-05-27 收盘", bet: null, run_id: 20,
+    source_ref: "$214.86 · 2026-05-27 close", bet: null, run_id: 20,
     series_key: "NVDA|market", trade_date: "2026-05-27", created_at: "2026-05-27T04:35:16Z",
     holdings: [], theme_exposures: [],
     market_narrative: {
       coverage: "rich", regime: "mixed",
-      headline: "在 NVDA $211.14 这个价位上, 市场一手押注 AI 基础设施 49% 高速成长和“印钞机”式自由现金流, 一手又被 Michael Burry 式泡沫警告拉扯, 32x P/E 还有溢价空间, 53x P/FCF 的安全垫却已极为单薄。",
+      headline: "in NVDA $at the 211.14 price level, the market bets squarely on 49% high-speed growth in AI infrastructure and“Cash machine”-style free cash flow, and pulled the other way by Michael Burry-style bubble warnings, 32x P/E still has premium room, 53x P/yet the FCF safety margin is already razor-thin.",
       bull_count: 4, bear_count: 4,
-      contested: ["Hyperscaler AI Capex 是否见顶", "AI 需求是一次性高峰还是长期基础设施化", "NVDA 的“AI 税”是否被 ASIC/TPU 内化"],
+      contested: ["Has hyperscaler AI capex peaked", "Is AI demand a one-off peak or long-term infrastructure", "NVDA’s“AI tax”whether displaced by ASIC/TPU in-housing"],
       bindings: [
-        { assumption: "隐含 P/E ≈ 32.4x", leans: "lean_bull", note: "合理偏乐观, 安全垫有限", evidence_verdict: "bull", diverges: false },
-        { assumption: "隐含营收 CAGR ≈ 49%", leans: "contested", note: "分歧最大, 现价没给悲观 CAGR 空间", evidence_verdict: "bear", diverges: true },
-        { assumption: "隐含 P/FCF ≈ 53x", leans: "lean_bear", note: "三条里安全垫最薄", evidence_verdict: "mixed", diverges: true }
+        { assumption: "Implied P/E ≈ 32.4x", leans: "lean_bull", note: "reasonable, leaning optimistic, limited margin of safety", evidence_verdict: "bull", diverges: false },
+        { assumption: "Implied revenue CAGR ≈ 49%", leans: "contested", note: "largest divergence, the current price leaves no room for a bearish CAGR", evidence_verdict: "bear", diverges: true },
+        { assumption: "Implied P/FCF ≈ 53x", leans: "lean_bear", note: "the thinnest safety margin of the three", evidence_verdict: "mixed", diverges: true }
       ],
       source_quality: { by_tier: { A: 0, B: 11, C: 2, D: 0 }, unverified_claims: 0, total_claims: 13 }
     },
     _display: {
       baseline_dcf: 65.22, anchor: 214.86,
       bets: [
-        { metric: "营收 5 年复合增速 (CAGR)", iv: "蒙特卡洛区间 44%–57% · 收敛 100%", impl: "50%", base: "基线 15%" },
-        { metric: "折现率 (WACC)", iv: "蒙特卡洛区间 5.2%–7.3% · 收敛 96%", impl: "6.2%", base: "基线 12.8%" },
-        { metric: "终值 FCF 利润率", iv: "⚠ 无解 — consensus 增速下任何利润率都撑不住", impl: "无解", base: "基线 45%", nosol: true }
+        { metric: "revenue 5-year CAGR (CAGR)", iv: "Monte Carlo interval 44%–57% · converges to 100%", impl: "50%", base: "baseline 15%" },
+        { metric: "Discount rate (WACC)", iv: "Monte Carlo interval 5.2%–7.3% · 96% convergence", impl: "6.2%", base: "baseline 12.8%" },
+        { metric: "Terminal FCF margin", iv: "⚠ No solution — no margin holds up under consensus growth", impl: "No solution", base: "Baseline 45%", nosol: true }
       ],
-      risks: "ASIC 替代 (TPU+Trainium 已占内部推理 15%) · hyperscaler ROI 2027 后可能转负",
+      risks: "ASIC replacement (TPU+Trainium already accounts for 15% of internal inference) · hyperscaler ROI may turn negative after 2027",
       chain: [
-        { t: "fact", m: "·", c: "反向求解: 固定 WACC/margin 于 consensus, 解出使 $214.86 成立的 CAGR" },
-        { t: "implied", m: "⇒", c: "隐含 CAGR p50 = 49.9% (区间 44-57%)" },
-        { t: "support", m: "✓", c: "Hyperscaler 2026 capex $420B+ 已指引 — MSFT/GOOG/META/AMZN" },
-        { t: "break", m: "⚠", c: "ASIC 替代成本仅 NVDA 1/3 — Reuters 5/18" }
+        { t: "fact", m: "·", c: "Reverse-solve: Fixed WACC/margin at consensus, solve for $the CAGR that makes 214.86 hold" },
+        { t: "implied", m: "⇒", c: "Implied CAGR p50 = 49.9% (interval 44-57%)" },
+        { t: "support", m: "✓", c: "Hyperscaler 2026 capex $420B+ Guided — MSFT/GOOG/META/AMZN" },
+        { t: "break", m: "⚠", c: "ASIC replacement cost is just 1 of NVDA’s/3 — Reuters 5/18" }
       ]
     }
   },
   COST: {
     card_id: "fix_cost", subject: "COST", source_type: "market", card_kind: "single",
-    source_ref: "$998.85 · 2026-05-27 收盘", bet: null, run_id: 17,
+    source_ref: "$998.85 · 2026-05-27 close", bet: null, run_id: 17,
     series_key: "COST|market", trade_date: "2026-05-27", created_at: "2026-05-27T04:30:00Z",
     holdings: [], theme_exposures: [],
     market_narrative: {
       coverage: "rich", regime: "optimistic",
-      headline: "COST $998.85 押注会员模式把营收复合增速维持在历史约 2 倍 (21.8%); 多头信续费护城河, 空头嫌防御股估值太贵。",
+      headline: "COST $998.85 bets the membership model keeps revenue CAGR at roughly 2× its historical pace (21.8%); Bulls trust the renewal moat, Bears find the defensive stock too expensive.",
       bull_count: 3, bear_count: 2,
-      contested: ["会员费提价空间", "高估值 vs 中个位数行业增速"],
+      contested: ["room to raise membership fees", "High valuation vs mid-single-digit industry growth"],
       bindings: [
-        { assumption: "隐含营收 CAGR ≈ 21.8%", leans: "contested", note: "约历史实际 2 倍, 靠续费率支撑", evidence_verdict: "mixed", diverges: false },
-        { assumption: "隐含 WACC ≈ 8.3%", leans: "lean_bull", note: "低 beta, 折现率假设温和", evidence_verdict: "bull", diverges: false }
+        { assumption: "Implied revenue CAGR ≈ 21.8%", leans: "contested", note: "About 2× historical actual, supported by the renewal rate", evidence_verdict: "mixed", diverges: false },
+        { assumption: "implied WACC ≈ 8.3%", leans: "lean_bull", note: "low beta, Discount-rate assumption is mild", evidence_verdict: "bull", diverges: false }
       ],
       source_quality: { by_tier: { A: 1, B: 6, C: 2, D: 0 }, unverified_claims: 0, total_claims: 9 }
     },
     _display: {
       baseline_dcf: 774.61, anchor: 998.85,
       bets: [
-        { metric: "营收 5 年复合增速 (CAGR)", iv: "蒙特卡洛区间 16.2%–27.6% · 收敛成功", impl: "21.8%", base: "基线 11.3%" },
-        { metric: "终值 FCF 利润率", iv: "蒙特卡洛区间 4.7%–7.3%", impl: "5.8%", base: "基线 5.0%" },
-        { metric: "折现率 (WACC)", iv: "蒙特卡洛区间 6.8%–10.3%", impl: "8.3%", base: "基线 9.5%" }
+        { metric: "revenue 5-year CAGR (CAGR)", iv: "Monte Carlo range 16.2%–27.6% · converged", impl: "21.8%", base: "baseline 11.3%" },
+        { metric: "Terminal FCF margin", iv: "Monte Carlo interval 4.7%–7.3%", impl: "5.8%", base: "baseline 5.0%" },
+        { metric: "Discount rate (WACC)", iv: "Monte Carlo interval 6.8%–10.3%", impl: "8.3%", base: "Baseline 9.5%" }
       ],
-      risks: "增速溢价依赖会员续费率维持高位 · 行业整体增速仅中个位数",
+      risks: "Growth premium hinges on membership renewal staying high · industry-wide growth only mid-single-digit",
       chain: [
-        { t: "fact", m: "·", c: "固定其它参数, 反解出使 $998.85 成立的 CAGR" },
-        { t: "implied", m: "⇒", c: "隐含 CAGR p50 = 21.8%, 约为历史实际 2 倍" },
-        { t: "support", m: "✓", c: "会员续费率 >90%, 现金流稳定" }
+        { t: "fact", m: "·", c: "Hold other parameters fixed, reverse-solve for the $the CAGR that makes 998.85 hold" },
+        { t: "implied", m: "⇒", c: "Implied CAGR p50 = 21.8%, about 2× the historical actual" },
+        { t: "support", m: "✓", c: "Membership renewal rate >90%, stable cash flow" }
       ]
     }
   },
   PORTFOLIO: {
-    card_id: "fix_pf", subject: "我的组合", source_type: "portfolio", card_kind: "portfolio",
-    source_ref: "手动粘贴持仓 · 2026-05-28 · 8 只票聚合", bet: null, run_id: null,
-    series_key: "我的组合|portfolio", trade_date: "2026-05-28", created_at: "2026-05-28T02:00:00Z",
+    card_id: "fix_pf", subject: "My portfolio", source_type: "portfolio", card_kind: "portfolio",
+    source_ref: "Manually pasted holdings · 2026-05-28 · 8-name aggregate", bet: null, run_id: null,
+    series_key: "My portfolio|portfolio", trade_date: "2026-05-28", created_at: "2026-05-28T02:00:00Z",
     holdings: [
       { ticker: "NVDA", weight_pct: 22, run_id: 20 }, { ticker: "MSFT", weight_pct: 18, run_id: 31 },
       { ticker: "META", weight_pct: 14, run_id: 32 }, { ticker: "GOOG", weight_pct: 12, run_id: 33 },
@@ -1394,9 +1394,9 @@ const FIXTURE_CARDS = {
       { ticker: "COST", weight_pct: 8, run_id: 17 }, { ticker: "TSLA", weight_pct: 6, run_id: 14 }
     ],
     theme_exposures: [
-      { theme: "高估值成长", exposure_pct: 71, contributing_tickers: ["NVDA","MSFT","META","GOOG","AMZN","AAPL","TSLA"], is_concentration_risk: true },
-      { theme: "AI 基础设施", exposure_pct: 54, contributing_tickers: ["NVDA","MSFT","META","GOOG","AMZN"], is_concentration_risk: true },
-      { theme: "盈利锚定", exposure_pct: 8, contributing_tickers: ["COST"], is_concentration_risk: false }
+      { theme: "High-valuation growth", exposure_pct: 71, contributing_tickers: ["NVDA","MSFT","META","GOOG","AMZN","AAPL","TSLA"], is_concentration_risk: true },
+      { theme: "AI infrastructure", exposure_pct: 54, contributing_tickers: ["NVDA","MSFT","META","GOOG","AMZN"], is_concentration_risk: true },
+      { theme: "Earnings anchor", exposure_pct: 8, contributing_tickers: ["COST"], is_concentration_risk: false }
     ]
   }
 };
@@ -1487,7 +1487,7 @@ function feedReset(subjectLabel) {
   if (ph) ph.style.display = 'none';
   const stream = document.getElementById('af-stream');
   if (stream) stream.innerHTML = '';
-  feedStatus('running', subjectLabel ? ('解码中 · ' + subjectLabel) : '运行中');
+  feedStatus('running', subjectLabel ? ('Decoding · ' + subjectLabel) : 'running');
 }
 
 function feedStatus(kind, text) {
@@ -1527,12 +1527,12 @@ function feedAppend(ev) {
 
 function streamActivity(jobId, subjectLabel) {
   feedReset(subjectLabel);
-  if (!jobId) { feedStatus('done', '无可回放事件'); return; }
+  if (!jobId) { feedStatus('done', 'no events to replay'); return; }
   let es;
   try {
     es = new EventSource('/api/stream/activity/' + encodeURIComponent(jobId));
   } catch (e) {
-    feedStatus('done', '活动流连接失败');
+    feedStatus('done', 'activity stream connection failed');
     return;
   }
   _activityStream = es;
@@ -1542,14 +1542,14 @@ function streamActivity(jobId, subjectLabel) {
     feedAppend(ev);
     if (ev && ev.terminal) {
       feedStatus(ev.terminal === 'done' ? 'done' : 'error',
-                 ev.terminal === 'done' ? '完成' : '失败');
+                 ev.terminal === 'done' ? 'Done' : 'failed');
       closeActivityStream();
     }
   };
   es.onerror = () => {
     // Stream ended or errored. EventSource auto-reconnects; we close to avoid loops.
     closeActivityStream();
-    feedStatus('done', '活动流结束');
+    feedStatus('done', 'activity stream ended');
   };
 }
 
@@ -1595,7 +1595,7 @@ async function decodeBet(sourceType, sourceInput) {
 
   addCard(card);
   if (jobId) streamActivity(jobId, card.subject);
-  else { feedReset(card.subject); feedStatus('done', '缓存卡 · 无 live 流(可回放)'); }
+  else { feedReset(card.subject); feedStatus('done', 'Cached card · no live stream(Replayable)'); }
 
   state.busy = false; setBusy(false);
 }
@@ -1639,9 +1639,9 @@ async function askCard(cardId, question) {
   if (!question) return;
   const card = state.cards.find(c => c.card_id === cardId);
   if (!card) return;
-  if (state.offline && !String(cardId).startsWith('fix')) { showToast('离线模式已开启 —— 联网追问已禁用,请先关闭 Offline。'); return; }
+  if (state.offline && !String(cardId).startsWith('fix')) { showToast('Offline mode is on —— live follow-ups disabled,Turn off Offline first.'); return; }
   (state.chat[cardId] = state.chat[cardId] || []).push({ role: 'you', text: question });
-  state.chat[cardId].push({ role: 'agent', text: '…思考中', pending: true });
+  state.chat[cardId].push({ role: 'agent', text: '…Thinking', pending: true });
   renderCanvas();
 
   const drop = () => {
@@ -1651,7 +1651,7 @@ async function askCard(cardId, question) {
   if (String(cardId).startsWith('fix')) {  // offline dev fixture — not in the DB
     drop();
     state.chat[cardId].push({ role: 'agent',
-      text: '(这是离线 fixture 卡;连上后端 + 一个能调用工具的 LLM 后,即可真实追问、做 what-if、派生衍生卡。)' });
+      text: '(this is an offline fixture card;Connect to backend + after an LLM that can call tools,to ask follow-ups, run what-ifs, and spin off derived cards.)' });
     renderCanvas();
     return;
   }
@@ -1663,13 +1663,13 @@ async function askCard(cardId, question) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
     drop();
-    state.chat[cardId].push({ role: 'agent', text: d.answer || '(无答复)' });
+    state.chat[cardId].push({ role: 'agent', text: d.answer || '(no reply)' });
     if (d.revision) state.revision[cardId] = d.revision;
     renderCanvas();
     if (d.job_id) streamActivity(d.job_id, card.subject);
   } catch (e) {
     drop();
-    state.chat[cardId].push({ role: 'agent', text: '(追问失败:' + String(e.message || e) + ')' });
+    state.chat[cardId].push({ role: 'agent', text: '(follow-up failed:' + String(e.message || e) + ')' });
     renderCanvas();
   }
 }
@@ -1689,7 +1689,7 @@ async function saveRevision(cardId) {
     if (d.card) addCard(d.card);   // derived card → rails under parent
     else renderCanvas();
   } catch (e) {
-    showToast('保存衍生卡失败: ' + escapeHTML(String(e.message || e)));
+    showToast('Failed to save derived card: ' + escapeHTML(String(e.message || e)));
   }
 }
 
@@ -1788,13 +1788,13 @@ function renderTabBar() {
     const name = state.tabNames[id] || c.subject;
     const active = id === state.activeTab;
     const pinned = state.pinned.has(id);
-    const badge = c.card_kind === 'portfolio' ? '组合' : badgeLabel(c.source_type);
+    const badge = c.card_kind === 'portfolio' ? 'Portfolio' : badgeLabel(c.source_type);
     return '<div class="wb-tab' + (active ? ' active' : '') + (pinned ? ' pinned' : '') +
       '" draggable="true" data-tab="' + escapeHTML(id) + '">' +
-      '<button class="tb-pin" data-tabpin="' + escapeHTML(id) + '" title="固定/取消固定">' + (pinned ? '★' : '☆') + '</button>' +
-      '<span class="tb-name" data-tabname="' + escapeHTML(id) + '" title="双击重命名">' + escapeHTML(name) + '</span>' +
+      '<button class="tb-pin" data-tabpin="' + escapeHTML(id) + '" title="fixed/Unpin">' + (pinned ? '★' : '☆') + '</button>' +
+      '<span class="tb-name" data-tabname="' + escapeHTML(id) + '" title="Double-click to rename">' + escapeHTML(name) + '</span>' +
       '<span class="tb-badge">' + escapeHTML(badge) + '</span>' +
-      '<button class="tb-close" data-tabclose="' + escapeHTML(id) + '" title="关闭">✕</button>' +
+      '<button class="tb-close" data-tabclose="' + escapeHTML(id) + '" title="Close">✕</button>' +
     '</div>';
   }).join('');
 }
@@ -1810,8 +1810,8 @@ function _singleWithDerived(card) {
 }
 
 // Portfolio page — mirrors the single-stock dossier: cp-head + KPIs → hero (THE
-// PORTFOLIO BET + WHY | weight composition) → 主题聚合 (the portfolio's "derivation":
-// holdings weighted into theme-level bets) → 跨持仓综合 (Module 3, auto-run across the
+// PORTFOLIO BET + WHY | weight composition) → Theme aggregation (the portfolio's "derivation":
+// holdings weighted into theme-level bets) → cross-holding synthesis (Module 3, auto-run across the
 // decoded holdings — the deep-analysis layer) → holdings table. Degrades gracefully
 // when weights/themes are missing. The right AGENT panel is shared (renderAgentPanel).
 function renderPortfolioPage(pf) {
@@ -1824,18 +1824,18 @@ function renderPortfolioPage(pf) {
   const hasWeights = holdings.some(h => h.weight_pct != null);
 
   const kpi = (lab, val, hot) => '<span class="kpi"><span class="lab">' + lab + '</span><span class="val' + (hot ? ' hot' : '') + '">' + val + '</span></span>';
-  const kpis = kpi('持仓', holdings.length + ' 只', false) +
-    (top ? kpi('主导主题', Math.round(top.exposure_pct || 0) + '%', !!conc) : '') +
-    (conc ? kpi('集中度', '高', true) : '');
+  const kpis = kpi('Holdings', holdings.length + ' only', false) +
+    (top ? kpi('Dominant theme', Math.round(top.exposure_pct || 0) + '%', !!conc) : '') +
+    (conc ? kpi('Concentration', 'High', true) : '');
 
   // hero-left: THE PORTFOLIO BET + WHY (deterministic, from the weighted theme aggregation)
-  const betCore = top ? ('押在 ' + escapeHTML(top.theme) + '(' + Math.round(top.exposure_pct || 0) + '%)') : '尚无主题聚合数据';
+  const betCore = top ? ('Bet on ' + escapeHTML(top.theme) + '(' + Math.round(top.exposure_pct || 0) + '%)') : 'No theme aggregation data yet';
   const why = conc
-    ? ('看似分散持有 ' + holdings.length + ' 只票,实际<b>依赖同一个假设</b> —— ' + escapeHTML(conc.theme) + ' 占 ' + Math.round(conc.exposure_pct || 0) + '%。')
-    : (top ? ('分散在 ' + themes.length + ' 个主题,最大暴露 ' + escapeHTML(top.theme) + ' ' + Math.round(top.exposure_pct || 0) + '%。')
-           : '把组合里的持仓解码成单股卡后,系统会按权重把它们的隐含假设聚合到主题级,显示你实际在押什么。');
-  const betBox = '<div class="cp-bet"><div class="cb-lab">你的钱在 BET 什么 · THE PORTFOLIO BET</div>' +
-    '<div class="cb-text">这个组合实际 <span class="cb-core">' + betCore + '</span></div>' +
+    ? ('Looks diversified ' + holdings.length + ' stocks,Actual<b>depend on the same assumption</b> —— ' + escapeHTML(conc.theme) + ' accounts for ' + Math.round(conc.exposure_pct || 0) + '%。')
+    : (top ? ('spread across ' + themes.length + '  themes,Largest exposure ' + escapeHTML(top.theme) + ' ' + Math.round(top.exposure_pct || 0) + '%。')
+           : 'Once portfolio holdings are decoded into single-stock cards,the system aggregates their implied assumptions to theme level by weight,Shows what you’re actually betting on.');
+  const betBox = '<div class="cp-bet"><div class="cb-lab">What your money is BETTING on · THE PORTFOLIO BET</div>' +
+    '<div class="cb-text">this portfolio actually <span class="cb-core">' + betCore + '</span></div>' +
     '<div class="cb-why"><div class="cb-why-rat' + (top ? '' : ' dim') + '">' + why + '</div></div>' +
   '</div>';
 
@@ -1850,47 +1850,47 @@ function renderPortfolioPage(pf) {
     const wlegend = hsorted.map((h, i) => '<span class="pf-wleg"><span class="sw" style="opacity:' + wOp(i) + '"></span>' + escapeHTML(h.ticker) + ' <span class="wt">' + (h.weight_pct != null ? h.weight_pct + '%' : '—') + '</span></span>').join('');
     weightInner = '<div class="pf-weights" style="padding:14px 2px 6px"><div class="pf-wbar">' + wsegs + '</div><div class="pf-wlegend">' + wlegend + '</div></div>';
   } else {
-    weightInner = '<div class="pc-empty">未提供持仓权重(等权 / 未指定)</div>';
+    weightInner = '<div class="pc-empty">Holding weights not provided(Equal-weight / Unspecified)</div>';
   }
-  const weightBox = '<div class="price-chart-wrap"><div class="pc-head"><span class="lbl">持仓权重构成</span><span class="title">' + nH + ' 只</span><span class="src">composition</span></div>' + weightInner + '</div>';
+  const weightBox = '<div class="price-chart-wrap"><div class="pc-head"><span class="lbl">holding weight composition</span><span class="title">' + nH + ' only</span><span class="src">composition</span></div>' + weightInner + '</div>';
 
-  // 主题聚合 — the portfolio's "derivation": holdings → weighted theme-level bets
+  // Theme aggregation — the portfolio's "derivation": holdings → weighted theme-level bets
   const themeBars = themes.map((t, i) => {
     const pct = Number(t.exposure_pct) || 0;
     const tier = i === 0 ? '' : (i === 1 ? 't2' : (i === 2 ? 't3' : 't4'));
     return '<div class="pf-theme ' + tier + '"><div class="pf-theme-top"><span class="pf-theme-name">' + escapeHTML(t.theme) +
-      (t.is_concentration_risk ? '<span class="risk-tag">集中</span>' : '') + '</span><span class="pf-theme-pct">' + Math.round(pct) + '%</span></div>' +
+      (t.is_concentration_risk ? '<span class="risk-tag">concentration</span>' : '') + '</span><span class="pf-theme-pct">' + Math.round(pct) + '%</span></div>' +
       '<div class="pf-bar"><div class="fill" style="width:' + Math.min(100, pct) + '%"></div></div>' +
       ((t.contributing_tickers || []).length ? '<div class="pf-contrib">' + escapeHTML((t.contributing_tickers || []).join(' · ')) + '</div>' : '') + '</div>';
   }).join('');
-  const concHtml = conc ? '<div class="pf-conc"><span class="lab">⚠ 集中风险 · AHA</span>你的持仓高度集中在 <strong>' + escapeHTML(conc.theme) + '</strong>(' + Math.round(conc.exposure_pct || 0) + '%) —— 看似分散 ' + (conc.contributing_tickers || []).length + ' 只,实际<strong>依赖同一个假设</strong>。</div>' : '';
-  const aggSec = '<div class="cp-tree"><div class="cp-sec-lab">你的钱实际在 BET 什么 · 把各持仓隐含假设按权重聚合到主题级</div>' +
-    '<div class="pf-factor-note">因子 = 现价中要靠未来增长兑现、当期盈利解释不了的占比(叙事溢价);相同因子的持仓按权重叠加 → 集中度即真实的共同依赖。</div>' +
-    (themeBars || '<div class="da-empty">尚无主题暴露数据 —— 需要先把持仓解码出隐含主题(单股卡)。</div>') + concHtml + '</div>';
+  const concHtml = conc ? '<div class="pf-conc"><span class="lab">⚠ Concentration risk · AHA</span>your holdings are highly concentrated in <strong>' + escapeHTML(conc.theme) + '</strong>(' + Math.round(conc.exposure_pct || 0) + '%) —— appears diversified ' + (conc.contributing_tickers || []).length + ' only,Actual<strong>depend on the same assumption</strong>。</div>' : '';
+  const aggSec = '<div class="cp-tree"><div class="cp-sec-lab">What your money is actually BETTING on · Aggregating each holding’s implied assumptions to theme level by weight</div>' +
+    '<div class="pf-factor-note">Factor = the share of the current price that relies on future growth and cannot be explained by current earnings(Narrative premium);holdings with the same factor are stacked by weight → Concentration is the real shared dependency.</div>' +
+    (themeBars || '<div class="da-empty">No theme-exposure data yet —— holdings must first be decoded into implied themes(Single-stock card)。</div>') + concHtml + '</div>';
 
-  // 跨持仓综合 (Module 3, auto-run on view) — the portfolio's deep-analysis layer
-  const synthSec = '<div class="cp-deep"><div class="cp-sec-lab">跨持仓综合 · CROSS-HOLDING SYNTHESIS — 你的持仓是不是在押同一批假设</div>' +
+  // cross-holding synthesis (Module 3, auto-run on view) — the portfolio's deep-analysis layer
+  const synthSec = '<div class="cp-deep"><div class="cp-sec-lab">Cross-Holding Synthesis · CROSS-HOLDING SYNTHESIS — whether your holdings are betting on the same set of assumptions</div>' +
     _portfolioSynthHtml(pf, decoded) + '</div>';
 
   // holdings table (constituents → their tabs)
   const rows = hsorted.map(h => {
     const cid = decoded[String(h.ticker || '').toUpperCase()];
     const w = (h.weight_pct != null) ? Number(h.weight_pct).toFixed(1) + '%' : '—';
-    return '<tr' + (cid ? ' class="linked" data-gotab="' + escapeHTML(cid) + '"' : '') + '><td class="tk">' + escapeHTML(h.ticker) + '</td><td class="wt r">' + w + '</td><td class="r">' + (cid ? '已解码 →' : '未解码') + '</td></tr>';
+    return '<tr' + (cid ? ' class="linked" data-gotab="' + escapeHTML(cid) + '"' : '') + '><td class="tk">' + escapeHTML(h.ticker) + '</td><td class="wt r">' + w + '</td><td class="r">' + (cid ? 'decoded →' : 'Not decoded') + '</td></tr>';
   }).join('');
-  const holdSec = '<div class="cp-support"><div class="cp-sup-main"><div class="cp-sec-lab">组合内持仓 · 点已解码的跳到它的 tab</div>' +
-    '<table class="pf-holdings"><thead><tr><th>标的</th><th class="r">权重</th><th class="r">单股卡</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+  const holdSec = '<div class="cp-support"><div class="cp-sup-main"><div class="cp-sec-lab">Holdings in portfolio · click a decoded one to jump to its tab</div>' +
+    '<table class="pf-holdings"><thead><tr><th>Subject</th><th class="r">weight</th><th class="r">Single-stock card</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
 
   // Honest banner when some holdings couldn't be decoded (data source temp
   // unavailable) — so an incomplete theme aggregation isn't read as a real answer.
   const failed = pf.failed_legs || [];
   const failedBanner = failed.length
-    ? '<div class="pf-warn"><b>' + failed.length + ' 个持仓未能解码</b>(数据源临时不可用):' + escapeHTML(failed.join(', ')) + ' —— 主题聚合仅基于已成功解码的持仓,可能不完整;稍后重试可补全。</div>'
+    ? '<div class="pf-warn"><b>' + failed.length + ' holdings failed to decode</b>(data source temporarily unavailable):' + escapeHTML(failed.join(', ')) + ' —— Theme aggregation is based only on successfully decoded holdings,may be incomplete;Retry later to complete.</div>'
     : '';
 
   return '<div class="bet-card card-page portfolio-page" data-card="' + escapeHTML(pf.card_id) + '">' +
     '<div class="cp-head"><div class="cp-id"><div class="cp-subj">' + escapeHTML(pf.subject) +
-      '<span class="bc-badge">Portfolio · ' + holdings.length + ' 持仓</span></div>' +
+      '<span class="bc-badge">Portfolio · ' + holdings.length + ' Holdings</span></div>' +
       '<div class="cp-source">' + escapeHTML(pf.source_ref || '') + '</div></div>' +
       '<div class="cp-kpis">' + kpis + '</div></div>' +
     '<div class="cp-hero2"><div class="cp-hero-l">' + betBox + '</div><div class="cp-hero-r">' + weightBox + '</div></div>' +
@@ -1911,37 +1911,37 @@ function _pfConstituents(pf, decoded) {
     const x = card ? (card._display || {}).xray : null;
     const wt = (h.weight_pct != null) ? '<span class="wt">' + Number(h.weight_pct).toFixed(0) + '%</span>' : '';
     if (!x) {
-      return '<div class="pf-cx undecoded">' + escapeHTML(h.ticker) + wt + ' · 未解码 —— 点上方持仓表解码后,这里给出它的深度 X 光结论</div>';
+      return '<div class="pf-cx undecoded">' + escapeHTML(h.ticker) + wt + ' · not decoded —— after decoding the holdings table above,Here is its deep X-ray conclusion</div>';
     }
     const br = x.base_rate || {}, sp = x.scenario_probs || {}, bn = sp.by_name || {};
     const topN = Object.keys(bn).length ? Object.keys(bn).reduce((a, b) => (bn[a] >= bn[b] ? a : b)) : null;
     const topZh = topN ? ((x.scenarios || []).find(s => s.name === topN) || {}).name_zh : null;
-    const pctStr = br.live ? ('第 ' + br.live.percentile + ' 分位 · 仅 ' + br.live.share_ge_pct + '% 同行达到')
-      : (sp.note === 'above_top' ? 'DCF 无解 · 纯叙事定价' : '');
+    const pctStr = br.live ? ('No. ' + br.live.percentile + ' percentile · only ' + br.live.share_ge_pct + '% peers reach')
+      : (sp.note === 'above_top' ? 'DCF has no solution · pure narrative pricing' : '');
     const lb = x.load_bearing ? x.load_bearing.label : '';
     const tag = (t, hot) => '<span class="tag' + (hot ? ' hot' : '') + '">' + escapeHTML(t) + '</span>';
     return '<div class="pf-cx linked" data-gotab="' + escapeHTML(cid) + '">' +
-      '<div class="pf-cx-head"><span class="tk">' + escapeHTML(h.ticker) + '</span>' + wt + '<span class="go">展开完整解码 →</span></div>' +
+      '<div class="pf-cx-head"><span class="tk">' + escapeHTML(h.ticker) + '</span>' + wt + '<span class="go">Expand full decode →</span></div>' +
       (x.verdict_zh ? '<div class="pf-cx-verdict">' + escapeHTML(x.verdict_zh) + '</div>' : '') +
       '<div class="pf-cx-tags">' +
         (pctStr ? tag(pctStr, br.verdict === 'top-tail') : '') +
-        (topZh ? tag('市场押「' + topZh + '」' + Math.round((bn[topN] || 0) * 100) + '%') : '') +
+        (topZh ? tag('the market bets ”' + topZh + '」' + Math.round((bn[topN] || 0) * 100) + '%') : '') +
         (lb ? tag(lb + ' bet') : '') +
       '</div></div>';
   }).join('');
   return '<div class="cp-support"><div class="cp-sup-main">' +
-    '<div class="cp-sec-lab">成分股深度解码 · 各持仓的 X 光结论(点开看完整逻辑链)</div>' + blocks + '</div></div>';
+    '<div class="cp-sec-lab">Deep decode of constituents · X-ray conclusion for each holding(click to see the full logic chain)</div>' + blocks + '</div></div>';
 }
 
 // Cross-holding synthesis section state (Module 3 auto-run, cached in state.synth).
 function _portfolioSynthHtml(pf, decoded) {
   const ids = (pf.holdings || []).map(h => decoded[String(h.ticker || '').toUpperCase()]).filter(Boolean);
   if (ids.length < 2) {
-    return '<div class="da-empty">把组合里 ≥2 个持仓也解码成单股卡(点下方持仓,或在上方 Decode),这里会自动比对它们的隐含假设,标出同源 / 分歧 / 矛盾。当前已解码 ' + ids.length + ' / ' + (pf.holdings || []).length + ' 个持仓。</div>';
+    return '<div class="da-empty">In the portfolio ≥2 holdings also decoded as single-stock cards(click a holding below,or Decode above),here their implied assumptions are compared automatically,flag common source / Divergence / contradiction. Currently decoded ' + ids.length + ' / ' + (pf.holdings || []).length + '  holdings.</div>';
   }
   const st = state.synth[ids.slice().sort().join('|')];
-  if (!st || st === 'loading') return '<div class="da-loading">跨持仓综合运行中…(关系引擎在比对各持仓的隐含假设)</div>';
-  if (st === 'error') return '<div class="da-empty">跨持仓综合暂不可用(未联网 / 无 API key)。持仓已解码 + 联网后,这里给出它们之间的同源 / 分歧关系。</div>';
+  if (!st || st === 'loading') return '<div class="da-loading">Cross-holding synthesis running…(The relation engine is comparing the implied assumptions across holdings)</div>';
+  if (st === 'error') return '<div class="da-empty">Cross-holding synthesis unavailable(offline / no API key). Holding decoded + once online,here the common-source links between them are shown / divergence relation.</div>';
   return _renderRelations(st);
 }
 
@@ -1951,12 +1951,12 @@ function _renderRelations(res) {
   const rels = (res && res.relations) || [];
   const hasHl = res && res.headline_insight && res.headline_insight.text;
   if (!hasHl && !rels.length) {
-    return '<div class="da-empty">未发现显著跨持仓关系 —— 这些持仓之间没有强到值得标注的共识 / 分歧 / 矛盾 / 同源 / 漂移。</div>';
+    return '<div class="da-empty">No significant cross-holding relations found —— No consensus among these holdings strong enough to flag / Divergence / Contradiction / common source / drift.</div>';
   }
   let h = '';
   if (hasHl) h += '<div class="da-headline">' + res.headline_insight.text + '</div>';   // server text may carry sanctioned <strong>
   if (rels.length) {
-    h += '<table class="rel-table"><thead><tr><th>关系</th><th>配对</th><th class="c">强度</th><th>共享假设 / 细节</th></tr></thead><tbody>' +
+    h += '<table class="rel-table"><thead><tr><th>Relation</th><th>Pair</th><th class="c">strength</th><th>shared assumption / Detail</th></tr></thead><tbody>' +
       rels.map(rl => '<tr><td><span class="rtype ' + escapeHTML(rl.type) + '">' + escapeHTML(rl.type) + '</span></td>' +
         '<td class="pair">' + escapeHTML(shortId(rl.card_a)) + ' ↔ ' + escapeHTML(shortId(rl.card_b)) + '</td>' +
         '<td class="c"><span class="strength ' + escapeHTML(rl.strength) + '">' + escapeHTML(rl.strength) + '</span></td>' +
@@ -2004,11 +2004,11 @@ function narrativePremiumPct(c, d) {
 // Market-narrative zone: the live bull/bear debate behind the implied numbers.
 // Reads the compact summary card_to_json exposes (regime / headline / bindings /
 // source_quality). Honest-empty when coverage is unavailable/unparseable.
-const _REGIME_ZH = { euphoria: '亢奋', optimistic: '乐观', mixed: '多空拉扯',
-  skeptical: '谨慎', fearful: '恐慌', capitulation: '出清' };
-const _LEAN = { lean_bull: ['偏多', 'lean-bull'], contested: ['分歧', 'lean-mixed'],
-  lean_bear: ['偏空', 'lean-bear'] };
-const _VERDICT = { bull: '偏多', mixed: '中性', bear: '偏空' };  // evidence-side 3-point axis
+const _REGIME_ZH = { euphoria: 'exuberance', optimistic: 'Optimistic', mixed: 'bull-bear tension',
+  skeptical: 'Cautious', fearful: 'panic', capitulation: 'Clear out' };
+const _LEAN = { lean_bull: ['skews bullish', 'lean-bull'], contested: ['Divergence', 'lean-mixed'],
+  lean_bear: ['Bearish', 'lean-bear'] };
+const _VERDICT = { bull: 'skews bullish', mixed: 'Neutral', bear: 'Bearish' };  // evidence-side 3-point axis
 function regimeLabel(r) { return _REGIME_ZH[r] || r || '—'; }
 
 // ---- Tiny, SAFE markdown → HTML (escape FIRST, then format) ----
@@ -2065,10 +2065,10 @@ function renderDeepAnalysis(c) {
   const sum = c.market_narrative || {};
   const full = ((c.decode_detail || {}).market_narrative || {}).full || null;
   const cov = sum.coverage || (full && full.coverage);
-  const lab = '<div class="cp-sec-lab">深度分析 · DEEP ANALYSIS — 市场为什么这么 bet,多空怎么吵</div>';
+  const lab = '<div class="cp-sec-lab">Deep Analysis · DEEP ANALYSIS — why the market bets this way,How bulls and bears argue</div>';
   if (!cov || cov === 'unavailable' || cov === 'unparseable') {
     return '<div class="cp-deep" id="rtb-' + escapeHTML(c.card_id || '') + '-debate">' + lab +
-      '<div class="da-empty">市场叙事材料不足 / 未联网 —— 对这张卡运行联网 deep research(MiroMind)后,这里会填上多空论战、逐假设支撑/反驳、争议焦点与催化剂。</div></div>';
+      '<div class="da-empty">insufficient market narrative material / offline —— Run live deep research on this card(MiroMind)after,this will be filled with the bull-bear debate and per-assumption support/rebuttals, points of contention, and catalysts.</div></div>';
   }
   const reg = full && full.sentiment_regime || {};
   const regime = regimeLabel(sum.regime || reg.label);
@@ -2078,13 +2078,13 @@ function renderDeepAnalysis(c) {
   let html = '<div class="cp-deep" id="rtb-' + escapeHTML(c.card_id || '') + '-debate">' + lab +
     '<div class="da-banner slim">' +
       '<div class="da-regime"><span class="da-reg-badge">' + escapeHTML(regime) + '</span>' +
-        '<span class="da-bb">多 ' + (sum.bull_count != null ? sum.bull_count : (bull ? bull.length : 0)) +
-        ' · 空 ' + (sum.bear_count != null ? sum.bear_count : (bear ? bear.length : 0)) + '</span></div>' +
+        '<span class="da-bb">long ' + (sum.bull_count != null ? sum.bull_count : (bull ? bull.length : 0)) +
+        ' · empty ' + (sum.bear_count != null ? sum.bear_count : (bear ? bear.length : 0)) + '</span></div>' +
     '</div>';
   if (bull || bear) {
     html += '<div class="da-debate">' +
-      '<div class="da-col bull"><div class="da-col-h">看多 · BULL (' + (bull ? bull.length : 0) + ')</div>' + _daPoints(bull, 'bull') + '</div>' +
-      '<div class="da-col bear"><div class="da-col-h">看空 · BEAR (' + (bear ? bear.length : 0) + ')</div>' + _daPoints(bear, 'bear') + '</div>' +
+      '<div class="da-col bull"><div class="da-col-h">Bull · BULL (' + (bull ? bull.length : 0) + ')</div>' + _daPoints(bull, 'bull') + '</div>' +
+      '<div class="da-col bear"><div class="da-col-h">Bear · BEAR (' + (bear ? bear.length : 0) + ')</div>' + _daPoints(bear, 'bear') + '</div>' +
     '</div>';
   }
   const fb = (full && full.assumption_bindings) || [], sb = sum.bindings || [];
@@ -2098,34 +2098,34 @@ function renderDeepAnalysis(c) {
       const asm = F.assumption_text || S.assumption || '';
       const iv = F.implied_value ? '<span class="xb-iv">' + escapeHTML(String(F.implied_value)) + '</span>' : '';
       const head = '<span class="xb-asm">' + escapeHTML(asm) + '</span>' + iv +
-        '<span class="xb-verd"><span class="mn-lean">叙事 ' + escapeHTML(lean[0]) + '</span>' +
-        (ev ? '<span class="mn-ev">· 证据 ' + escapeHTML(ev) + (S.diverges ? ' ⚠' : '') + '</span>' : '') + '</span>';
-      const detail = (F.supported_by ? '<div class="xb-sup"><span class="xb-k">支撑</span>' + _md(F.supported_by) + '</div>' : '') +
-        (F.threatened_by ? '<div class="xb-thr"><span class="xb-k">反驳</span>' + _md(F.threatened_by) + '</div>' : '') +
+        '<span class="xb-verd"><span class="mn-lean">narrative ' + escapeHTML(lean[0]) + '</span>' +
+        (ev ? '<span class="mn-ev">· evidence ' + escapeHTML(ev) + (S.diverges ? ' ⚠' : '') + '</span>' : '') + '</span>';
+      const detail = (F.supported_by ? '<div class="xb-sup"><span class="xb-k">Support</span>' + _md(F.supported_by) + '</div>' : '') +
+        (F.threatened_by ? '<div class="xb-thr"><span class="xb-k">Rebut</span>' + _md(F.threatened_by) + '</div>' : '') +
         ((F.note || S.note) ? '<div class="xb-note">' + escapeHTML(F.note || S.note) + '</div>' : '');
       rows += detail
         ? '<details class="xb ' + lean[1] + (S.diverges ? ' diverge' : '') + '"><summary>' + head + '</summary><div class="xb-body">' + detail + '</div></details>'
         : '<div class="xb ' + lean[1] + (S.diverges ? ' diverge' : '') + '">' + head + '</div>';
     }
-    html += '<div class="da-sec"><div class="da-sec-h">逐假设交叉验证 · 把推导树的每个隐含数字,对质市场叙事 vs 独立证据</div>' +
-      '<div class="da-sec-sub">每一行 = 上方推导树倒推出的一个隐含假设 —— 左是市场叙事偏向,右是独立证据的判断;⚠ = 两者分歧(价格在押叙事、但证据不支持)。</div>' +
+    html += '<div class="da-sec"><div class="da-sec-h">per-assumption cross-validation · taking each implied number in the reasoning tree,Confronts market narrative vs. independent evidence</div>' +
+      '<div class="da-sec-sub">each row = An implied assumption backed out by the reasoning tree above —— Left is the market narrative lean,right is the independent evidence verdict;⚠ = the two diverge(Price bets on the narrative, but evidence doesn’t support it)。</div>' +
       rows + '</div>';
   }
   const ca = (full && full.contested_axis) || [];
   if (ca.length) {
-    html += '<div class="da-sec"><div class="da-sec-h">争议焦点 · 多空在吵什么</div>' +
+    html += '<div class="da-sec"><div class="da-sec-h">Point of contention · what bulls and bears argue</div>' +
       ca.map(a => '<div class="da-axis"><div class="da-axis-t">' + escapeHTML(a.axis || '') + '</div>' +
         (a.why_it_matters ? '<div class="da-axis-w">' + escapeHTML(a.why_it_matters) + '</div>' : '') + '</div>').join('') + '</div>';
   }
   const cat = (full && full.catalysts) || [];
   if (cat.length) {
-    html += '<div class="da-sec"><div class="da-sec-h">催化剂 · 接下来看什么</div>' +
+    html += '<div class="da-sec"><div class="da-sec-h">Catalysts · what to watch next</div>' +
       cat.map(e => '<div class="da-cat"><div class="da-cat-top"><span class="da-cat-d">' + escapeHTML(e.date || '') + '</span>' +
         '<span class="da-cat-e">' + escapeHTML(e.event || '') + '</span></div>' +
         (e.why_it_matters ? '<div class="da-cat-w">' + escapeHTML(e.why_it_matters) + '</div>' : '') + '</div>').join('') + '</div>';
   }
   html += _citationsBlock(full, sum.source_quality || (full && full.source_quality) || {});
-  if (!full) html += '<div class="da-loading">加载完整多空论证…</div>';
+  if (!full) html += '<div class="da-loading">Load full bull-bear argument…</div>';
   return html + '</div>';
 }
 
@@ -2152,15 +2152,15 @@ function _citationsBlock(full, sq) {
   const rank = { A: 3, B: 2, C: 1, D: 0 };
   srcs.sort((a, b) => (rank[b.tier] || 0) - (rank[a.tier] || 0) ||
     String(b.date || '').localeCompare(String(a.date || '')));
-  const caveat = (sq && sq.tier_basis === 'claimed_host_unverified') ? ' · 按声称来源分级,未验真' : '';
-  const head = '信源 ' + srcs.length + ' 条' + (tierStr ? ' · ' + tierStr : '') +
-    ' · ' + ((sq && sq.unverified_claims) || 0) + ' 条未经一手核实' + caveat;
+  const caveat = (sq && sq.tier_basis === 'claimed_host_unverified') ? ' · tiered by claimed source,Unverified' : '';
+  const head = 'source ' + srcs.length + ' items' + (tierStr ? ' · ' + tierStr : '') +
+    ' · ' + ((sq && sq.unverified_claims) || 0) + ' items not first-hand verified' + caveat;
   if (!srcs.length) return '<div class="da-src">' + escapeHTML(head) + '</div>';
   const rows = srcs.map(s => {
     const safe = (typeof s.url === 'string' && /^https?:\/\//i.test(s.url)) ? s.url : null;
     const tier = (rank[s.tier] != null) ? s.tier : 'C';
     const inner = '<span class="ct-tier t' + escapeHTML(tier) + '">' + escapeHTML(tier) + '</span>' +
-      '<span class="ct-pub">' + escapeHTML(s.publisher || _domain(s.url) || '来源') + '</span>' +
+      '<span class="ct-pub">' + escapeHTML(s.publisher || _domain(s.url) || 'Source') + '</span>' +
       (s.date ? '<span class="ct-date">' + escapeHTML(s.date) + '</span>' : '') +
       '<span class="ct-title">' + escapeHTML(s.title || '') + '</span>';
     return safe
@@ -2175,7 +2175,7 @@ function _citationsBlock(full, sq) {
 // Reads the same _display the card already carries: current price (input) → each
 // implied assumption (output node) with its number, a Monte-Carlo band ruler
 // (where the market's bet sits vs p25–p75 = how aggressive), and an evidence chip.
-// Degrades gracefully: null band → "区间不适用", no narrative → no chip.
+// Degrades gracefully: null band → "interval not applicable", no narrative → no chip.
 function _flowFmt(v, unit) {
   if (typeof v !== 'number' || isNaN(v)) return '—';
   if (unit) return v.toFixed(1) + unit;
@@ -2188,7 +2188,7 @@ function _pctPos(v, lo, hi) {
 function _bandViz(b) {
   const band = b.band;
   if (!band || typeof band.p25 !== 'number' || typeof band.p75 !== 'number') {
-    return { ruler: '', note: '<span class="fn-noband">蒙特卡洛区间不适用</span>' };
+    return { ruler: '', note: '<span class="fn-noband">Monte Carlo interval not applicable</span>' };
   }
   const p25 = band.p25, p75 = band.p75;
   const p50 = (typeof band.p50 === 'number') ? band.p50 : (p25 + p75) / 2;
@@ -2207,17 +2207,17 @@ function _bandViz(b) {
     (mkt != null ? '<div class="mkt' + (aggressive ? ' hot' : '') + '" style="left:' +
       _pctPos(mkt, lo, hi).toFixed(1) + '%"></div>' : '') +
   '</div>';
-  const note = '区间 ' + _flowFmt(p25, unit) + '–' + _flowFmt(p75, unit) +
-    (mkt != null ? ' · 市场 ' + _flowFmt(mkt, unit) : '') +
-    (aggressive ? ' <span class="agg">↑ 高于 p75</span>' : '');
+  const note = 'interval ' + _flowFmt(p25, unit) + '–' + _flowFmt(p75, unit) +
+    (mkt != null ? ' · market ' + _flowFmt(mkt, unit) : '') +
+    (aggressive ? ' <span class="agg">↑ above p75</span>' : '');
   return { ruler, note };
 }
 function _evChip(binding) {
   if (!binding || !binding.evidence_verdict) return '';
   const v = binding.evidence_verdict;
-  const label = ({ bull: '偏多', mixed: '中性', bear: '偏空' })[v] || v;
+  const label = ({ bull: 'skews bullish', mixed: 'Neutral', bear: 'Bearish' })[v] || v;
   const cls = (v === 'bull') ? 'bull' : (v === 'bear' ? 'bear' : 'mixed');
-  return '<span class="fn-ev ' + cls + '">证据 ' + escapeHTML(label) +
+  return '<span class="fn-ev ' + cls + '">Evidence ' + escapeHTML(label) +
     (binding.diverges ? ' ⚠' : '') + '</span>';
 }
 // If an LLM what-if revision solved a driver that maps to THIS node, stamp the
@@ -2230,21 +2230,21 @@ function _whatifStamp(b, rev) {
   const lens = String(b.lens || '').toLowerCase();
   const metric = String(b.metric || '');
   const isGrowthField = /cagr|growth|revenue/.test(field);
-  const nodeIsGrowth = (lens === 'dcf') || /CAGR|增长/.test(metric);
+  const nodeIsGrowth = (lens === 'dcf') || /CAGR|growth/.test(metric);
   const match = (lens && field && field.indexOf(lens) >= 0) || (isGrowthField && nodeIsGrowth);
   if (!match) return '';
   return '<div class="fn-whatif">WHAT-IF <span class="b">' + _fmtNum(dd.before) +
     '</span><span class="arr">→</span><span class="a">' + _fmtNum(dd.after) + '</span></div>';
 }
-// Suggested scenario / follow-up chips that fire the existing askCard(). "如果…"
+// Suggested scenario / follow-up chips that fire the existing askCard(). "What if…"
 // chips trigger an LLM what-if (propose_revision → a revision); the others get a
 // grounded answer. Generated from the card's own lenses so they fit each subject.
 function renderScenarioChips(c) {
   const d = c._display || {};
-  const hasGrowth = (d.bets || []).some(b => String(b.lens || '') === 'dcf' || /CAGR|增长/.test(b.metric || ''));
-  const chips = ['如果 WACC 提到 9% 会怎样?'];
-  if (hasGrowth) chips.push('如果增长砍半会怎样?');
-  chips.push('最强的熊市论据是什么?', '现在是贵了还是便宜?');
+  const hasGrowth = (d.bets || []).some(b => String(b.lens || '') === 'dcf' || /CAGR|growth/.test(b.metric || ''));
+  const chips = ['What if WACC rises to 9%?'];
+  if (hasGrowth) chips.push('What if growth is halved?');
+  chips.push('What is the strongest bear case?', 'expensive or cheap right now?');
   return '<div class="bc-chips">' + chips.map(q =>
     '<button class="chip" data-chip="' + escapeHTML(c.card_id) + '" data-chipq="' + escapeHTML(q) + '">' +
       escapeHTML(q) + '</button>').join('') + '</div>';
@@ -2252,7 +2252,7 @@ function renderScenarioChips(c) {
 function renderFlowDiagram(c) {
   const d = c._display || {};
   const bets = d.bets || [];
-  if (!bets.length) return '<div class="bc-intro">数据不足 / 暂无隐含假设。</div>';
+  if (!bets.length) return '<div class="bc-intro">insufficient data / no implied assumptions yet.</div>';
   const price = (d.anchor != null)
     ? ('$' + Number(d.anchor).toLocaleString('en-US', { maximumFractionDigits: 2 })) : '—';
   const reason = ((d.chain || []).find(s => s.t === 'fact') || {}).c || '';
@@ -2275,10 +2275,10 @@ function renderFlowDiagram(c) {
     '</div>';
   }).join('');
   return '<div class="bc-flow">' +
-    '<div class="flow-cap">EXHIBIT · 反向推导 — 把现价拆成市场必须同时相信的假设</div>' +
+    '<div class="flow-cap">EXHIBIT · Reverse derivation — Decompose the current price into assumptions the market must believe at once</div>' +
     '<div class="bc-flow-grid">' +
       '<div class="flow-input">' +
-        '<div class="lab">现价 · 输入</div>' +
+        '<div class="lab">Current price · input</div>' +
         '<div class="px">' + price + '</div>' +
         (reason ? '<div class="sub">' + escapeHTML(reason) + '</div>' : '') +
       '</div>' +
@@ -2332,13 +2332,13 @@ function _paintChart(cardId, card) {
   if (!host) return;
   const ticker = String(card.subject || '').toUpperCase();
   const ph = state.priceHistory[ticker];
-  if (ph === 'loading') { host.innerHTML = '<div class="pc-empty">加载 5 年价格走势…</div>'; return; }
+  if (ph === 'loading') { host.innerHTML = '<div class="pc-empty">Load 5-year price history…</div>'; return; }
   if (!ph || ph === 'error' || !ph.points || ph.points.length < 2) {
-    host.innerHTML = '<div class="pc-empty">' + (state.offline ? '离线模式 · 价格历史需联网' : '暂无价格历史') + '</div>';
+    host.innerHTML = '<div class="pc-empty">' + (state.offline ? 'offline mode · price history requires connection' : 'no price history yet') + '</div>';
     return;
   }
   const refs = _chartRefs(card);
-  if (refs.actual == null) { host.innerHTML = '<div class="pc-empty">缺少现价,无法绘制</div>'; return; }
+  if (refs.actual == null) { host.innerHTML = '<div class="pc-empty">Missing current price,cannot render</div>'; return; }
   const points = ph.points;
   const geom = _pcGeom(points, refs);
   let dpath = '';
@@ -2387,8 +2387,8 @@ async function ensurePriceHistory(ticker, cardId) {
 }
 
 // ---- Multi-level DERIVATION TREE (the page hero) ----
-// Renders _display.derivations: root 现价 → a branch per lens (or base/premium for
-// anchor) → mechanical chain (固定共识 → 基线DCF → 反解) → implied value (band ruler)
+// Renders _display.derivations: root current price → a branch per lens (or base/premium for
+// anchor) → mechanical chain (Pin to consensus → Baseline DCF → reverse-solve) → implied value (band ruler)
 // → sub-implication. The implied level folds in the band ruler + evidence chip +
 // what-if stamp. Falls back to the one-hop flow diagram if no derivations present.
 function _moneyB(v) {
@@ -2399,30 +2399,30 @@ function _moneyB(v) {
   if (a >= 1e6) return '$' + (v / 1e6).toFixed(0) + 'M';
   return '$' + v.toLocaleString('en-US', { maximumFractionDigits: 0 });
 }
-// Full DCF working AT THE IMPLIED CAGR — collapsed under the 反解 node. The bridge
-// ends "…每股 ≈ 现价": at the implied growth, the whole DCF reconciles to the price.
+// Full DCF working AT THE IMPLIED CAGR — collapsed under the reverse-solve node. The bridge
+// ends "…Per share ≈ Current price": at the implied growth, the whole DCF reconciles to the price.
 function _dcfBuildup(bd) {
   if (!bd || !bd.years || !bd.years.length) return '';
   const inp = bd.inputs || {};
   const pct = (x) => (typeof x === 'number') ? (x * 100).toFixed(Math.abs(x) < 0.1 ? 1 : 0) + '%' : '—';
   const rows = bd.years.map(r =>
-    '<tr><td>第' + r.y + '年</td><td class="num">' + _moneyB(r.revenue) + '</td><td class="num">' + _moneyB(r.fcf) +
+    '<tr><td>No.' + r.y + 'yr</td><td class="num">' + _moneyB(r.revenue) + '</td><td class="num">' + _moneyB(r.fcf) +
     '</td><td class="num">' + (typeof r.disc === 'number' ? '÷' + r.disc.toFixed(2) : '—') + '</td><td class="num">' + _moneyB(r.pv) + '</td></tr>').join('');
   const ps = (typeof bd.per_share === 'number') ? ('$' + bd.per_share.toFixed(2)) : '—';
   const sh = (typeof inp.shares === 'number')
     ? (inp.shares >= 1e9 ? (inp.shares / 1e9).toFixed(2) + 'B' : (inp.shares / 1e6).toFixed(0) + 'M') : '—';
   const ndStr = (typeof inp.net_debt === 'number' && inp.net_debt < 0)
-    ? '＋ 净现金 ' + _moneyB(-inp.net_debt) : '－ 净债 ' + _moneyB(inp.net_debt);
-  const sumLab = bd.summary_label || 'DCF 建模底稿 · 在隐含增速下重对到现价';
-  const cagrLab = bd.cagr_label || '隐含增速';
-  const reconLab = bd.reconcile_label || '现价';
+    ? '+ net cash ' + _moneyB(-inp.net_debt) : '− net debt ' + _moneyB(inp.net_debt);
+  const sumLab = bd.summary_label || 'DCF modeling workpaper · reconciled back to current price under implied growth';
+  const cagrLab = bd.cagr_label || 'Implied growth rate';
+  const reconLab = bd.reconcile_label || 'Current price';
   return '<details class="dcf-bd"><summary>' + escapeHTML(sumLab) + '</summary>' +
-    '<div class="bd-inp">营收 ' + _moneyB(inp.revenue) + ' · ' + escapeHTML(cagrLab) + ' ' + pct(inp.cagr) + ' · FCF 利润率 ' + pct(inp.margin) +
-      ' · 贴现率(CAPM) ' + pct(inp.wacc) + ' · 终值增速 ' + pct(inp.g) + '</div>' +
-    '<table class="bd-tab"><thead><tr><th>年</th><th class="num">营收</th><th class="num">自由现金流</th><th class="num">折现</th><th class="num">现值 PV</th></tr></thead><tbody>' + rows + '</tbody></table>' +
-    '<div class="bd-line">① 5 年 FCF 现值合计 = <b>' + _moneyB(bd.pv_fcf_sum) + '</b></div>' +
-    '<div class="bd-line">② 终值(Gordon):末年 FCF ' + _moneyB(bd.terminal_fcf) + ' ÷ (WACC − g) = ' + _moneyB(bd.terminal_value) + ' → 折现 PV <b>' + _moneyB(bd.terminal_pv) + '</b></div>' +
-    '<div class="bd-bridge">③ 企业价值 ' + _moneyB(bd.ev) + ' ' + ndStr + ' = 股权 ' + _moneyB(bd.equity) + ' ÷ ' + sh + ' 股 = <span class="bd-ps">每股 ' + ps + '</span> ≈ ' + escapeHTML(reconLab) + '</div>' +
+    '<div class="bd-inp">Revenue ' + _moneyB(inp.revenue) + ' · ' + escapeHTML(cagrLab) + ' ' + pct(inp.cagr) + ' · FCF margin ' + pct(inp.margin) +
+      ' · discount rate(CAPM) ' + pct(inp.wacc) + ' · terminal growth ' + pct(inp.g) + '</div>' +
+    '<table class="bd-tab"><thead><tr><th>yr</th><th class="num">Revenue</th><th class="num">Free cash flow</th><th class="num">Discount</th><th class="num">present value PV</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+    '<div class="bd-line">① 5-year FCF present value total = <b>' + _moneyB(bd.pv_fcf_sum) + '</b></div>' +
+    '<div class="bd-line">② Terminal value(Gordon):terminal-year FCF ' + _moneyB(bd.terminal_fcf) + ' ÷ (WACC − g) = ' + _moneyB(bd.terminal_value) + ' → Discounted PV <b>' + _moneyB(bd.terminal_pv) + '</b></div>' +
+    '<div class="bd-bridge">③ Enterprise value ' + _moneyB(bd.ev) + ' ' + ndStr + ' = equity ' + _moneyB(bd.equity) + ' ÷ ' + sh + ' shares = <span class="bd-ps">Per share ' + ps + '</span> ≈ ' + escapeHTML(reconLab) + '</div>' +
   '</details>';
 }
 function renderDerivLevel(lv, branch, rev, allowBuildup) {
@@ -2451,7 +2451,7 @@ function renderDerivationTree(c) {
   if (!der || !der.branches || !der.branches.length) return renderFlowDiagram(c);  // safety fallback
   const rev = state.revision[c.card_id];
   const root = der.root || {};
-  // Slimmed 底稿: render ONLY the PRIMARY valuation branch — the single load-bearing
+  // Slimmed workpaper: render ONLY the PRIMARY valuation branch — the single load-bearing
   // reverse-derivation chain — and at most ONE year-by-year DCF table within it. The
   // other lenses' branches + per-node tables are redundant with the X-RAY layer up top.
   const primary = der.branches.find(b => b.primary) || der.branches[0];
@@ -2469,7 +2469,7 @@ function renderDerivationTree(c) {
   '</div>';
   return '<div class="dt">' +
     '<div class="dt-root">' +
-      '<div class="dt-root-top"><span class="dt-root-lab">' + escapeHTML(root.label || '现价') + '</span>' +
+      '<div class="dt-root-top"><span class="dt-root-lab">' + escapeHTML(root.label || 'Current price') + '</span>' +
         '<span class="dt-root-val">' + escapeHTML(root.value || '') + '</span></div>' +
       (root.sub ? '<div class="dt-root-sub">' + escapeHTML(root.sub) + '</div>' : '') +
     '</div>' +
@@ -2491,7 +2491,7 @@ function _xrayFrags(c) {
 
   // lead verdict — the punchline the numbered steps below substantiate
   const verdict = x.verdict_zh
-    ? '<div class="xr-verdict"><span class="xr-vlab">解码结论</span><span class="xr-vtext">' + escapeHTML(x.verdict_zh) + '</span></div>'
+    ? '<div class="xr-verdict"><span class="xr-vlab">Decode conclusion</span><span class="xr-vtext">' + escapeHTML(x.verdict_zh) + '</span></div>'
     : '';
 
   // ① base rate (outside view)
@@ -2504,17 +2504,17 @@ function _xrayFrags(c) {
     const quotes = [au.verified_quote, au.tesla_class_quote].filter(Boolean)
       .map(q => '<div class="xray-quote">▸ ' + escapeHTML(q) + '</div>').join('');
     const cohortStr = (live.cohort && live.cohort !== 'all')
-      ? ' · 同体量(' + escapeHTML(live.cohort) + ')仅 <b>' + live.cohort_share_ge_pct + '%</b>' : '';
+      ? ' · same size(' + escapeHTML(live.cohort) + ')Only <b>' + live.cohort_share_ge_pct + '%</b>' : '';
     s1 = '<div class="xray-hero' + (hot ? ' hot' : '') + '">' +
-      '<div class="xr-top"><span class="xr-implied">隐含 5 年营收增速 <b>' + fp(br.implied_cagr) + '</b></span>' +
-        '<span class="xr-pct' + (hot ? ' hot' : '') + '">' + pct + '<span class="u">th 分位</span></span></div>' +
+      '<div class="xr-top"><span class="xr-implied">Implied 5-year revenue growth <b>' + fp(br.implied_cagr) + '</b></span>' +
+        '<span class="xr-pct' + (hot ? ' hot' : '') + '">' + pct + '<span class="u">th percentile</span></span></div>' +
       '<div class="xr-dist"><div class="axis"></div><div class="fillbar" style="width:' + pos + '%"></div>' +
-        '<div class="mk" style="left:' + pos + '%"><span class="cap">隐含 ' + fp(br.implied_cagr) + '</span></div>' +
-        '<div class="tick" style="left:1%">同行最低</div><div class="tick" style="left:50%">中位 5%</div><div class="tick" style="left:99%">最高</div></div>' +
-      '<div class="xr-headline">大盘股第 <b>' + pct + '</b> 分位 · 仅 <b>' + live.share_ge_pct + '%</b> 同行历史上达到过(n=' + live.n + ')' + cohortStr + '</div>' + quotes +
+        '<div class="mk" style="left:' + pos + '%"><span class="cap">Implied ' + fp(br.implied_cagr) + '</span></div>' +
+        '<div class="tick" style="left:1%">lowest among peers</div><div class="tick" style="left:50%">Median 5%</div><div class="tick" style="left:99%">Highest</div></div>' +
+      '<div class="xr-headline">Large-cap rank <b>' + pct + '</b> percentile · only <b>' + live.share_ge_pct + '%</b> peers have historically reached(n=' + live.n + ')' + cohortStr + '</div>' + quotes +
     '</div>';
   } else if ((x.scenario_probs || {}).note === 'above_top') {
-    s1 = '<div class="xr-envelope">DCF 反解无解 —— 现价高到任何可辩护的增速都撑不住,这是一个纯叙事定价的 bet。</div>';
+    s1 = '<div class="xr-envelope">Reverse DCF has no solution —— the current price is too high for any defensible growth rate to support,this is a purely narrative-priced bet.</div>';
   }
 
   // ② max-entropy scenario probabilities
@@ -2526,53 +2526,53 @@ function _xrayFrags(c) {
     const topP = sp.by_name[top];
     const ladHead =
       '<div class="xr-lad-head">' +
-        '<span class="lh-name">情景 · 含义</span>' +
-        '<span class="lh-g">未来 5 年营收·年均增速</span>' +
-        '<span class="lh-v">内在价值</span>' +
-        '<span class="lh-p">现价反推 · 非预测</span>' +
+        '<span class="lh-name">scenario · meaning</span>' +
+        '<span class="lh-g">Next 5 years revenue · annual growth rate</span>' +
+        '<span class="lh-v">intrinsic value</span>' +
+        '<span class="lh-p">Backed out from current price · not a forecast</span>' +
       '</div>';
     const rows = scenarios.filter(s => sp.by_name[s.name] != null).map(s => {
       const p = sp.by_name[s.name], isTop = s.name === top;
       const extreme = isTop && s.name === 'moonshot' && p >= 0.5;
       return '<div class="xr-lrow' + (isTop ? ' top' : '') + (extreme ? ' extreme' : '') + '">' +
         '<span class="lr-name">' + escapeHTML(s.name_zh) + '<span class="lr-why">' + escapeHTML(s.why || '') + '</span></span>' +
-        '<span class="lr-g">+' + fp(s.growth) + '<span class="lr-yr">/年</span></span>' +
+        '<span class="lr-g">+' + fp(s.growth) + '<span class="lr-yr">/yr</span></span>' +
         '<span class="lr-v">≈' + (s.value != null ? $(s.value) : '—') + '</span>' +
         '<span class="lr-p">' + fp(p) + '</span>' +
         '<div class="lr-bar"><div class="fill" style="width:' + Math.min(100, p * 100).toFixed(0) + '%"></div></div>' +
-        (isTop ? '<span class="lr-tag">' + (topP >= 0.5 ? '现价主要押这里' : '概率最高的一档') + '</span>' : '') +
+        (isTop ? '<span class="lr-tag">' + (topP >= 0.5 ? 'Current price mainly bets here' : 'the highest-probability tier') + '</span>' : '') +
       '</div>';
     }).join('');
-    // punchline — name the top rung + reframe "现价低于顶档估值" away from "被低估" (only for the extreme/moonshot case where that misread happens)
+    // punchline — name the top rung + reframe "current price below top-tier valuation" away from "undervalued" (only for the extreme/moonshot case where that misread happens)
     const topS = scenarios.find(s => s.name === top);
     const pr = (x.kelly && x.kelly.derivation && x.kelly.derivation.price) || null;
     const extremeTop = top === 'moonshot' && topP >= 0.5;
     const punch = topS
-      ? ('<div class="xr-note">→ 市场把 <span class="nb">' + fp(topP) + '</span> 的概率压在「' +
-         escapeHTML(topS.name_zh) + (topS.why ? ' · ' + escapeHTML(topS.why) : '') + '」一档' +
+      ? ('<div class="xr-note">→ the market <span class="nb">' + fp(topP) + '</span> places the probability on ”' +
+         escapeHTML(topS.name_zh) + (topS.why ? ' · ' + escapeHTML(topS.why) : '') + '” scenario' +
          (extremeTop
-           ? (',现价' + (pr ? ' ' + $(pr) + ' ' : '') + '几乎是按这种极端情形定价 —— 别误读成「便宜」,它几乎没给平庸结局留空间')
-           : ' —— 这说的是市场对它「增长快慢」的预期,不代表看涨或看跌') +
+           ? (',Current price' + (pr ? ' ' + $(pr) + ' ' : '') + 'Priced almost for this extreme scenario —— Don’t misread it as ”cheap”,it leaves almost no room for a mediocre outcome')
+           : ' —— this reflects the market’s expectation of its growth pace,not a bullish or bearish call') +
          '。</div>')
       : (sp.statement_zh ? '<div class="xr-note">→ ' + escapeHTML(sp.statement_zh) + '</div>' : '');
     const ladMethod =
-      '<details class="cp-limits xr-lad-method"><summary>这四档和概率是怎么来的?点开看方法</summary>' +
+      '<details class="cp-limits xr-lad-method"><summary>Where these four tiers and probabilities come from?click to see method</summary>' +
       '<div class="da-body">' +
-        '<p><strong>一句话:</strong>我们没有预测未来,而是把<strong>现在的股价</strong>拆开,看它隐含了市场对「公司未来卖货速度」的怎样一组预期。</p>' +
-        '<p><strong>① 「增速」指什么。</strong>指<strong>营收</strong>(公司卖出去的总钱)<strong>未来 5 年每年复合增长</strong>的速度 —— 不是利润、不是股价涨幅,也不是只看一年。比如「登月 +50%」= 假设营收未来 5 年每年都增长 50%(第 5 年约是今天的 7.6 倍)。四档从保守到激进:熊市 5%、基准 15%、牛市 30%、登月 50%。</p>' +
-        '<p><strong>② 一个增速怎么变成一个美元价值。</strong>把这一档增速丢进标准的 <strong>DCF 估值</strong>(全称「现金流折现」—— 把未来每年的钱打折算回今天该值多少:明年的 1 块不值今天的 1 块;前 5 年按该增速增长、第 5 年后假设永远以 2.5% 慢速增长),<strong>只动「增速」这一个旋钮</strong>,利润率和折现率都钉在市场共识。算出来就是「假如营收真这么长,这股每股理论上值多少」 —— 所以一行读作「营收每年 +X% → 内在价值 $Y」。</p>' +
-        '<p><strong>③ 概率怎么反推。</strong>一个朴素事实:股价 ≈ 各种结局按可能性加权的平均值(下式 p = 概率、V = 该档的内在价值),即</p>' +
-        '<p class="m2-eq">现价 = p熊·$V熊 + p基·$V基 + p牛·$V牛 + p登·$V登</p>' +
-        '<p>现价和四个 $V 都已知、四个概率未知(1 个等式、4 个未知数 → 无穷多组解)。为不偷塞任何主观判断,取其中<strong>「最不武断」的那一组</strong> —— 分布最分散、信息最少的一组(这叫最大熵)。直觉:<strong>现价相对各档估值偏高,概率就被推向更高的档;偏低,就被推向更低的档</strong>(NVDA 现价 $215 紧贴最高档登月 $257 → 73% 落在登月;而现价低于多数档的价值股,概率会堆向熊市那端 —— 都是价格逼出来的,不是谁看好)。这些是从现价<strong>反推、不是预测</strong>。</p>' +
-        '<p><strong>凭什么这样算(三块成熟理论):</strong></p>' +
-        '<ul><li><strong>预期投资法</strong>(Rappaport &amp; Mauboussin)—— 读出价格已隐含的预期,而不是自己预测。</li>' +
-        '<li><strong>DCF 内在价值</strong>(Williams 1938)—— 一股的价值 = 未来现金流的现值;反向 DCF 是成熟技术。</li>' +
-        '<li><strong>最大熵原理</strong>(Jaynes 1957)—— 把一个约束最少假设地补成完整分布。</li></ul>' +
-        '<p><strong>诚实地说清边界(请务必读):</strong></p>' +
-        '<ul><li>四档增速(5/15/30/50%)是<strong>人工固定挑的网格</strong> —— 换一组档位,概率就会变。</li>' +
-        '<li>「现价 = 加权平均」忽略了「风险溢价」(越危险的结局,投资者越要额外补偿、愿付的价越低)、折现率本身的不确定性,也把「真实结局是连续的」压成 4 个点;且只让增速变、利润率与折现率钉在共识。</li>' +
-        '<li>「最不武断」≠「正确」 —— 它只是「在现价约束下最少假设的一组」。</li></ul>' +
-        '<p>所以这是一张<strong>示意 / 诊断估计</strong>,说的是「现价隐含了怎样的预期分布」,<strong>不是对未来的预测</strong>。</p>' +
+        '<p><strong>One line:</strong>We don’t predict the future,but instead<strong>current share price</strong>decompose,See what set of expectations it implies for how fast the company sells in the future.</p>' +
+        '<p><strong>① what ”growth rate” means.</strong>refers to<strong>Revenue</strong>(the total money the company sells)<strong>compound growth every year over the next 5 years</strong>the pace —— not profit, not stock price gain,and not just one year. For example, moonshot +50%」= Assuming revenue grows 50% every year for the next 5 years(Year 5 is about 7.6× today). Four tiers from conservative to aggressive:bear 5%, base 15%, bull 30%, moonshot 50%.</p>' +
+        '<p><strong>② how a growth rate becomes a dollar value.</strong>Feed this scenario’s growth into the standard <strong>DCF valuation</strong>(full name ”discounted cash flow”—— Discount each future year’s cash back to what it’s worth today:$1 next year is worth less than $1 today;Grows at that rate for the first 5 years, then assumed to grow forever at a slow 2.5% thereafter),<strong>move only the “growth rate” knob</strong>,Margin and discount rate both pinned to consensus. The result is “if revenue really grows this fast,what this stock is theoretically worth per share” —— so one line reads: revenue each year +X% → intrinsic value $Y」。</p>' +
+        '<p><strong>③ how probability is backed out.</strong>a plain fact:Price ≈ Probability-weighted average across outcomes(below, p = probability, V = that tier’s intrinsic value),i.e.</p>' +
+        '<p class="m2-eq">Current price = p(bear)·$V(bear) + p-base ·$V-base + p-bull ·$V-bull + p-moon ·$V-moon</p>' +
+        '<p>current price and four $V is known; the four probabilities are unknown(1 equation, 4 unknowns → infinitely many solutions). to avoid slipping in any subjective judgment,take the<strong>the ”least arbitrary” set</strong> —— the set with the most dispersed distribution and least information(This is called max-entropy). intuition:<strong>Current price is high relative to each tier’s valuation,probability is pushed toward a higher tier;Low,gets pushed toward a lower scenario</strong>(NVDA current price $215 sits right at the top moonshot scenario $257 → 73% falls in moonshot;while a value stock priced below most scenarios,Probability piles toward the bear end —— all are forced out by the price,not who’s bullish). These are from the current price<strong>backed out, not a forecast</strong>。</p>' +
+        '<p><strong>Why computed this way(three mature theories):</strong></p>' +
+        '<ul><li><strong>Expectations Investing</strong>(Rappaport &amp; Mauboussin)—— Read out the expectations the price already implies,rather than forecasting on its own.</li>' +
+        '<li><strong>DCF intrinsic value</strong>(Williams 1938)—— value per share = Present value of future cash flows;Reverse DCF is a mature technique.</li>' +
+        '<li><strong>max-entropy principle</strong>(Jaynes 1957)—— fills one constraint into a full distribution with minimal assumptions.</li></ul>' +
+        '<p><strong>honestly state the limits(Be sure to read):</strong></p>' +
+        '<ul><li>four growth tiers(5/15/30/50%)Yes<strong>a hand-picked fixed grid</strong> —— Switch scenarios,the probability changes.</li>' +
+        '<li>”current price = weighted average” ignores the “risk premium”(the more dangerous the outcome,the more compensation investors demand, the less they’ll pay), uncertainty in the discount rate itself,and compresses a continuous range of outcomes into 4 points;and only the growth rate varies, with margin and discount rate pinned at consensus.</li>' +
+        '<li>”least arbitrary”≠”correct” —— It is merely ”the minimal set of assumptions consistent with the current price.”</li></ul>' +
+        '<p>so this is a<strong>illustrative / diagnostic estimate</strong>,describes ”what expectation distribution the current price implies”,<strong>not a forecast of the future</strong>。</p>' +
       '</div></details>';
     s2 = '<div class="xr-ladder">' + ladHead + rows + '</div>' + punch + ladMethod;
   } else if (sp.statement_zh) {
@@ -2582,9 +2582,9 @@ function _xrayFrags(c) {
   // ③ nature: load-bearing driver + implied CAP
   const rcards = [];
   if (x.load_bearing && x.load_bearing.statement_zh)
-    rcards.push('<div class="xr-read"><div class="k">载荷驱动</div><div class="v">' + escapeHTML(x.load_bearing.statement_zh) + '</div></div>');
+    rcards.push('<div class="xr-read"><div class="k">Payload-driven</div><div class="v">' + escapeHTML(x.load_bearing.statement_zh) + '</div></div>');
   if (x.implied_cap && x.implied_cap.statement_zh)
-    rcards.push('<div class="xr-read"><div class="k">隐含护城河久期 · MICAP</div><div class="v">' + escapeHTML(x.implied_cap.statement_zh) + '</div></div>');
+    rcards.push('<div class="xr-read"><div class="k">Implied moat duration · MICAP</div><div class="v">' + escapeHTML(x.implied_cap.statement_zh) + '</div></div>');
   const s3 = rcards.length ? '<div class="xr-reads">' + rcards.join('') + '</div>' : '';
 
   // ⑤ falsification: what would have to be true + kill line
@@ -2607,10 +2607,10 @@ function _xrayFrags(c) {
     const dnPct = (k.downside != null) ? ('−' + (k.downside * 100).toFixed(0) + '%') : '—';
     const facts = (k.upside != null)
       ? '<div class="xr-asym">' +
-          '<span class="xr-asym-c"><span class="k">现价之上的情景概率</span><span class="v">' + (k.p_win != null ? (k.p_win * 100).toFixed(0) + '%' : '—') + '</span></span>' +
-          '<span class="xr-asym-c"><span class="k">上行</span><span class="v">' + upPct + '</span></span>' +
-          '<span class="xr-asym-c"><span class="k">下行</span><span class="v">' + dnPct + '</span></span>' +
-          '<span class="xr-asym-c"><span class="k">上行 ÷ 下行</span><span class="v' + (k.verdict === 'favorable' ? '' : ' warn') + '">' + fmtR(k.ratio) + '</span></span>' +
+          '<span class="xr-asym-c"><span class="k">scenario probabilities above current price</span><span class="v">' + (k.p_win != null ? (k.p_win * 100).toFixed(0) + '%' : '—') + '</span></span>' +
+          '<span class="xr-asym-c"><span class="k">upside</span><span class="v">' + upPct + '</span></span>' +
+          '<span class="xr-asym-c"><span class="k">Downside</span><span class="v">' + dnPct + '</span></span>' +
+          '<span class="xr-asym-c"><span class="k">upside ÷ Downside</span><span class="v' + (k.verdict === 'favorable' ? '' : ' warn') + '">' + fmtR(k.ratio) + '</span></span>' +
         '</div>'
       : '';
     // derivation — trace each tile back to the step-② ladder with the real numbers plugged in
@@ -2620,24 +2620,24 @@ function _xrayFrags(c) {
       const warn = k.verdict !== 'favorable';
       const above = d.above || [];
       const aboveStr = above.length === 1
-        ? '现价之上仅「' + escapeHTML(above[0].name_zh) + ' ≈' + $(above[0].value) + '」一档'
+        ? 'above current price only “' + escapeHTML(above[0].name_zh) + ' ≈' + $(above[0].value) + '” scenario'
         : (above.length
-            ? '现价之上 ' + above.length + ' 档:' + above.map(s => escapeHTML(s.name_zh) + ' ' + fp(s.prob)).join(' + ')
-            : '无情景高于现价');
+            ? 'above the current price ' + above.length + ' tier:' + above.map(s => escapeHTML(s.name_zh) + ' ' + fp(s.prob)).join(' + ')
+            : 'No scenario exceeds the current price');
       deriv =
         '<div class="xr-deriv">' +
-          '<div class="xr-deriv-h"><span class="t">怎么算出来的</span><span class="px">现价 <b>' + $(d.price) + '</b></span></div>' +
-          '<div class="xr-deriv-r"><span class="dk">概率</span>' +
+          '<div class="xr-deriv-h"><span class="t">how it’s calculated</span><span class="px">Current price <b>' + $(d.price) + '</b></span></div>' +
+          '<div class="xr-deriv-r"><span class="dk">probability</span>' +
             '<span class="dd">' + aboveStr + '</span>' +
             '<span class="dv">= <b>' + (k.p_win * 100).toFixed(0) + '%</b></span></div>' +
-          '<div class="xr-deriv-r sep"><span class="dk">上行</span>' +
-            '<span class="dd">最高档「' + escapeHTML(d.top.name_zh) + '」− 现价</span>' +
+          '<div class="xr-deriv-r sep"><span class="dk">upside</span>' +
+            '<span class="dd">top tier ”' + escapeHTML(d.top.name_zh) + '」− Current price</span>' +
             '<span class="dv">(' + $(d.top.value) + '−' + $(d.price) + ')/' + $(d.price) + ' = <b>' + upPct + '</b></span></div>' +
-          '<div class="xr-deriv-r"><span class="dk">下行</span>' +
-            '<span class="dd">现价 − 最低档「' + escapeHTML(d.bottom.name_zh) + '」</span>' +
+          '<div class="xr-deriv-r"><span class="dk">Downside</span>' +
+            '<span class="dd">Current price − Lowest scenario ”' + escapeHTML(d.bottom.name_zh) + '」</span>' +
             '<span class="dv">(' + $(d.price) + '−' + $(d.bottom.value) + ')/' + $(d.price) + ' = <b>' + dnPct + '</b></span></div>' +
-          '<div class="xr-deriv-r sep"><span class="dk">比值</span>' +
-            '<span class="dd">上行 ÷ 下行 ' + (warn ? '<span class="sub">(＜1 → 下行大于上行)</span>' : '<span class="sub">(≥1 → 上行大于下行)</span>') + '</span>' +
+          '<div class="xr-deriv-r sep"><span class="dk">Ratio</span>' +
+            '<span class="dd">upside ÷ Downside ' + (warn ? '<span class="sub">(＜1 → downside exceeds upside)</span>' : '<span class="sub">(≥1 → upside greater than downside)</span>') + '</span>' +
             '<span class="dv strong">' + (k.upside * 100).toFixed(0) + '% ÷ ' + (k.downside * 100).toFixed(0) + '% = ' + fmtR(k.ratio) + '</span></div>' +
         '</div>';
     } else if (d.note_zh) {
@@ -2645,7 +2645,7 @@ function _xrayFrags(c) {
     }
     s6 = '<div class="xr-kelly">' + facts + deriv +
       '<div class="xr-asym-read">' + escapeHTML(k.statement_zh) + '</div>' +
-      '<div class="xray-quote">▸ 上面每个数字都摊开了算法:情景估值来自反向 DCF,概率为 max-entropy 反推的<b>示意估计、非预测</b>。本段只刻画风险回报的<b>不对称形状</b>,<b>不构成投资建议或头寸推荐</b>。</div>' +
+      '<div class="xray-quote">▸ every number above lays out its algorithm:Scenario valuations come from reverse DCF,probabilities backed out via max-entropy<b>illustrative estimate, not a forecast</b>. This section only characterizes the risk/reward<b>asymmetry shape</b>,<b>Does not constitute investment advice or a position recommendation</b>。</div>' +
     '</div>';
   }
 
@@ -2656,31 +2656,31 @@ function _xrayFrags(c) {
     : '';
 
   // TOP = the judgment read BEFORE the debate; BOTTOM = the conclusion AFTER it.
-  // The old "④ 凭什么定价" bridge is gone — the real 多空论战 section now sits
+  // The old "④ on what basis priced" bridge is gone — the real bull-bear debate section now sits
   // physically between top and bottom, so falsification(④)+size(⑤) land only
   // after the reader has seen the evidence they depend on.
   const top =
-    step('1', '这个 bet 押什么 · 有多稀有', '把反解出的隐含增速放进 70 年历史 base rate,看它在同行里的分位(外部视角)。', s1, 'rarity') +
-    step('2', '市场自己有多大信心', '现价其实是市场把「营收能涨多快」的几种可能、按各自把握加权平均后的结果。这里把它拆回去:每一档代表一种增速,右边的百分比 = 现价反推出市场对这一档押了多大可能性(反推、非预测)。', s2, 'conviction') +
-    step('3', '这本质是一个什么 bet', '价格对哪个经营驱动最敏感(增速 vs 利润率),以及在为多少年护城河付费。', s3, 'nature');
+    step('1', 'What this bet wagers · how rare it is', 'places the reverse-solved implied growth rate into the 70-year historical base rate,see its percentile among peers(outside view)。', s1, 'rarity') +
+    step('2', 'how confident the market itself is', 'The current price is the market’s probability-weighted average of several scenarios for how fast revenue can grow. Here we back it out.:each tier represents one growth rate,the percentage on the right = the current price backs out how much probability the market bets on this tier(backed out, not a forecast)。', s2, 'conviction') +
+    step('3', 'what kind of bet is this in essence', 'Which operating driver the price is most sensitive to(Growth vs margin),and how many years of moat you’re paying for.', s3, 'nature');
   const bottom =
-    step('4', '要让价格成立,必须为真 · 什么会证伪', '把上方论战暴露的分歧翻成可检验条件,并给出一条可证伪的 KILL 线。', s5, 'falsify') +
-    step('5', '据此 · 风险回报对不对称', '把现价与各情景估值对照,读出上行 / 下行的不对称结构(纯描述,不含任何头寸建议)。', s6, 'size');
+    step('4', 'for the price to hold,must be true · what would falsify it', 'turns the disagreements exposed in the debate above into testable conditions,and give one falsifiable KILL line.', s5, 'falsify') +
+    step('5', 'On this basis · whether risk/reward is asymmetric', 'Compare the current price against each scenario’s valuation,read out upside / the asymmetric structure of the downside(Descriptive only,Contains no position advice)。', s6, 'size');
   return { verdict, top, bottom };
 }
 
-// X-RAY split around the debate (one continuous chain). TOP: 解码结论 + ①②③.
+// X-RAY split around the debate (one continuous chain). TOP: Decode conclusion + ①②③.
 function renderXrayTop(c) {
   const f = _xrayFrags(c);
   if (!f || (!f.top && !f.verdict)) return '';
-  return '<div class="cp-xray"><div class="cp-sec-lab">X 光 · 先读这个 bet:押什么、有多极端、是什么</div>' +
+  return '<div class="cp-xray"><div class="cp-sec-lab">X-ray · read this bet first:what’s bet, how extreme, and what it is</div>' +
     f.verdict + f.top + '</div>';
 }
-// BOTTOM: ④ 证伪 + ⑤ 风险回报 — rendered only AFTER renderDeepAnalysis.
+// BOTTOM: ④ Falsify + ⑤ Risk/reward — rendered only AFTER renderDeepAnalysis.
 function renderXrayBottom(c) {
   const f = _xrayFrags(c);
   if (!f || !f.bottom) return '';
-  return '<div class="cp-xray cp-xray-end"><div class="cp-sec-lab">读完论战 → 收口:什么会击穿它、风险回报如何</div>' +
+  return '<div class="cp-xray cp-xray-end"><div class="cp-sec-lab">after reading the debate → close out:what would break it, and the risk/reward</div>' +
     f.bottom + '</div>';
 }
 
@@ -2691,31 +2691,31 @@ function renderXrayBottom(c) {
 function _reasoningTree(c) {
   const x = (c._display || {}).xray;
   const d = c._display || {};
-  const px = d.anchor != null ? ('$' + Number(d.anchor).toLocaleString('en-US', { maximumFractionDigits: 2 })) : '现价';
+  const px = d.anchor != null ? ('$' + Number(d.anchor).toLocaleString('en-US', { maximumFractionDigits: 2 })) : 'Current price';
   const fp = v => (v == null ? '—' : (v * 100).toFixed(0) + '%');
-  const lab = '<div class="cp-sec-lab">推理链 · 从现价一步步读到「风险回报如何」(下方逐节展开)</div>';
-  if (!x) return '<div class="cp-rtree">' + lab + '<div class="rt-empty">数据不足,暂无法构建推理链。</div></div>';
+  const lab = '<div class="cp-sec-lab">Reasoning chain · from current price step-by-step to ”the risk/reward”(expanded section by section below)</div>';
+  if (!x) return '<div class="cp-rtree">' + lab + '<div class="rt-empty">insufficient data,cannot build a reasoning chain yet.</div></div>';
   const br = x.base_rate, sp = x.scenario_probs || {}, bn = sp.by_name || {};
-  const rootSub = (br && br.implied_cagr != null) ? ('市场押 5 年营收 CAGR ' + fp(br.implied_cagr))
-    : (sp.note === 'above_top' ? '价格高到 DCF 无解 · 纯叙事定价' : '');
+  const rootSub = (br && br.implied_cagr != null) ? ('Market bets 5-year revenue CAGR ' + fp(br.implied_cagr))
+    : (sp.note === 'above_top' ? 'Price too high for DCF to solve · pure narrative pricing' : '');
   // ① rarity
   let a1 = '—', hot1 = false;
-  if (br) { a1 = '第 ' + br.live.percentile + ' 分位 · 仅 ' + br.live.share_ge_pct + '% 做到过'; hot1 = (br.verdict === 'top-tail'); }
-  else if (sp.note === 'above_top') { a1 = 'DCF 无解 · 纯叙事定价'; hot1 = true; }
+  if (br) { a1 = 'No. ' + br.live.percentile + ' percentile · only ' + br.live.share_ge_pct + '% achieved before'; hot1 = (br.verdict === 'top-tail'); }
+  else if (sp.note === 'above_top') { a1 = 'DCF has no solution · pure narrative pricing'; hot1 = true; }
   // ② conviction
   let a2 = '—', hot2 = false;
   if (Object.keys(bn).length) {
     const top = Object.keys(bn).reduce((a, b) => (bn[a] >= bn[b] ? a : b));
     const zh = ((x.scenarios || []).find(s => s.name === top) || {}).name_zh || top;
-    a2 = Math.round(bn[top] * 100) + '% 押「' + zh + '」'; hot2 = (top === 'moonshot' && bn[top] >= 0.5);
-  } else if (sp.note === 'above_top') { a2 = '全市场押超最乐观情景'; hot2 = true; }
+    a2 = Math.round(bn[top] * 100) + '% bets ”' + zh + '」'; hot2 = (top === 'moonshot' && bn[top] >= 0.5);
+  } else if (sp.note === 'above_top') { a2 = 'the whole market bets beyond the most optimistic scenario'; hot2 = true; }
   // ③ nature
   const a3 = x.load_bearing ? (x.load_bearing.label + ' bet') : '—';
   // ④ why (the debate digest)
   const mn = ((c.decode_detail || {}).market_narrative) || c.market_narrative || {};
   const full = mn.full || null;
   const cov = mn.coverage || (full && full.coverage);
-  let a4 = '未联网研究', hot4 = false;
+  let a4 = 'no live research', hot4 = false;
   if (cov && cov !== 'unavailable' && cov !== 'unparseable') {
     const regRaw = (full && full.sentiment_regime && full.sentiment_regime.label) || mn.regime || '';
     const regZh = (typeof regimeLabel === 'function') ? regimeLabel(regRaw) : regRaw;
@@ -2723,7 +2723,7 @@ function _reasoningTree(c) {
     const bear = full && full.bear_case ? full.bear_case.length : (mn.bear_count || 0);
     // divergences live on the cross_check rows (narrative lean vs evidence verdict)
     const div = (mn.cross_check || []).filter(r => r && r.diverges).length;
-    a4 = (regZh ? regZh + ' · ' : '') + '多 ' + bull + '/空 ' + bear + (div ? ' · ⚠' + div + ' 分歧' : '');
+    a4 = (regZh ? regZh + ' · ' : '') + 'long ' + bull + '/Bear ' + bear + (div ? ' · ⚠' + div + ' Divergence' : '');
     hot4 = div > 0;
   }
   // ⑤ falsification
@@ -2735,9 +2735,9 @@ function _reasoningTree(c) {
   let a6 = '—';
   if (x.kelly) {
     const kv = x.kelly.verdict, rr = x.kelly.ratio;
-    a6 = kv === 'favorable' ? ('上行 > 下行' + (rr != null ? ' · 上行÷下行 ' + (Math.abs(rr) < 1 ? rr.toFixed(2) : rr.toFixed(1)) : '') + ' · 偏有利')
-      : kv === 'unfavorable' ? ('下行 > 上行' + (rr != null ? ' · 上行÷下行 ' + (Math.abs(rr) < 1 ? rr.toFixed(2) : rr.toFixed(1)) : '') + ' · 偏不利')
-      : kv === 'above_top' ? '现价高于所有情景 · 极不对称'
+    a6 = kv === 'favorable' ? ('upside > Downside' + (rr != null ? ' · upside÷Downside ' + (Math.abs(rr) < 1 ? rr.toFixed(2) : rr.toFixed(1)) : '') + ' · favorable')
+      : kv === 'unfavorable' ? ('Downside > upside' + (rr != null ? ' · upside÷Downside ' + (Math.abs(rr) < 1 ? rr.toFixed(2) : rr.toFixed(1)) : '') + ' · skews unfavorable')
+      : kv === 'above_top' ? 'current price above all scenarios · highly asymmetric'
       : String(x.kelly.statement_zh || '').slice(0, 26);
   }
   // accent rationing (design system §2.2): at most ONE hot node in the tree —
@@ -2747,7 +2747,7 @@ function _reasoningTree(c) {
   else if (hot1) { hot4 = false; }
   const cid = c.card_id || '';
   // A node is only clickable when its target section actually renders (mirrors the
-  // step() body conditions in _xrayFrags / renderDeepAnalysis) — no fake "可点" affordance.
+  // step() body conditions in _xrayFrags / renderDeepAnalysis) — no fake "Clickable" affordance.
   const hasRarity = !!br || sp.note === 'above_top';
   const hasConviction = Object.keys(bn).length > 0 || !!sp.statement_zh;
   const hasNature = !!(x.load_bearing && x.load_bearing.statement_zh) || !!(x.implied_cap && x.implied_cap.statement_zh);
@@ -2761,15 +2761,15 @@ function _reasoningTree(c) {
     '<span class="rt-a' + (hot ? ' hot' : '') + '">' + escapeHTML(a) + '</span>' +
     (can ? '<span class="rt-jarr">›</span>' : '') + '</div>';
   // Numbering matches the X-RAY steps below: 1·2·3 are the pre-debate reads, the
-  // 多空论战 is the unnumbered evidence interlude (·), 4·5 are the post-debate conclusions.
+  // bull-bear debate is the unnumbered evidence interlude (·), 4·5 are the post-debate conclusions.
   return '<div class="cp-rtree">' + lab +
     '<div class="rt">' +
-      '<div class="rt-root"><span class="rt-root-lab">现价</span><span class="rt-root-val">' + px + '</span>' +
+      '<div class="rt-root"><span class="rt-root-lab">Current price</span><span class="rt-root-val">' + px + '</span>' +
         (rootSub ? '<span class="rt-root-sub">' + escapeHTML(rootSub) + '</span>' : '') + '</div>' +
       '<div class="rt-branches">' +
-        node('1', '有多稀有', a1, hot1, 'rarity', hasRarity) + node('2', '市场多大信心', a2, hot2, 'conviction', hasConviction) +
-        node('3', '本质什么 bet', a3, false, 'nature', hasNature) + node('·', '凭什么 · 多空论战', a4, hot4, 'debate', hasDebate) +
-        node('4', '什么会证伪', a5, hot5, 'falsify', hasFalsify) + node('5', '风险回报如何', a6, false, 'size', hasSize) +
+        node('1', 'how rare', a1, hot1, 'rarity', hasRarity) + node('2', 'how much confidence the market has', a2, hot2, 'conviction', hasConviction) +
+        node('3', 'what bet it really is', a3, false, 'nature', hasNature) + node('·', 'On what basis · bull-bear debate', a4, hot4, 'debate', hasDebate) +
+        node('4', 'What would falsify it', a5, hot5, 'falsify', hasFalsify) + node('5', 'the risk/reward', a6, false, 'size', hasSize) +
       '</div>' +
     '</div></div>';
 }
@@ -2798,11 +2798,11 @@ function renderSingleCard(c) {
   // (decomposition + risks). The per-card conversation is NOT inline — it lives in
   // the sticky right-hand AGENT panel (renderAgentPanel).
   const priceChart = insuf
-    ? '<div class="price-chart-wrap"><div class="pc-head"><span class="lbl">价格走势</span></div><div class="pc-host"><div class="pc-empty">该来源 / 标的无价格序列</div></div></div>'
+    ? '<div class="price-chart-wrap"><div class="pc-head"><span class="lbl">Price action</span></div><div class="pc-host"><div class="pc-empty">this source / subject has no price series</div></div></div>'
     : '<div class="price-chart-wrap">' +
-      '<div class="pc-head"><span class="lbl">价格走势</span><span class="title">' + escapeHTML(c.subject) + ' · 5 年月线</span><span class="src">yfinance</span></div>' +
-      '<div class="pc-host" data-pchost="' + escapeHTML(c.card_id) + '"><div class="pc-empty">加载 5 年价格走势…</div></div>' +
-      '<div class="pc-foot">实线 MKT 现价 · 虚线 DCF 基线 · 浅线 历史月收盘</div>' +
+      '<div class="pc-head"><span class="lbl">Price action</span><span class="title">' + escapeHTML(c.subject) + ' · 5-year monthly</span><span class="src">yfinance</span></div>' +
+      '<div class="pc-host" data-pchost="' + escapeHTML(c.card_id) + '"><div class="pc-empty">Load 5-year price history…</div></div>' +
+      '<div class="pc-foot">solid line MKT current price · dashed line DCF baseline · light line historical monthly close</div>' +
     '</div>';
   const hero2 = '<div class="cp-hero2"><div class="cp-hero-l">' + _reasoningTree(c) + '</div>' +
     '<div class="cp-hero-r">' + priceChart + '</div></div>';
@@ -2814,19 +2814,19 @@ function renderSingleCard(c) {
         '<div class="cp-source">' + escapeHTML(c.source_ref || '') + '</div>' +
       '</div>' +
       '<div class="cp-kpis">' +
-        (dcf != null ? kpi('基础价值', dcf, false) : '') +
-        (np != null ? kpi('叙事溢价', Math.round(np * 100) + '%', np >= 0.5) : '') +
+        (dcf != null ? kpi('Base value', dcf, false) : '') +
+        (np != null ? kpi('Narrative premium', Math.round(np * 100) + '%', np >= 0.5) : '') +
       '</div>' +
     '</div>' +
-    (insuf ? '<div class="xr-envelope" style="margin:14px 0 0;">⚠ 未能解码:' + escapeHTML((c.decode_detail || {}).reason || '该标的 / 来源数据不足,无法解码。') + '</div>' : '') +
-    (stale ? '<div class="bc-stale"><span class="dot"></span>基于 ' + escapeHTML(c.trade_date) + ' 收盘 · 历史快照</div>' : '') +
+    (insuf ? '<div class="xr-envelope" style="margin:14px 0 0;">⚠ Failed to decode:' + escapeHTML((c.decode_detail || {}).reason || 'this name / insufficient source data,Cannot decode.') + '</div>' : '') +
+    (stale ? '<div class="bc-stale"><span class="dot"></span>based on ' + escapeHTML(c.trade_date) + ' Close · historical snapshot</div>' : '') +
     hero2 +
     // ONE continuous reading chain (adversarial-experiment-converged):
-    // 押什么/多稀有/信心/本质 → [为什么:真实多空论战] → 什么会证伪/风险回报 → 审计折叠
+    // betting on what/how rare/Confidence/Essence → [Why:Real bull-bear debate] → What would falsify it/Risk/reward → Audit fold
     renderXrayTop(c) +
-    _flowConn('押什么、多拥挤、是什么都清楚了 —— 但市场<b>凭什么</b>敢这么押?进真实战场,听控辩双方当庭举证。') +
+    _flowConn('What’s bet, how crowded, and what it is are all clear —— but the market<b>Why</b>dares to bet this?into the real arena,Hear both sides present their evidence.') +
     renderDeepAnalysis(c) +
-    _flowConn('看完真实多空与证据分歧 —— 这注的<b>生死线</b>是什么?又该<b>押多重</b>?') +
+    _flowConn('after reviewing the real bull-bear case and evidence disagreement —— this bet’s<b>kill line</b>What?and should<b>how heavily it bets</b>?') +
     renderXrayBottom(c) +
     _auditFold(c) +
   '</div>';
@@ -2846,9 +2846,9 @@ function _auditFold(c) {
   // just the one load-bearing chain + at most ONE year-by-year DCF table — and (2) the
   // method/limits caveats. The full multi-branch tree, per-node evidence chips and
   // what-if stamps were dropped: those are the X-RAY layer's job up top, not the proof.
-  const tree = '<div class="cp-tree"><div class="cp-sec-lab">反解推导 · 主估值法(PRIMARY)如何从现价倒推 —— 逐年现金流底稿</div>' +
+  const tree = '<div class="cp-tree"><div class="cp-sec-lab">Reverse-solve · primary valuation method(PRIMARY)how to back out from current price —— Year-by-year cash flow workpaper</div>' +
     renderDerivationTree(c) + '</div>';
-  return '<details class="cp-audit"><summary>底稿 · 反解推导 + 方法局限(每个结论背后的实际计算与诚实假设)</summary>' +
+  return '<details class="cp-audit"><summary>Workpaper · reverse-solve derivation + Method & limitations(The actual math and honest assumptions behind each conclusion)</summary>' +
     '<div class="cp-audit-body">' + tree + _methodLimits(c) + '</div></details>';
 }
 
@@ -2857,19 +2857,19 @@ function _auditFold(c) {
 function _methodLimits(c) {
   const pf = c.card_kind === 'portfolio';
   const items = pf
-    ? ['主题暴露 = 各持仓隐含主题按权重聚合的启发式,集中度阈值为经验值。',
-       '跨持仓综合的关系与叙事来自 LLM 研究,非独立数据源。',
-       '各持仓继承单股卡同一套 DCF 局限:基线增速用通用 15%(非公司专属共识)、贴现率为 CAPM 权益成本(非债务加权 WACC)、未建模股权激励稀释。',
-       '信源分级基于来源声称的 host,未做检索验真。']
-    : ['基线增速:用通用 15%,非公司专属共识(数据层暂无可靠 5 年营收共识)—— 高于公司实际增速时高估基础价值、低于时低估。',
-       '贴现率:CAPM 权益成本(rf 4.5% + β×5.5%,β 截断 1.5),非债务加权 WACC。',
-       '未建模股权激励(SBC)稀释 → 对高 SBC 公司每股价值偏高。',
-       '终值(2.5% 永续)占估值比重高,结果对终值假设敏感。',
-       '蒙特卡洛区间用通用扰动范围,是敏感性带、非校准概率分布。',
-       '交叉验证:叙事倾向与证据判定来自同一模型的两次研究,非独立神谕。',
-       '信源分级基于来源声称的 host,未做检索验真(可能失效 / 不符)。',
-       '未做校准 / 回测;数值仅供推理透明,不构成投资建议。'];
-  return '<details class="cp-limits"><summary>方法与局限 · METHOD &amp; LIMITS</summary><ul>' +
+    ? ['Theme exposure = a heuristic aggregating each holding’s implied themes by weight,the concentration threshold is empirical.',
+       'cross-holding synthesized relations and narrative come from LLM research,not an independent source.',
+       'Each holding inherits the same DCF limitations as the single-stock card:baseline growth uses a generic 15%(not company-specific consensus), discount rate is CAPM cost of equity(Unlevered WACC), SBC dilution not modeled.',
+       'source tiering is based on the source’s claimed host,no retrieval verification done.']
+    : ['Baseline growth rate:Using a generic 15%,not company-specific consensus(No reliable 5-year revenue consensus in the data layer)—— overstates base value above the company’s actual growth, understates below it.',
+       'Discount rate:CAPM cost of equity(rf 4.5% + β×5.5%,β capped at 1.5),not a debt-weighted WACC.',
+       'SBC not modeled(SBC)Dilution → Overstates per-share value for high-SBC companies.',
+       'Terminal value(2.5% terminal)high share of valuation,the result is sensitive to terminal-value assumptions.',
+       'the Monte Carlo interval uses a generic perturbation range,a sensitivity band, not a calibrated probability distribution.',
+       'Cross-check:Narrative lean and evidence verdict come from two passes of the same model,not an independent oracle.',
+       'source tiering is based on the source’s claimed host,not search-verified(may break down / mismatch)。',
+       'Not calibrated / Backtest;Values are for reasoning transparency only,Does not constitute investment advice.'];
+  return '<details class="cp-limits"><summary>Method & Limitations · METHOD &amp; LIMITS</summary><ul>' +
     items.map(t => '<li>' + escapeHTML(t) + '</li>').join('') + '</ul></details>';
 }
 
@@ -2907,27 +2907,27 @@ function renderAgentPanel() {
         '<div class="txt">' + escapeHTML(a.text || '') + '</div></div>').join('');
     const turns = interactive ? (state.chat[c.card_id] || []).map(t =>
       '<div class="bc-turn ' + (t.role === 'you' ? 'you' : 'agent') + '">' +
-        '<div class="who">' + (t.role === 'you' ? '你' : 'AGENT') + '</div>' +
+        '<div class="who">' + (t.role === 'you' ? 'you' : 'AGENT') + '</div>' +
         '<div class="msg">' + escapeHTML(t.text) + '</div>' +
         (t.tools ? '<div class="tools">▾ ' + escapeHTML(t.tools) + '</div>' : '') +
       '</div>').join('') : '';
     stream =
       (actRows
-        ? '<div class="ap-seclab">解码活动 · DECODE ACTIVITY</div>' + actRows
-        : '<div class="af-placeholder" id="af-placeholder"><strong>暂无解码活动。</strong><br><br>这张卡的解码记录会逐步列出(模式判定 · 估值计算 · 证据检索 · 叙事关系)。</div>') +
+        ? '<div class="ap-seclab">Decode Activity · DECODE ACTIVITY</div>' + actRows
+        : '<div class="af-placeholder" id="af-placeholder"><strong>No decode activity yet.</strong><br><br>This card’s decode log is listed step by step(Mode detection · valuation · evidence retrieval · narrative relations)。</div>') +
       _whatifExhibit(c) +
-      (turns ? '<div class="ap-seclab">讨论 · DISCUSS</div>' + turns : '') +
+      (turns ? '<div class="ap-seclab">Discuss · DISCUSS</div>' + turns : '') +
       '<div class="af-stream" id="af-stream"></div>';
   } else {
     stream = '<div class="af-placeholder" id="af-placeholder"><strong>Agent idle.</strong><br><br>' +
-      '解码一个 bet,或切到某张卡 —— 这里显示它的完整解码活动(decision / computation / evidence / relation),底部可追问、做 what-if。</div>' +
+      'decode a bet,or switch to a card —— this shows its full decode activity(decision / computation / evidence / relation),ask follow-ups and run what-ifs below.</div>' +
       '<div class="af-stream" id="af-stream"></div>';
   }
   // Ask dialog pinned at the bottom: scenario chips + input.
   const foot = interactive
     ? '<div class="ap-foot bc-discuss">' + renderScenarioChips(c) +
         '<div class="bc-ask ap-ask"><input type="text" data-askinput="' + escapeHTML(c.card_id) +
-        '" placeholder="追问 ' + subj + '…"><button data-ask="' + escapeHTML(c.card_id) + '">问</button></div>' +
+        '" placeholder="Follow up ' + subj + '…"><button data-ask="' + escapeHTML(c.card_id) + '">Ask</button></div>' +
       '</div>'
     : '';
   feed.innerHTML = '<div class="ap-wrap">' + head +
@@ -2943,15 +2943,15 @@ function _whatifExhibit(c) {
   const ov = Object.entries((rev.params && rev.params.overrides) || {})
     .map(([k, v]) => k + '=' + v).join(' · ');
   return '<div class="bc-whatif">' +
-    '<div class="wh"><span>WHAT-IF · 修正提案</span><span class="ov">' + escapeHTML(ov) + '</span></div>' +
+    '<div class="wh"><span>WHAT-IF · Revision proposal</span><span class="ov">' + escapeHTML(ov) + '</span></div>' +
     (diff
-      ? '<div class="wh-row"><span class="field">' + escapeHTML(String(diff.field || '隐含值')) + '</span>' +
+      ? '<div class="wh-row"><span class="field">' + escapeHTML(String(diff.field || 'implied value')) + '</span>' +
           '<span class="before">' + _fmtNum(diff.before) + '</span>' +
           '<span class="arrow">→</span>' +
           '<span class="after">' + _fmtNum(diff.after) + '</span></div>'
-      : '<div class="wh-row note">（这个假设下没有可解的对比）</div>') +
-    '<div class="wh-note">原卡不动 · 存成带溯源的衍生卡</div>' +
-    '<div class="wh-act"><button data-revsave="' + escapeHTML(c.card_id) + '">保存为衍生卡 →</button></div>' +
+      : '<div class="wh-row note">(no solvable comparison under this assumption)</div>') +
+    '<div class="wh-note">Original card untouched · saved as a derived card with lineage</div>' +
+    '<div class="wh-act"><button data-revsave="' + escapeHTML(c.card_id) + '">Save as derived card →</button></div>' +
   '</div>';
 }
 
@@ -2964,17 +2964,17 @@ function renderDerivedCard(c) {
   return '<div class="bet-card derived" data-card="' + escapeHTML(c.card_id) + '">' +
     '<div class="dh">' +
       '<div><span class="bc-subj sm">' + escapeHTML(c.subject) + '</span>' +
-        '<span class="from">← 衍生自 ' + escapeHTML(c.subject) + ' · WHAT-IF</span></div>' +
+        '<span class="from">← derived from ' + escapeHTML(c.subject) + ' · WHAT-IF</span></div>' +
       '<button class="bc-del" data-del="' + escapeHTML(c.card_id) + '" title="Remove">✕</button>' +
     '</div>' +
     '<div class="d-body">' +
       (diff
-        ? '<div class="bet-row"><span class="claim">' + escapeHTML(String(diff.field || '隐含值')) +
+        ? '<div class="bet-row"><span class="claim">' + escapeHTML(String(diff.field || 'implied value')) +
             (ov ? '<span class="iv">' + escapeHTML(ov) + '</span>' : '') + '</span>' +
             '<span class="nums"><span class="impl hot">' + _fmtNum(diff.after) + '</span>' +
-            '<span class="base">原卡 ' + _fmtNum(diff.before) + '</span></span></div>'
-        : '<div class="bc-intro">衍生快照</div>') +
-      '<div class="d-prov">▸ 派生:reverse DCF 在覆盖假设下重解 · 父卡不变 · 溯源保留</div>' +
+            '<span class="base">original card ' + _fmtNum(diff.before) + '</span></span></div>'
+        : '<div class="bc-intro">derived snapshot</div>') +
+      '<div class="d-prov">▸ Derive:reverse DCF re-solved under override assumptions · parent card unchanged · lineage preserved</div>' +
     '</div>' +
   '</div>';
 }
@@ -3024,7 +3024,7 @@ function bindCardEvents() {
   document.querySelectorAll('[data-rtjump]').forEach(el =>
     el.addEventListener('click', () => {
       const t = document.getElementById(el.getAttribute('data-rtjump'));
-      if (!t) { showToast('该小节本卡暂无数据'); return; }
+      if (!t) { showToast('No data for this section on this card'); return; }
       t.scrollIntoView({ behavior: 'smooth', block: 'center' });
       t.classList.add('rt-flash');
       setTimeout(() => t.classList.remove('rt-flash'), 1300);
@@ -3089,7 +3089,7 @@ function _liveMode() {
   const tag = document.getElementById('mode-tag');
   if (!field || !tag) return;
   const v = field.value.trim();
-  tag.textContent = v ? (inferSource(v) === 'portfolio' ? '将解码 · 组合' : '将解码 · 单股') : '—';
+  tag.textContent = v ? (inferSource(v) === 'portfolio' ? 'Will decode · portfolio' : 'Will decode · single stock') : '—';
 }
 document.getElementById('decode-btn').addEventListener('click', () => {
   const v = document.getElementById('bet-input').value;

@@ -1,4 +1,4 @@
-"""PriceLens reverse DCF prototype.
+"""Bet Decoder reverse DCF prototype.
 
 Run: python reverse_dcf.py NVDA
 Deps: pip install -r requirements.txt
@@ -409,7 +409,7 @@ def rank_driver_elasticity(base: Assumptions, data: CompanyData,
 
 
 def main(ticker: str):
-    print(f"=== PriceLens reverse DCF · {ticker} ===\n")
+    print(f"=== Bet Decoder reverse DCF · {ticker} ===\n")
     print("Pulling data from yfinance...")
     data = pull_company_data(ticker)
 

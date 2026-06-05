@@ -117,7 +117,7 @@ def migrate_cache_category(conn, category: str, dry_run: bool) -> tuple[int, int
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Migrate PriceLens JSON files to SQLite.")
+    parser = argparse.ArgumentParser(description="Migrate Bet Decoder JSON files to SQLite.")
     parser.add_argument("--db", default="pricelens.db", help="SQLite DB path (default: pricelens.db)")
     parser.add_argument("--dry-run", action="store_true", help="Count only; do not write to DB.")
     args = parser.parse_args()

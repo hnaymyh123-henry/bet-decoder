@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "pricelens-api",
+      "name": "bet-decoder-api",
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "uvicorn", "api:app", "--port", "8765", "--log-level", "warning"],
       "port": 8765,

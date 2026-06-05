@@ -1,4 +1,4 @@
-"""SQLite storage layer for PriceLens / Bet Decoder.
+"""SQLite storage layer for Bet Decoder / Bet Decoder.
 
 Replaces outputs/*.json + cache/*/*.json. As of the Bet Decoder pivot (M1) this
 layer also owns the Bet Card data model: the `bet_cards` envelope plus the

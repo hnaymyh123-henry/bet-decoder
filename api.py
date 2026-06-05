@@ -1,4 +1,4 @@
-"""PriceLens FastAPI backend.
+"""Bet Decoder FastAPI backend.
 
 Serves cached pipeline outputs to the frontend. Does NOT trigger any LLM calls.
 
@@ -58,7 +58,7 @@ APP_HTML_PATH = Path(__file__).parent / "app.html"
 PRICE_HISTORY_CACHE_DIR = Path(__file__).parent / "cache" / "price_history"
 PRICE_HISTORY_TTL_SECONDS = 24 * 60 * 60  # 1 day
 
-app = FastAPI(title="PriceLens API")
+app = FastAPI(title="Bet Decoder API")
 
 # SQLite-backed storage (v0.6). FastAPI runs sync endpoints in a threadpool,
 # and sqlite3 connections are bound to the thread that created them, so we open
