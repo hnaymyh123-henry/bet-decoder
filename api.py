@@ -49,9 +49,19 @@ def _subject_key(subject: str) -> str:
     return str(subject or "").strip().upper()
 
 
-def _latest_position_context(conn, subject: str) -> dict:
+def _latest_position_context(conn, subject: str, preview_has_position=None) -> dict:
     latest = db.get_latest_position_ledger_event(conn, _subject_key(subject))
     if not latest:
+        # SPEC A5-4 case 2: no ledger row but the caller passed preview_has_position
+        # → treat as a preview only; the response must carry position_source
+        # "user_preview" so monitoring never auto-pushes KILL on an unconfirmed leg.
+        if preview_has_position:
+            return {
+                "has_position": True,
+                "position_source": "user_preview",
+                "position_freshness": "unknown",
+                "latest_event": None,
+            }
         return {
             "has_position": False,
             "position_source": "none",
@@ -74,6 +84,27 @@ def _panel_from_card(card) -> list[dict]:
     detail = getattr(card, "decode_detail", None) or {}
     panel = detail.get("panel")
     return panel if isinstance(panel, list) else []
+
+
+def _persist_constituents(conn, card) -> None:
+    """Persist a portfolio's decoded leg cards and record their stable ids on the
+    parent (SPEC A1-8 / E-8). Legs ride on ``card._constituent_cards`` (a runtime
+    attr set by decoder._decode_portfolio). db.save_card dedups market cards per
+    trading day, so an existing single card for the same ticker/day is reused, not
+    duplicated. No-op for non-portfolio cards. Must run before the parent is saved
+    so decode_detail carries constituent_card_ids into decode_detail_json."""
+    constituents = getattr(card, "_constituent_cards", None)
+    if not constituents or not isinstance(getattr(card, "decode_detail", None), dict):
+        return
+    ids: list[str] = []
+    for leg in constituents:
+        try:
+            leg_id = db.save_card(conn, leg)
+            leg.card_id = leg_id
+            ids.append(leg_id)
+        except Exception:
+            continue
+    card.decode_detail["constituent_card_ids"] = ids
 
 
 def _extract_card_decision(card, position_context: dict | None = None) -> dict | None:
@@ -487,6 +518,55 @@ def get_card(card_id: str):
         return JSONResponse(content=db.card_to_json_full(card))
 
 
+def _card_plan_response(conn, card_id: str, preview_has_position=None, target_price=None):
+    """Build the Trade Plan response for a stored card. Returns (status_code, body).
+
+    Shared by GET (convenience) and POST (SPEC_F §F2). Does not fetch missing data:
+    if the card has no v2 panel or no plan can be built (no KILL line), it returns an
+    explicit degraded response rather than inventing a plan.
+    """
+    card = db.get_card(conn, card_id)
+    if card is None:
+        return 404, {"error_code": "card_not_found", "message": f"No card for id {card_id}."}
+
+    detail = getattr(card, "decode_detail", None) or {}
+    panel = _panel_from_card(card)
+    position_context = _latest_position_context(conn, card.subject, preview_has_position)
+    if not panel:
+        return 200, {
+            "card_id": card_id,
+            "subject": card.subject,
+            "status": "degraded",
+            "reason": "decode_detail.panel is missing or empty",
+            "position_context": position_context,
+            "plan": None,
+        }
+
+    import trade_plan
+
+    plan = trade_plan.build_trade_plan(
+        panel,
+        position_context,
+        detail.get("reconciliation") if isinstance(detail.get("reconciliation"), dict) else None,
+    )
+    if plan is None:
+        return 200, {
+            "card_id": card_id,
+            "subject": card.subject,
+            "status": "degraded",
+            "reason": "trade plan could not be built from available panel data",
+            "position_context": position_context,
+            "plan": None,
+        }
+    return 200, {
+        "card_id": card_id,
+        "subject": card.subject,
+        "status": "ok",
+        "position_context": position_context,
+        "plan": plan,
+    }
+
+
 @app.get("/api/cards/{card_id}/plan")
 def get_card_plan(card_id: str):
     """Build a local Trade Plan for a stored card from its decode_detail.panel.
@@ -495,49 +575,30 @@ def get_card_plan(card_id: str):
     returns an explicit degraded response rather than inventing a plan.
     """
     with db.connection(DB_PATH) as conn:
-        card = db.get_card(conn, card_id)
-        if card is None:
-            return JSONResponse(
-                status_code=404,
-                content={"error_code": "card_not_found", "message": f"No card for id {card_id}."},
-            )
+        status, body = _card_plan_response(conn, card_id)
+        if status != 200:
+            return JSONResponse(status_code=status, content=body)
+        return body
 
-        detail = getattr(card, "decode_detail", None) or {}
-        panel = _panel_from_card(card)
-        position_context = _latest_position_context(conn, card.subject)
-        if not panel:
-            return {
-                "card_id": card_id,
-                "subject": card.subject,
-                "status": "degraded",
-                "reason": "decode_detail.panel is missing or empty",
-                "position_context": position_context,
-                "plan": None,
-            }
 
-        import trade_plan
+@app.post("/api/cards/{card_id}/plan")
+def post_card_plan(card_id: str, body=Body(default=None)):
+    """SPEC_F §F2 — Trade Plan.
 
-        plan = trade_plan.build_trade_plan(
-            panel,
-            position_context,
-            detail.get("reconciliation") if isinstance(detail.get("reconciliation"), dict) else None,
-        )
-        if plan is None:
-            return {
-                "card_id": card_id,
-                "subject": card.subject,
-                "status": "degraded",
-                "reason": "trade plan could not be built from available panel data",
-                "position_context": position_context,
-                "plan": None,
-            }
-        return {
-            "card_id": card_id,
-            "subject": card.subject,
-            "status": "ok",
-            "position_context": position_context,
-            "plan": plan,
-        }
+    Body: {preview_has_position?: bool, target_price?: number, lang?: str}.
+    preview_has_position lets an unheld ticker preview a plan (position_source
+    "user_preview"); target_price is accepted for shape-compatibility (the engine
+    derives its own view from the panel). Returns {card_id, subject, status,
+    position_context, plan}. position_context is always present (SPEC F-13).
+    """
+    body = _require_dict(body) or {}
+    preview = body.get("preview_has_position")
+    target_price = body.get("target_price")
+    with db.connection(DB_PATH) as conn:
+        status, resp = _card_plan_response(conn, card_id, preview, target_price)
+        if status != 200:
+            return JSONResponse(status_code=status, content=resp)
+        return resp
 
 
 @app.post("/api/decode")
@@ -610,6 +671,9 @@ def decode_card(body=Body(default=None)):
             )
 
         try:
+            # SPEC A1-8 / E-8: a portfolio decode also produces each leg's single
+            # card as a constituent. Persist those and record their ids on the parent.
+            _persist_constituents(conn, card)
             stored_id = db.save_card(conn, card)
             card.card_id = stored_id
             stored = db.get_card(conn, stored_id) or card
@@ -1046,13 +1110,16 @@ def _monitor_subjects(conn) -> list[str]:
 
 def _build_feed_item(subject: str, trigger: str, severity: str, headline: str,
                      changes: list | None = None, kill_status: dict | None = None,
-                     card_id: str | None = None) -> dict:
+                     card_id: str | None = None, why_severity: list | None = None) -> dict:
     return {
         "item_id": _uuid.uuid4().hex,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "subject": subject,
         "trigger": trigger,
         "severity": severity,
+        # SPEC E-17 / W3-3: every feed item carries why_severity[] so the UI can
+        # tell a real read from unscanned/honest-empty (which is severity=unknown).
+        "why_severity": why_severity or [],
         "headline": headline,
         "changes": changes or [],
         "kill_status": kill_status,
@@ -1123,6 +1190,11 @@ def monitor_scan(body=Body(default=None)):
                         trigger=trigger,
                         severity=severity,
                         headline=f"{subj} KILL 状态: {kill_status} — {kill.get('line', '')}",
+                        why_severity=[
+                            f"KILL line {kill_status}: {kill.get('line', '')}",
+                            ("thesis invalidated (N consecutive breaches)" if kill_status == "triggered"
+                             else "within 20% of the KILL threshold"),
+                        ],
                         kill_status={
                             "approached": kill_status == "approached",
                             "kill_line": kill.get("line"),

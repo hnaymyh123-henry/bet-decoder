@@ -2359,6 +2359,11 @@ def _decode_portfolio(source_input, lang, emit,
     # not a hunt × every holding).  The aggregate is therefore an honest empty
     # roll-up; decode a holding as a single card to get its evidence.
     leg_evidence: dict[str, dict] = {}
+    # Successfully-decoded leg cards, retained so the API save layer can persist
+    # them as single constituent cards and record parent.decode_detail
+    # ["constituent_card_ids"] (SPEC A1-8 / E-8 MUST: the portfolio parent must
+    # stably reference each holding's single-stock card for synthesis + shared-KILL).
+    leg_cards: list = []
     failed_legs: dict[str, str] = {}     # ticker -> 失败原因(诚实暴露,不再静默吞)
     import time as _time
     for spec in holdings_spec:
@@ -2391,6 +2396,7 @@ def _decode_portfolio(source_input, lang, emit,
                 if isinstance(detail.get("evidence"), dict):
                     leg_evidence[tk] = detail["evidence"]
                 if decoded_ok:
+                    leg_cards.append(leg)
                     break
                 # Leg RETURNED but produced nothing aggregatable: _decode_market turns
                 # an upstream (yfinance) failure / missing price into an *insufficient
@@ -2441,6 +2447,10 @@ def _decode_portfolio(source_input, lang, emit,
         "evidence": _aggregate_leg_evidence(leg_evidence),
         "lang": lang,
     }
+    # Hand the decoded leg cards to the save layer (runtime attr, not persisted on
+    # this object) so it can store them as single constituent cards and backfill
+    # decode_detail["constituent_card_ids"] (SPEC A1-8 / E-8).
+    card._constituent_cards = leg_cards          # type: ignore[attr-defined]
     _safe_emit(emit, phase="assemble", kind="decision",
                text=f"组装组合卡完成({len(holdings)} 持仓,{len(per_ticker)} 个成功解码"
                     + (f",{len(failed_legs)} 个失败(数据源临时不可用)" if failed_legs else "") + ")",

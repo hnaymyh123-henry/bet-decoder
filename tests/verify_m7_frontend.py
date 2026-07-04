@@ -167,26 +167,24 @@ def main() -> int:
     )
     check("activity feed SSE and replay", activity)
 
-    scrub = re.sub(r"/\*.*?\*/", "", body, flags=re.DOTALL)
-    scrub = re.sub(r"//[^\n]*", "", scrub)
-    violations: list[str] = []
-    if re.search(r"font-style\s*:\s*italic", scrub):
-        violations.append("italic")
-    if re.search(r"(linear|radial|conic)-gradient", scrub):
-        violations.append("gradient")
-    if re.search(r"font-family\s*:\s*['\"]?(Inter|Roboto|Arial|Times|Space Grotesk|Helvetica)\b", scrub, re.I):
-        violations.append("forbidden-font")
-    if re.search(r"\b(blue|purple|indigo|violet)\b", scrub, re.I):
-        violations.append("blue/purple-keyword")
-    for hexm in re.findall(r"#([0-9a-fA-F]{6})", scrub):
-        r, g, b = int(hexm[0:2], 16), int(hexm[2:4], 16), int(hexm[4:6], 16)
-        if b > 140 and b - r > 50 and b - g > 40:
-            violations.append(f"blueish #{hexm}")
-        if r > 110 and b > 110 and g + 50 < r and g + 50 < b:
-            violations.append(f"purpleish #{hexm}")
-    check("design-system compliance", not violations, ", ".join(violations) if violations else "none")
+    # SPEC_E §E-19/E-20 v2 design system: dark canvas #0B0E11, Inter, purple
+    # #7B61FF AI/agent accent, up-green / down-red, tabular numbers. The old v1
+    # linter (oxblood/Geist-only, no-purple, no-gradient) is retired — it forbade
+    # exactly the palette the v2 spec it was meant to guard now mandates.
+    ds_tokens = {
+        "dark canvas #0B0E11": "#0B0E11",
+        "card surface #161A1F": "#161A1F",
+        "AI/agent accent #7B61FF (purple)": "#7B61FF",
+        "up-green #16C784": "#16C784",
+        "down-red #F6465D": "#F6465D",
+        "warn amber #F0B90B": "#F0B90B",
+    }
+    missing_tokens = [name for name, hexv in ds_tokens.items() if hexv not in body]
+    check("design-system compliance (SPEC_E v2 palette)", not missing_tokens,
+          ("missing " + ", ".join(missing_tokens)) if missing_tokens else "dark + #7B61FF purple accent present")
 
-    check("fonts use Geist family", "Geist Mono" in body and "Geist" in body)
+    check("fonts: Inter primary + mono for numbers (E-19)",
+          '"Inter"' in body and ("Geist Mono" in body or "ui-monospace" in body))
     check("tables for dense data", "<table class=\"rel-table\"" in body and "pf-holdings" in body and "<table" in body)
     check("numeric cells mono/right aligned", "var(--mono)" in body and "text-align: right" in body and ".pf-holdings .wt" in body and "tnum" in body)
     check("responsive single-column collapse", "@media (max-width: 1024px)" in body and 'grid-template-areas: "canvas" "feed" "synth"' in body)
@@ -212,6 +210,45 @@ def main() -> int:
     check("reasoning visualization layer", viz)
     check("old thin chain removed", "const chain = (d.chain || [])" not in body and "const bets = (d.bets || []).map" not in body)
     check("price chart lazy + honest empty", "/api/chart/" in body and "state.priceHistory" in body and ("no price history yet" in body or "No price history available" in body))
+
+    # --- v2 product surfaces (SPEC_E E-9/E-10/E-11/E-14..E-17 · Waves 2-3) ---
+    trade_plan = (
+        "function renderTradePlan" in body
+        and "cp-plan" in body
+        and "self_falsification" in body
+        and "self-falsification" in body.lower()
+        and "KILL line" in body
+        and "function ensureTradePlanContext" in body
+        and "/plan" in body and "method: 'POST'" in body
+        and "function confirmPosition" in body
+        and "/api/positions/events" in body
+        and "data-poscommit" in body
+        and "position_context" in body
+        and "stale_snapshot" in body
+    )
+    check("trade plan / decision-discipline section (E-10/E-11)", trade_plan)
+
+    ahab = (
+        "function _portfolioAhaB" in body
+        and "_portfolioAhaB(pf, decoded)" in body
+        and "ahab-hd" in body
+        and "Systematic KILL" in body
+        and "ahab-conc-bar" in body
+        and "data_missing" in body
+    )
+    check("portfolio Aha-B composite (E-9)", ahab)
+
+    monitor = (
+        "function renderChangesFeed" in body
+        and "/api/monitor/feed" in body
+        and "/api/monitor/scan" in body
+        and 'id="changes-panel"' in body
+        and 'id="changes-btn"' in body
+        and "why_severity" in body
+        and "sev-unknown" in body
+        and "not reported as calm" in body
+    )
+    check("changes / monitoring feed (E-14..E-17, W3)", monitor)
 
     return report()
 

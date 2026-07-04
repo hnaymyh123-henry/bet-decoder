@@ -1234,7 +1234,93 @@
   .ec-ask .send { width: 28px; height: 28px; border-radius: 8px; background: var(--ai); color: #fff; border: none; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; cursor: pointer; flex: none; }
   .ec-ask .send:disabled { opacity: .4; cursor: default; }
   .ec-empty { padding: 26px 10px; text-align: center; font-size: 12px; color: var(--tx3); }
+
+  /* ============ v2 · TRADE PLAN — decision discipline (SPEC_E E-10/E-11, SPEC_D) ============ */
+  .cp-plan { margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); overflow: hidden; }
+  .cp-plan > summary { cursor: pointer; padding: 12px 15px; font-size: 12px; font-weight: 700; letter-spacing: .02em; color: var(--ink); list-style: none; display: flex; align-items: center; gap: 8px; }
+  .cp-plan > summary::-webkit-details-marker { display: none; }
+  .cp-plan > summary::before { content: "▸"; color: var(--ai); font-size: 11px; }
+  .cp-plan[open] > summary::before { content: "▾"; }
+  .tp-stance-badge { margin-left: auto; }
+  .tp-body { padding: 4px 15px 16px; }
+  .tp-strip { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: baseline; padding: 8px 0 12px; border-bottom: 1px solid var(--line); }
+  .tp-stance { font-family: var(--mono); font-size: 20px; font-weight: 700; text-transform: uppercase; }
+  .tp-stance.buy { color: var(--up); }
+  .tp-stance.hold { color: var(--ink-2); }
+  .tp-stance.trim { color: var(--down); }
+  .tp-meta { font-size: 11.5px; color: var(--tx2); }
+  .tp-meta b { color: var(--ink); font-family: var(--mono); }
+  .tp-badge { font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; letter-spacing: .04em; text-transform: uppercase; }
+  .tp-badge.ok { background: rgba(22,199,132,.14); color: var(--up); }
+  .tp-badge.warn { background: rgba(240,185,11,.16); color: var(--amber); }
+  .tp-badge.off { background: rgba(246,70,93,.14); color: var(--down); }
+  .tp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  @media (max-width: 720px) { .tp-grid { grid-template-columns: 1fr; } }
+  .tp-cell { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--card2); }
+  .tp-cell .k { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--tx3); margin-bottom: 6px; }
+  .tp-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; padding: 2px 0; }
+  .tp-row .v { font-family: var(--mono); color: var(--ink); }
+  .tp-cell.tp-kill { border-left: 3px solid var(--down); }
+  .tp-kill .line { font-family: var(--mono); color: var(--down); font-size: 13px; margin-bottom: 4px; }
+  .tp-sf { margin-top: 12px; border: 1px dashed var(--amber); border-radius: 10px; padding: 10px 12px; background: rgba(240,185,11,.06); }
+  .tp-sf .k { color: var(--amber); font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
+  .tp-sf .t { font-family: var(--mono); color: var(--ink); font-size: 12.5px; margin-top: 4px; }
+  .tp-pos { margin-top: 12px; font-size: 11.5px; padding: 8px 12px; border-radius: 8px; background: var(--card2); border: 1px solid var(--line); color: var(--ink-2); }
+  .tp-pos.stale { background: rgba(240,185,11,.08); border-color: var(--amber); color: var(--amber); }
+  .tp-pos.preview { background: rgba(123,97,255,.08); border-color: var(--ai); }
+  .tp-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .tp-acts button { font-family: var(--sans); font-size: 11.5px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--card2); color: var(--ink-2); cursor: pointer; }
+  .tp-acts button:hover { border-color: var(--ai); color: var(--ink); }
+  .tp-refuse { padding: 12px; border: 1px dashed var(--down); border-radius: 10px; color: var(--down); font-size: 12px; background: rgba(246,70,93,.05); }
+  .tp-noact { color: var(--amber); font-size: 11px; margin-top: 8px; }
+
+  /* ============ v2 · PORTFOLIO Aha B composite (SPEC_E E-9) ============ */
+  .ahab { margin: 14px 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); padding: 14px 16px; }
+  .ahab-hd { font-size: 12px; font-weight: 700; color: var(--ai); letter-spacing: .02em; margin-bottom: 4px; }
+  .ahab-headline { font-size: 15px; color: var(--ink); margin-bottom: 12px; }
+  .ahab-headline b { color: var(--amber); }
+  .ahab-sub { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 860px) { .ahab-sub { grid-template-columns: 1fr; } }
+  .ahab-box { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--card2); }
+  .ahab-box .k { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--tx3); margin-bottom: 8px; }
+  .ahab-kill { display: flex; flex-direction: column; gap: 6px; }
+  .ahab-kill .row { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
+  .ahab-kill .tk { font-family: var(--mono); color: var(--ink); }
+  .ahab-kill .ln { font-family: var(--mono); color: var(--down); font-size: 11.5px; }
+  .ahab-conc-bar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; margin: 6px 0; }
+  .ahab-conc-bar .seg { display: flex; align-items: center; justify-content: center; font-size: 9.5px; color: #05070A; font-weight: 700; }
+  .ahab-conc-bar .macro { background: var(--tx2); }
+  .ahab-conc-bar .theme { background: var(--teal); }
+  .ahab-conc-bar .company { background: var(--ai); }
+  .ahab-empty { font-size: 11.5px; color: var(--tx3); }
+
+  /* ============ v2 · CHANGES / MONITOR feed (SPEC_E E-14..E-17 · Wave 3) ============ */
+  .chg-open { background: transparent; border: 1px solid var(--line); color: var(--ink-2); font-family: var(--sans); font-size: 11px; padding: 4px 10px; border-radius: 8px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+  .chg-open:hover { border-color: var(--ai); color: var(--ink); }
+  .chg-open .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); display: none; }
+  .chg-open.has-items .dot { display: inline-block; }
+  .chg-drawer { position: fixed; top: 0; right: 0; height: 100vh; width: 420px; max-width: 92vw; background: var(--paper-2); border-left: 1px solid var(--line); box-shadow: -20px 0 40px rgba(0,0,0,.4); transform: translateX(100%); transition: transform .22s ease; z-index: 60; display: flex; flex-direction: column; }
+  .chg-drawer.open { transform: translateX(0); }
+  .chg-hd { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .chg-hd .ttl { font-size: 13px; font-weight: 700; color: var(--ink); }
+  .chg-hd .close { margin-left: auto; background: transparent; border: none; color: var(--tx2); font-size: 18px; cursor: pointer; }
+  .chg-hd .scan { background: var(--ai); color: #fff; border: none; font-size: 11px; padding: 5px 10px; border-radius: 7px; cursor: pointer; font-family: var(--sans); }
+  .chg-list { overflow-y: auto; padding: 10px 14px; flex: 1; }
+  .chg-item { border: 1px solid var(--line); border-left-width: 3px; border-radius: 9px; padding: 10px 12px; margin-bottom: 9px; cursor: pointer; background: var(--card); }
+  .chg-item:hover { border-color: var(--ai); }
+  .chg-item.sev-high { border-left-color: var(--down); }
+  .chg-item.sev-medium { border-left-color: var(--amber); }
+  .chg-item.sev-low { border-left-color: var(--tx3); }
+  .chg-item.sev-unknown { border-left-color: var(--tx2); border-left-style: dashed; }
+  .chg-item .top { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; }
+  .chg-item .subj { font-family: var(--mono); color: var(--ink); font-weight: 700; }
+  .chg-item .sev { font-size: 9.5px; text-transform: uppercase; letter-spacing: .04em; }
+  .chg-item .headline { font-size: 12px; color: var(--ink-2); margin: 6px 0; }
+  .chg-item .why { font-size: 10.5px; color: var(--tx2); margin-top: 3px; }
+  .chg-item .why b { color: var(--amber); }
+  .chg-empty { text-align: center; color: var(--tx3); font-size: 12px; padding: 30px 10px; line-height: 1.6; }
 </style>
+
 </head>
 <body>
 
@@ -1261,6 +1347,7 @@
       </span>
     </div>
     <div class="right">
+      <button class="chg-open" id="changes-btn" title="变化 feed — monitoring changes on confirmed positions + watchlist"><span class="dot"></span>变化</button>
       <span class="offline-badge" id="offline-badge">OFFLINE</span>
       <label class="offline-toggle" id="offline-toggle" title="Offline mode disables live decode / Synthesis">
         <span class="sw"></span>
@@ -1372,6 +1459,17 @@
 </footer>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- ============================ CHANGES / MONITOR drawer (SPEC_E E-14..E-17 · Wave 3) ============================ -->
+<div class="chg-drawer" id="changes-panel" aria-hidden="true">
+  <div class="chg-hd">
+    <span class="ttl">变化 · Changes</span>
+    <button class="scan" id="chg-scan" title="Scan confirmed positions + watchlist">扫描</button>
+    <button class="close" id="chg-close" aria-label="close">×</button>
+  </div>
+  <div class="chg-list" id="chg-list"></div>
+</div>
+
 
 <script>
 /* ============================================================
@@ -1801,7 +1899,7 @@ function renderCanvas() {
   bindCardEvents();
   // The active single card's price chart is always-on → paint it (lazy + cached).
   const ac = _activeCard();
-  if (ac && ac.card_kind !== 'portfolio') { ensureEnhancedChart(ac.subject, ac.card_id); ensureDetail(ac.card_id); }
+  if (ac && ac.card_kind !== 'portfolio') { ensureEnhancedChart(ac.subject, ac.card_id); ensureDetail(ac.card_id); ensureTradePlanContext(ac.card_id, ac.subject); }
   else if (ac && ac.card_kind === 'portfolio') { ensurePortfolioSynth(ac); }   // Module 3 auto-run
 }
 
@@ -1970,6 +2068,7 @@ function renderPortfolioPage(pf) {
       '<div class="cp-source">' + escapeHTML(pf.source_ref || '') + '</div></div>' +
       '<div class="cp-kpis">' + kpis + '</div></div>' +
     '<div class="cp-hero2"><div class="cp-hero-l">' + betBox + '</div><div class="cp-hero-r">' + weightBox + '</div></div>' +
+    _portfolioAhaB(pf, decoded) +
     failedBanner + aggSec + synthSec + holdSec + _pfConstituents(pf, decoded) + _methodLimits(pf) +
   '</div>';
 }
@@ -3303,6 +3402,7 @@ function renderSingleCard(c) {
     _flowConn('after reviewing the real bull-bear case and evidence disagreement —— this bet’s<b>kill line</b>What?and should<b>how heavily it bets</b>?') +
     renderXrayBottom(c) +
     '</div></details>' +
+    renderTradePlan(c) +
     _auditFold(c) +
   '</div>';
 }
@@ -3495,6 +3595,8 @@ function bindCardEvents() {
   // Portfolio constituent row → jump to that holding's tab.
   document.querySelectorAll('[data-gotab]').forEach(el =>
     el.addEventListener('click', () => activateTab(el.getAttribute('data-gotab'))));
+  document.querySelectorAll('[data-poscommit]').forEach(b =>
+    b.addEventListener('click', () => { const p = String(b.getAttribute('data-poscommit')).split('|'); confirmPosition(p[0], p[1], p[2]); }));
   // Reasoning-tree node → smooth-scroll to its detailed section + brief highlight.
   document.querySelectorAll('[data-rtjump]').forEach(el =>
     el.addEventListener('click', () => {
@@ -3586,6 +3688,256 @@ document.querySelectorAll('.composer .preset').forEach(b => {
     decodeBet(inferSource(inp), inp);
   });
 });
+/* ============================================================
+   v2 · TRADE PLAN — decision-discipline pillar (SPEC_E E-10/E-11, SPEC_D)
+   Renders from card.decode_detail.decision (assembled by the backend). Enriches
+   position context via POST /api/cards/{id}/plan and lets the user record what
+   they actually executed (POST /api/positions/events → position_ledger).
+   ============================================================ */
+const _STANCE_ZH = { strong_buy: '重仓买入', accumulate: '逢低加仓', hold: '持有', trim: '减仓', avoid: '回避', short: '做空', maintain: '维持' };
+function _pct01(v, dp) { return (typeof v === 'number' && isFinite(v)) ? (v * 100).toFixed(dp == null ? 1 : dp) + '%' : '—'; }
+
+function renderTradePlan(c) {
+  const dd = c.decode_detail || {};
+  const dec = dd.decision || null;
+  if (!dec || typeof dec !== 'object') return '';
+  const stance = String(dec.stance || '—');
+  const kill = dec.kill || null;
+  const hasKill = kill && kill.line != null && kill.line !== '';
+  const sf = dec.self_falsification || (hasKill ? kill.line : null);
+  // SPEC E-11 / D-H1: no admission-of-error condition → refuse to output a plan.
+  if (!sf || !hasKill) {
+    return '<details class="cp-plan"><summary>Trade Plan · decision discipline <span class="tp-badge off tp-stance-badge">no plan</span></summary>' +
+      '<div class="tp-body"><div class="tp-refuse">Missing an admission-of-error condition (self-falsification / KILL line) —— per the honesty rule, no executable plan is emitted.' +
+      (dec.rationale ? '<div class="tp-meta" style="margin-top:8px">' + escapeHTML(String(dec.rationale)) + '</div>' : '') +
+      '</div></div></details>';
+  }
+  const conv = String(dec.conviction || '—');
+  const arch = String(dec.strategy_archetype || '—');
+  const actionable = dec.actionable !== false;
+  const size = dec.size || {}, entry = dec.entry || {}, edge = dec.edge || {}, stop = dec.stop || null;
+  const deg = dec.degraded === true
+    || (typeof size.status === 'string' && size.status.indexOf('degraded') === 0)
+    || (typeof edge.status === 'string' && edge.status.indexOf('degraded') === 0);
+  const scls = /accumulate|strong_buy/.test(stance) ? 'buy' : (/trim|avoid|short/.test(stance) ? 'trim' : 'hold');
+  const badge = deg ? '<span class="tp-badge warn tp-stance-badge">degraded</span>'
+    : (actionable ? '<span class="tp-badge ok tp-stance-badge">actionable</span>'
+                  : '<span class="tp-badge warn tp-stance-badge">not executable · phase-1</span>');
+
+  const strip = '<div class="tp-strip">' +
+    '<span class="tp-stance ' + scls + '">' + escapeHTML(_STANCE_ZH[stance] || stance) + '</span>' +
+    '<span class="tp-meta">conviction <b>' + escapeHTML(conv) + '</b></span>' +
+    '<span class="tp-meta">archetype <b>' + escapeHTML(arch) + '</b></span>' +
+    (typeof edge.edge_prob === 'number' ? '<span class="tp-meta">edge <b>' + _pct01(edge.edge_prob) + '</b></span>' : '') +
+    (dec.downgraded_from ? '<span class="tp-meta">(downgraded from ' + escapeHTML(String(dec.downgraded_from)) + ')</span>' : '') +
+    '</div>';
+
+  const _stages = Array.isArray(entry.stages) && entry.stages.length
+    ? entry.stages.map(s => (s && typeof s === 'object') ? (s.pct != null ? Math.round(s.pct * 100) + '%' : JSON.stringify(s)) : String(s)).join(' / ') : null;
+  const entryCell = '<div class="tp-cell"><div class="k">Entry</div>' +
+    (entry.price != null ? '<div class="tp-row"><span>reference</span><span class="v">$' + Number(entry.price).toFixed(2) + '</span></div>' : '') +
+    (entry.condition ? '<div class="tp-row"><span>condition</span><span class="v">' + escapeHTML(String(entry.condition)) + '</span></div>' : '') +
+    (_stages ? '<div class="tp-row"><span>staged</span><span class="v">' + escapeHTML(_stages) + '</span></div>' : '') +
+    (entry.reduce_pct != null ? '<div class="tp-row"><span>reduce</span><span class="v">' + Math.round(entry.reduce_pct * 100) + '%</span></div>' : '') +
+    '</div>';
+
+  const sizeCell = '<div class="tp-cell"><div class="k">Size · ¼ Kelly · cap 20% · cash floor 10%</div>' +
+    '<div class="tp-row"><span>target weight</span><span class="v">' + (typeof size.target_weight === 'number' ? _pct01(size.target_weight) : '—') + '</span></div>' +
+    (typeof size.raw_kelly === 'number' ? '<div class="tp-row"><span>raw Kelly</span><span class="v">' + _pct01(size.raw_kelly) + '</span></div>' : '') +
+    (typeof size.conviction_multiplier === 'number' ? '<div class="tp-row"><span>conviction ×</span><span class="v">' + size.conviction_multiplier + '</span></div>' : '') +
+    (typeof size.cap === 'number' ? '<div class="tp-row"><span>position cap</span><span class="v">' + _pct01(size.cap) + '</span></div>' : '') +
+    (size.status ? '<div class="tp-row"><span>status</span><span class="v">' + escapeHTML(String(size.status)) + '</span></div>' : '') +
+    '</div>';
+
+  const killType = kill.type === 'fundamental' ? 'fundamental' : (kill.type === 'price' ? 'price' : (kill.type || ''));
+  const killCell = '<div class="tp-cell tp-kill"><div class="k">KILL line · 认错线 (' + escapeHTML(killType) + ' · ' + escapeHTML(kill.status || 'monitoring') + ')</div>' +
+    '<div class="line">' + escapeHTML(String(kill.line)) + '</div>' +
+    (kill.metric ? '<div class="tp-row"><span>metric</span><span class="v">' + escapeHTML(String(kill.metric)) + (kill.threshold != null ? ' · ' + kill.threshold : '') + '</span></div>' : '') +
+    '<div class="tp-row"><span>options-implied prob</span><span class="v">' + (kill.implied_prob != null ? _pct01(kill.implied_prob) : '— (options can’t price it)') + '</span></div>' +
+    '</div>';
+
+  const stopCell = stop ? '<div class="tp-cell"><div class="k">Stop</div>' +
+    (stop.level != null ? '<div class="tp-row"><span>trigger</span><span class="v">$' + Number(stop.level).toFixed(2) + '</span></div>' : '') +
+    (stop.type ? '<div class="tp-row"><span>type</span><span class="v">' + escapeHTML(String(stop.type)) + (stop.method ? ' · ' + escapeHTML(String(stop.method)) : '') + '</span></div>' : '') +
+    '</div>' : '';
+
+  const sfBox = '<div class="tp-sf"><div class="k">Self-falsification · what would prove me wrong (mandatory)</div><div class="t">' + escapeHTML(String(sf)) + '</div></div>';
+  const noact = !actionable
+    ? '<div class="tp-noact">⚠ Phase-1 not executable: ' + (dec.downgraded_from === 'short'
+        ? 'short target is unheld with no entry — shown as avoid / reduce / optional hedge; the system never auto-shorts.'
+        : 'display only; the system never places orders.') + '</div>' : '';
+  const rationale = dec.rationale ? '<div class="tp-meta" style="margin-top:10px">' + escapeHTML(String(dec.rationale)) + '</div>' : '';
+  const posSlot = '<div class="tp-pos" data-tppos="' + escapeHTML(c.card_id) + '">loading position context…</div>';
+  const acts = '<div class="tp-acts">' +
+    '<button data-poscommit="' + escapeHTML(c.card_id) + '|' + escapeHTML(c.subject) + '|plan_confirmed">✓ I executed the plan</button>' +
+    '<button data-poscommit="' + escapeHTML(c.card_id) + '|' + escapeHTML(c.subject) + '|manual_adjust">✎ I adjusted</button>' +
+    '<button data-poscommit="' + escapeHTML(c.card_id) + '|' + escapeHTML(c.subject) + '|close_confirmed">✕ I closed</button>' +
+    '</div>';
+
+  return '<details class="cp-plan"><summary>Trade Plan · decision discipline ' + badge + '</summary>' +
+    '<div class="tp-body">' + strip + posSlot +
+    '<div class="tp-grid">' + entryCell + sizeCell + killCell + stopCell + '</div>' +
+    sfBox + noact + acts + rationale +
+    '</div></details>';
+}
+
+// Fill position context + refresh the plan against the ledger (SPEC F-13). Called after a single card renders.
+async function ensureTradePlanContext(cardId, subject) {
+  const slot = document.querySelector('[data-tppos="' + cssAttr(cardId) + '"]');
+  if (!slot) return;
+  try {
+    const r = await fetch('/api/cards/' + encodeURIComponent(cardId) + '/plan', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lang: state.lang })
+    });
+    const j = await r.json();
+    const pc = (j && j.position_context) || {};
+    const src = pc.position_source || 'none';
+    const fresh = pc.position_freshness || 'unknown';
+    let cls = '', txt;
+    if (!pc.has_position) {
+      txt = 'Position: the system does not know whether you hold ' + escapeHTML(subject) + ' — confirm or adjust below before KILL monitoring starts.';
+    } else if (fresh === 'stale_snapshot' || src === 'stale_snapshot') {
+      cls = ' stale'; txt = '⚠ This is an import snapshot, not a confirmed holding — monitoring will NOT auto-push KILL; confirm the position is still valid.';
+    } else if (src === 'user_preview') {
+      cls = ' preview'; txt = 'Preview position (not written to the ledger) — observation only, no active KILL monitoring.';
+    } else {
+      const w = (pc.latest_event && pc.latest_event.weight_pct != null) ? (' · ' + pc.latest_event.weight_pct + '%') : '';
+      txt = '✓ Confirmed holding (position_ledger' + w + ') — KILL monitoring active.';
+    }
+    slot.className = 'tp-pos' + cls;
+    slot.innerHTML = txt;
+  } catch (_) { slot.innerHTML = 'position context unavailable (offline).'; }
+}
+
+// Record what the user actually executed → POST /api/positions/events (SPEC F5, honesty boundary).
+async function confirmPosition(cardId, subject, kind) {
+  const body = { subject: subject, source: kind, executed_at: new Date().toISOString(), plan_card_id: cardId };
+  if (kind === 'close_confirmed') { body.side = 'flat'; body.weight_pct = 0; }
+  else {
+    const w = prompt('Position weight % (0–100):', '5');
+    if (w == null) return;
+    const wp = Number(w);
+    if (!isFinite(wp) || wp < 0 || wp > 100) { showToast('Weight must be 0–100'); return; }
+    body.side = 'long'; body.weight_pct = wp;
+  }
+  try {
+    const r = await fetch('/api/positions/events', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await r.json();
+    if (!r.ok) { showToast('Record failed: ' + escapeHTML((j && j.message) || String(r.status))); return; }
+    showToast('Position event recorded · ' + escapeHTML(subject) + ' → ' + escapeHTML(String(j.status || kind)));
+    ensureTradePlanContext(cardId, subject);
+  } catch (_) { showToast('Record failed (offline)'); }
+}
+
+/* ============================================================
+   v2 · PORTFOLIO Aha-B composite (SPEC_E E-9) — shared-root risk, systematic
+   KILL across holdings, macro/theme/company concentration bar. Sits at the TOP
+   of the portfolio page (not hidden in prose).
+   ============================================================ */
+function _portfolioAhaB(pf, decoded) {
+  const holds = pf.holdings || [];
+  if (holds.length < 2) {
+    return '<div class="ahab"><div class="ahab-hd">Portfolio composite · AHA B</div><div class="ahab-empty">Need ≥2 holdings for cross-holding synthesis.</div></div>';
+  }
+  const themes = [...(pf.theme_exposures || [])].sort((a, b) => (Number(b.exposure_pct) || 0) - (Number(a.exposure_pct) || 0));
+  const conc = themes.find(t => t.is_concentration_risk) || null;
+  const top = themes[0] || null;
+  const headline = conc
+    ? ('Looks like ' + holds.length + ' names, but <b>' + Math.round(conc.exposure_pct || 0) + '% of portfolio risk rides one assumption</b> —— ' + escapeHTML(conc.theme) + '.')
+    : (top ? ('Largest exposure: ' + escapeHTML(top.theme) + ' ' + Math.round(top.exposure_pct || 0) + '%.') : 'Decode the holdings into single cards to aggregate their implied assumptions.');
+
+  const kills = [];
+  let decomp = null;
+  holds.forEach(h => {
+    const cid = decoded[String(h.ticker || '').toUpperCase()];
+    const card = cid ? state.cards.find(c => c.card_id === cid) : null;
+    const cdd = card && (card.decode_detail || {});
+    const dec = cdd && cdd.decision;
+    if (dec && dec.kill && dec.kill.line) kills.push({ tk: h.ticker, line: dec.kill.line });
+    const panel = cdd && cdd.panel;
+    const alt = Array.isArray(panel) ? panel.find(p => p && p.channel === 'altitude') : null;
+    const dd = alt && alt.metrics && alt.metrics.decomposition;
+    if (dd && !decomp && (dd.macro_pct != null || dd.company_pct != null)) decomp = dd;
+  });
+
+  const killBox = '<div class="ahab-box"><div class="k">Systematic KILL · shared admission lines</div>' +
+    (kills.length
+      ? '<div class="ahab-kill">' + kills.map(k => '<div class="row"><span class="tk">' + escapeHTML(k.tk) + '</span><span class="ln">' + escapeHTML(String(k.line)) + '</span></div>').join('') + '</div>'
+      : '<div class="ahab-empty">No executable KILL line on decoded holdings yet — decode more single cards to aggregate shared admission lines.</div>') +
+    '</div>';
+
+  let concBox;
+  if (decomp) {
+    const mp = Math.round((decomp.macro_pct || 0) * 100), tp = Math.round((decomp.industry_pct || 0) * 100), cp = Math.round((decomp.company_pct || 0) * 100);
+    concBox = '<div class="ahab-box"><div class="k">Volatility source · macro / theme / company</div>' +
+      '<div class="ahab-conc-bar"><div class="seg macro" style="width:' + mp + '%">' + (mp >= 12 ? mp + '%' : '') + '</div><div class="seg theme" style="width:' + tp + '%">' + (tp >= 12 ? tp + '%' : '') + '</div><div class="seg company" style="width:' + cp + '%">' + (cp >= 12 ? cp + '%' : '') + '</div></div>' +
+      '<div class="ahab-empty">macro ' + mp + '% · theme ' + tp + '% · company ' + cp + '% (lower company_pct = more beta / false diversification)</div></div>';
+  } else {
+    concBox = '<div class="ahab-box"><div class="k">Volatility source · macro / theme / company</div><div class="ahab-empty">altitude decomposition not available (data_missing) — not treated as diversified.</div></div>';
+  }
+
+  return '<div class="ahab"><div class="ahab-hd">Portfolio composite · AHA B</div>' +
+    '<div class="ahab-headline">' + headline + '</div>' +
+    '<div class="ahab-sub">' + killBox + concBox + '</div></div>';
+}
+
+/* ============================================================
+   v2 · CHANGES / MONITOR feed (SPEC_E E-14..E-17 · Wave 3)
+   Events-first: /api/monitor/feed + /api/monitor/scan; honest severity=unknown.
+   ============================================================ */
+const _SEV_ZH = { high: 'HIGH', medium: 'MED', low: 'LOW', unknown: 'UNKNOWN' };
+function openChanges() { const d = document.getElementById('changes-panel'); if (d) { d.classList.add('open'); renderChangesFeed(); } }
+function closeChanges() { const d = document.getElementById('changes-panel'); if (d) d.classList.remove('open'); }
+
+async function renderChangesFeed() {
+  const list = document.getElementById('chg-list');
+  if (!list) return;
+  list.innerHTML = '<div class="chg-empty">loading changes…</div>';
+  try {
+    const r = await fetch('/api/monitor/feed?limit=100');
+    const j = await r.json();
+    const items = (j && j.items) || [];
+    const btn = document.getElementById('changes-btn');
+    if (btn) btn.classList.toggle('has-items', items.some(it => it.severity === 'high' || it.severity === 'medium'));
+    if (!items.length) {
+      list.innerHTML = '<div class="chg-empty">No changes recorded yet.<br>Hit “扫描 / Scan” to run monitoring over confirmed positions + watchlist. Unscanned subjects are never reported as “calm”.</div>';
+      return;
+    }
+    list.innerHTML = items.map(it => {
+      const sev = String(it.severity || 'unknown');
+      const why = Array.isArray(it.why_severity) ? it.why_severity : (it.why_severity ? [it.why_severity] : []);
+      const ks = it.kill_status || {};
+      const sevColor = sev === 'high' ? 'down' : (sev === 'medium' ? 'amber' : 'tx2');
+      return '<div class="chg-item sev-' + sev + '" data-chgsubj="' + escapeHTML(it.subject || '') + '">' +
+        '<div class="top"><span class="subj">' + escapeHTML(it.subject || '?') + '</span>' +
+        '<span class="sev" style="color:var(--' + sevColor + ')">' + escapeHTML(_SEV_ZH[sev] || sev) + '</span></div>' +
+        '<div class="headline">' + escapeHTML(it.headline || it.trigger || '') + '</div>' +
+        (why.length ? '<div class="why"><b>why</b> · ' + why.map(escapeHTML).join(' · ') + '</div>'
+          : (sev === 'unknown' ? '<div class="why">unscanned / honest-empty → unknown (not reported as calm)</div>' : '')) +
+        (ks && ks.kill_line ? '<div class="why">KILL · ' + escapeHTML(String(ks.kill_line)) + (ks.margin != null ? ' · ' + _pct01(ks.margin) + ' away' : '') + '</div>' : '') +
+        '</div>';
+    }).join('');
+    list.querySelectorAll('[data-chgsubj]').forEach(el => el.addEventListener('click', () => {
+      const subj = el.getAttribute('data-chgsubj');
+      const card = state.cards.find(c => String(c.subject).toUpperCase() === String(subj).toUpperCase() && !c.derived_from);
+      if (card) { closeChanges(); activateTab(card.card_id); }
+      else showToast('No card for ' + escapeHTML(subj) + ' on the workbench — Decode it first.');
+    }));
+  } catch (_) { list.innerHTML = '<div class="chg-empty">Monitor feed unavailable (offline / no key).</div>'; }
+}
+
+async function runMonitorScan() {
+  const btn = document.getElementById('chg-scan');
+  if (btn) { btn.disabled = true; btn.textContent = 'scanning…'; }
+  try {
+    const r = await fetch('/api/monitor/scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trigger: 'manual', subjects: [] }) });
+    const j = await r.json();
+    showToast(r.ok ? ('Scan triggered · ' + escapeHTML(String((j && j.status) || 'ok'))) : ('Scan failed: ' + escapeHTML((j && j.message) || String(r.status))));
+  } catch (_) { showToast('Scan failed (offline)'); }
+  if (btn) { btn.disabled = false; btn.textContent = '扫描'; }
+  renderChangesFeed();
+}
+
 /* boot */
 (function () {  // masthead date — honest "as of today", not a hardcoded/fake-live value
   const t = document.getElementById('masthead-ts');
@@ -3595,6 +3947,12 @@ document.querySelectorAll('.composer .preset').forEach(b => {
 initOfflineToggle();
 renderCanvas();
 loadExistingCards();
+/* v2 · CHANGES drawer bindings (SPEC_E E-14..E-17) */
+(function () {
+  const open = document.getElementById('changes-btn'); if (open) open.addEventListener('click', openChanges);
+  const close = document.getElementById('chg-close'); if (close) close.addEventListener('click', closeChanges);
+  const scan = document.getElementById('chg-scan'); if (scan) scan.addEventListener('click', runMonitorScan);
+})();
 </script>
 
 </body>

@@ -141,6 +141,35 @@ fb_dd = assert_v4_shape("agentic fallback", fb, expect_agentic=False)
 check("agentic fallback keeps deterministic mode",
       not str(fb_dd.get("mode", "")).startswith("agentic_"), f"mode={fb_dd.get('mode')}")
 
+print("\n=== portfolio constituent_card_ids (SPEC A1-8 / E-8) ===")
+import tempfile
+import os as _os
+import db as _db
+import api as _api
+
+pf = decode_bet(
+    "portfolio",
+    {"holdings": [{"ticker": "NVDA", "weight_pct": 60}, {"ticker": "COST", "weight_pct": 40}]},
+    "zh",
+    fundamentals_fn=fundamentals,
+)
+_legs = getattr(pf, "_constituent_cards", None)
+check("portfolio decode attaches decoded leg cards",
+      isinstance(_legs, list) and {leg.subject for leg in _legs} == {"NVDA", "COST"},
+      f"legs={None if _legs is None else [leg.subject for leg in _legs]}")
+_tmp = tempfile.mktemp(suffix=".db")
+_db.ensure_schema(_tmp)
+with _db.connection(_tmp) as _conn:
+    _api._persist_constituents(_conn, pf)
+    _pid = _db.save_card(_conn, pf)
+    _reloaded = _db.get_card(_conn, _pid)
+    _ids = (getattr(_reloaded, "decode_detail", {}) or {}).get("constituent_card_ids")
+    _subs = {_db.get_card(_conn, i).subject for i in (_ids or [])}
+    check("parent persists constituent_card_ids resolving to single cards",
+          isinstance(_ids, list) and len(_ids) == 2 and _subs == {"NVDA", "COST"},
+          f"ids={_ids} subs={_subs}")
+_os.remove(_tmp)
+
 print("\n" + "=" * 72)
 print(f"RESULT: {_passed} passed, {_failed} failed")
 print("=" * 72)

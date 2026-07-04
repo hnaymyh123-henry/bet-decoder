@@ -319,6 +319,7 @@ CREATE TABLE IF NOT EXISTS monitor_feed (
     headline        TEXT,
     changes_json    TEXT,                          -- [{channel, field, before, after, direction}]
     kill_status_json TEXT,                         -- {approached, kill_line, margin, status}
+    why_severity_json TEXT,                        -- [str] why this severity (SPEC E-17 / W3-3)
     action_hint     TEXT,
     card_id         TEXT,
     created_at      TEXT    NOT NULL
@@ -434,6 +435,14 @@ def _migrate_card_detail(conn: sqlite3.Connection) -> None:
     )
 
 
+def _migrate_monitor_feed_why(conn: sqlite3.Connection) -> None:
+    """Idempotent: add why_severity_json to monitor_feed (SPEC E-17 / W3-3 —
+    every feed item must carry why_severity[] so the UI can distinguish a real
+    read from unscanned/honest-empty). Modeled on the other guarded ALTERs."""
+    if "why_severity_json" not in _table_columns(conn, "monitor_feed"):
+        conn.execute("ALTER TABLE monitor_feed ADD COLUMN why_severity_json TEXT")
+
+
 def _apply_schema(conn: sqlite3.Connection) -> None:
     """Run the DDL + idempotent migrations + schema_meta seed on ``conn``.
 
@@ -446,6 +455,7 @@ def _apply_schema(conn: sqlite3.Connection) -> None:
     _migrate_runs_anchor(conn)
     _migrate_dedup_index(conn)
     _migrate_card_detail(conn)
+    _migrate_monitor_feed_why(conn)
     # Seed / bump schema_meta.
     existing = conn.execute(
         "SELECT value FROM schema_meta WHERE key = ?", ("version",)
@@ -2633,8 +2643,8 @@ def insert_monitor_feed_item(conn: sqlite3.Connection, item: dict) -> dict:
         conn.execute(
             """INSERT OR REPLACE INTO monitor_feed
                (item_id, timestamp, subject, trigger, severity, headline,
-                changes_json, kill_status_json, action_hint, card_id, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                changes_json, kill_status_json, why_severity_json, action_hint, card_id, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 item["item_id"],
                 item["timestamp"],
@@ -2644,6 +2654,7 @@ def insert_monitor_feed_item(conn: sqlite3.Connection, item: dict) -> dict:
                 item.get("headline"),
                 json.dumps(item.get("changes") or [], default=str),
                 json.dumps(item.get("kill_status"), default=str) if item.get("kill_status") else None,
+                json.dumps(item.get("why_severity") or [], default=str),
                 item.get("action_hint"),
                 item.get("card_id"),
                 item.get("created_at") or datetime.now(timezone.utc).isoformat(),
@@ -2679,6 +2690,8 @@ def list_monitor_feed(
         d["changes"] = json.loads(d.pop("changes_json", "[]") or "[]")
         ksj = d.pop("kill_status_json", None)
         d["kill_status"] = json.loads(ksj) if ksj else None
+        wsj = d.pop("why_severity_json", None)
+        d["why_severity"] = json.loads(wsj) if wsj else []
         out.append(d)
     return out
 
