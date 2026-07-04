@@ -941,18 +941,42 @@ def get_price_history(ticker: str, period: str = "5y"):
     # ignored so the frontend reliably gets the volume sub-chart on first load.
     cache_file = PRICE_HISTORY_CACHE_DIR / f"{ticker_upper}_{period}_v2.json"
 
+    def _serve_cache(stale: bool = False):
+        try:
+            payload = json.loads(cache_file.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
+        if stale:
+            payload = {**payload, "stale": True}
+        return JSONResponse(content=payload)
+
     if cache_file.exists():
         age = time.time() - cache_file.stat().st_mtime
         if age < PRICE_HISTORY_TTL_SECONDS:
-            try:
-                return JSONResponse(content=json.loads(cache_file.read_text(encoding="utf-8")))
-            except (OSError, json.JSONDecodeError):
-                pass  # fall through to refetch
+            resp = _serve_cache()
+            if resp is not None:
+                return resp
+        # OFFLINE_MODE never refetches: serve the shipped demo cache even when
+        # stale (real historical closes, just old — marked "stale": true).
+        elif _offline_mode_enabled():
+            resp = _serve_cache(stale=True)
+            if resp is not None:
+                return resp
+    if _offline_mode_enabled():
+        raise HTTPException(status_code=503, detail={
+            "error_code": "offline_mode",
+            "message": f"OFFLINE_MODE active and no cached price history for {ticker_upper}.",
+        })
 
     try:
         import yfinance as yf
         hist = yf.Ticker(ticker_upper).history(period=period, interval="1mo")
     except Exception as exc:
+        # Degrade to the stale cache (if any) before failing — real old data
+        # beats an error page when yfinance is unreachable.
+        resp = _serve_cache(stale=True) if cache_file.exists() else None
+        if resp is not None:
+            return resp
         raise HTTPException(
             status_code=502,
             detail=f"Failed to fetch price history for {ticker_upper} from yfinance: {exc}",

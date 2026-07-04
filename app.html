@@ -6,29 +6,37 @@
 <title>PlayInsight - Investment-bet X-ray</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100;200;300;400;500;600;700&family=Geist+Mono:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Geist:wght@100;200;300;400;500;600;700&family=Geist+Mono:wght@200;300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --paper: #FFFFFF;
-    --paper-2: #FAF9F6;
-    --paper-3: #F2F1EC;
-    --rule: #1A1A1A;
-    --line: #DBD9D2;
-    --line-2: #B8B4A8;
-    --ink: #0A0A0A;
-    --ink-2: #2C2C2C;
-    --ink-3: #5C5C5C;
-    --ink-4: #8C8A82;
-    --ink-5: #B8B4A8;
+    /* v2 dark theme (SPEC_E). Names kept from the v1 "paper" system so every
+       existing var() reference flips automatically; semantics are now dark:
+       --paper = dark page/surface, --ink = light text. */
+    --paper: #0B0E11;
+    --paper-2: #161A1F;
+    --paper-3: #1C222A;
+    --rule: #2E3742;          /* strong border on dark (masthead overrides its own bg) */
+    --line: #252C35;
+    --line-2: #323C48;
+    --ink: #EAECEF;
+    --ink-2: #C7CDD6;
+    --ink-3: #8A94A3;
+    --ink-4: #6B7684;
+    --ink-5: #5B6673;
 
-    --accent: #8B2A1F;
-    --accent-soft: #F4E4E2;
-    --positive: #1F5C3D;
-    --negative: #8B2A1F;
-    --neutral: #8C6F00;
-    --highlight: #FFF4D6;
+    --accent: #7B61FF;        /* AI / brand (was oxblood) */
+    --accent-soft: rgba(123,97,255,0.13);
+    --positive: #16C784;      /* up / bull */
+    --negative: #F6465D;      /* down / bear */
+    --neutral: #F0B90B;       /* amber / warning */
+    --highlight: rgba(240,185,11,0.14);
 
-    --sans: "Geist", -apple-system, system-ui, sans-serif;
+    /* SPEC_E named tokens for the v2 surfaces (chart / trade plan / feed) */
+    --bg: #0B0E11; --card: #161A1F; --card2: #1C222A;
+    --tx: #EAECEF; --tx2: #8A94A3; --tx3: #5B6673;
+    --up: #16C784; --down: #F6465D; --amber: #F0B90B; --ai: #7B61FF; --teal: #5DCAA5;
+
+    --sans: "Inter", "Geist", -apple-system, system-ui, sans-serif;
     --mono: "Geist Mono", ui-monospace, monospace;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -55,8 +63,9 @@
 
   /* ============================ MASTHEAD ============================ */
   .masthead {
-    background: var(--rule);
-    color: var(--paper);
+    background: #05070A;               /* near-black bar, darker than the page */
+    color: var(--ink);
+    border-bottom: 1px solid var(--line);
     padding: 14px 0;
     font-family: var(--mono);
     font-size: 10.5px;
@@ -72,10 +81,10 @@
   }
   /* brand lockup: mark + wordmark + one-line product intro (left) */
   .masthead .brand { display: flex; align-items: center; gap: 11px; font-weight: 600; letter-spacing: 0.22em; }
-  .masthead .brand-mark { display: flex; align-items: center; color: var(--paper); }
+  .masthead .brand-mark { display: flex; align-items: center; color: var(--ink); }
   .masthead .brand-mark svg { display: block; }
   .masthead .brand-txt { display: flex; flex-direction: column; gap: 2px; line-height: 1.15; }
-  .masthead .brand-name { font-size: 12px; color: var(--paper); }
+  .masthead .brand-name { font-size: 12px; color: var(--ink); }
   .masthead .brand-tag { font-weight: 400; font-size: 9px; letter-spacing: 0.03em; text-transform: none; color: var(--ink-5); }
   .masthead .right { display: flex; gap: 20px; align-items: center; color: var(--ink-5); }
   .masthead .right .ver { letter-spacing: 0.1em; }
@@ -669,8 +678,9 @@
   .wb-tabs .tb-rename { font-family: var(--sans); font-size: 12.5px; border: 1px solid var(--ink); padding: 1px 4px; width: 96px; }
 
   .bet-card.card-page { border: none; }                       /* full-bleed page: drop card chrome */
-  .card-page .cp-head { display: flex; align-items: flex-start; gap: 20px; padding: 0 0 14px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
-  .card-page .cp-id { flex: 1; min-width: 0; }
+  .card-page .cp-head { display: flex; align-items: flex-start; gap: 20px 24px; flex-wrap: wrap; padding: 0 0 14px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+  .card-page .cp-id { flex: 1 1 auto; min-width: 140px; }
+  .card-page .cp-kpis { flex: 0 1 auto; flex-wrap: wrap; }
   .card-page .cp-subj { font-family: var(--sans); font-size: 26px; font-weight: 600; color: var(--ink); letter-spacing: -0.015em; }
   .card-page .cp-source { font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-top: 4px; letter-spacing: 0.03em; }
   .card-page .cp-kpis { display: flex; gap: 22px; align-items: flex-start; }
@@ -1166,6 +1176,54 @@
   @media (max-width: 560px) {
     .pf-holdings { font-size: 11px; }
   }
+
+  /* ============================================================
+     ENHANCED CHART (SPEC_E) — 6-layer chart, click-to-interpret.
+     The chart is the primary object: candles + distribution band +
+     implied-growth subchart + consensus + events + KILL. Clicking
+     any element rewrites the AI strip below it.
+     ============================================================ */
+  .ec-wrap { margin-bottom: 22px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 12px 8px; }
+  .ec-head { display: flex; align-items: baseline; gap: 12px; padding: 0 6px 10px; }
+  .ec-head .lbl { font-family: var(--mono); font-size: 10px; color: var(--ai); letter-spacing: 0.18em; text-transform: uppercase; font-weight: 600; }
+  .ec-head .title { font-size: 12.5px; color: var(--tx2); flex: 1; }
+  .ec-head .qual { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; padding: 1px 7px; border: 1px solid var(--line); border-radius: 999px; color: var(--tx3); }
+  .ec-head .qual.degraded { color: var(--amber); border-color: rgba(240,185,11,.45); }
+  .ec-legend { display: flex; flex-wrap: wrap; gap: 7px 12px; padding: 0 6px 8px; }
+  .ec-legend .item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--tx2); }
+  .ec-legend .sw { width: 14px; height: 3px; border-radius: 2px; }
+  .ec-legend .sw.dist { background: var(--teal); opacity: .5; height: 8px; }
+  .ec-legend .sw.imp { background: var(--ai); }
+  .ec-legend .sw.cons { height: 0; border-top: 1px dashed var(--tx2); }
+  .ec-legend .sw.evt { background: var(--amber); height: 10px; width: 2px; border-radius: 0; }
+  .ec-legend .sw.kill { height: 0; border-top: 1px dashed var(--down); }
+  .ec-legend .item.off { opacity: .38; }
+  .ec-legend .item.off .why { font-size: 9px; color: var(--tx3); }
+  .ec-svg-box { position: relative; }
+  .ec-svg-box svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .ec-hint { font-size: 10px; color: var(--tx3); text-align: center; padding: 7px 0 4px; }
+  .ec-hit { cursor: pointer; transition: opacity .15s; }
+  .ec-hit:hover { opacity: .8; }
+  .ec-active { filter: brightness(1.35); }
+  /* AI plain-语 strip (purple) — rewritten on every element click */
+  .ec-ai { margin: 8px 6px; background: rgba(123,97,255,.10); border: 1px solid rgba(123,97,255,.30); border-radius: 12px; padding: 12px 14px; display: flex; align-items: flex-start; gap: 11px; min-height: 68px; }
+  .ec-ai .ico { width: 26px; height: 26px; border-radius: 8px; background: var(--ai); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #fff; flex: none; margin-top: 1px; font-family: var(--sans); }
+  .ec-ai .body { flex: 1; min-width: 0; }
+  .ec-ai .txt { font-size: 13px; color: #E0DEF8; line-height: 1.55; font-family: var(--sans); }
+  .ec-ai .txt b { color: #fff; font-weight: 600; }
+  .ec-ai .src { font-size: 10px; color: var(--ai); margin-top: 6px; display: block; font-weight: 600; }
+  /* KILL proximity strip (red) — only when a KILL line exists */
+  .ec-kill { margin: 0 6px 8px; display: flex; align-items: center; gap: 9px; font-size: 12px; color: var(--tx2); background: rgba(246,70,93,.08); border: 1px solid rgba(246,70,93,.2); border-radius: 10px; padding: 9px 13px; }
+  .ec-kill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--down); flex: none; animation: pulse 1.5s ease-in-out infinite; }
+  .ec-kill b { color: var(--down); font-weight: 600; }
+  /* ask-AI bar — placeholder retargets to the clicked element */
+  .ec-ask { margin: 0 6px 6px; background: var(--card2); border: 1px solid var(--line); border-radius: 12px; padding: 9px 11px; display: flex; align-items: center; gap: 9px; }
+  .ec-ask .ai { width: 26px; height: 26px; border-radius: 8px; background: rgba(123,97,255,.16); color: var(--ai); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex: none; }
+  .ec-ask input { flex: 1; background: transparent; border: none; outline: none; color: var(--tx); font-size: 12.5px; font-family: var(--sans); }
+  .ec-ask input::placeholder { color: var(--tx3); }
+  .ec-ask .send { width: 28px; height: 28px; border-radius: 8px; background: var(--ai); color: #fff; border: none; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; cursor: pointer; flex: none; }
+  .ec-ask .send:disabled { opacity: .4; cursor: default; }
+  .ec-empty { padding: 26px 10px; text-align: center; font-size: 12px; color: var(--tx3); }
 </style>
 </head>
 <body>
@@ -1420,6 +1478,7 @@ const state = {
   chat: {},             // card_id -> [{role:'you'|'agent', text, tools?}]
   revision: {},         // card_id -> a pending what-if revision proposal (from /ask)
   priceHistory: {},     // TICKER -> {points:[...]} | 'loading' | 'error' (lazy, cached)
+  ec: {},               // SUBJECT -> {layers, hist, quality, empty_layers} | 'loading' (enhanced chart, SPEC_E)
   synth: {},            // holding-set key -> SynthesisResult | 'loading' | 'error' (portfolio auto-synth)
   // --- tabbed workspace ---
   activeTab: null,      // active scenario card_id
@@ -1732,7 +1791,7 @@ function renderCanvas() {
   bindCardEvents();
   // The active single card's price chart is always-on → paint it (lazy + cached).
   const ac = _activeCard();
-  if (ac && ac.card_kind !== 'portfolio') { ensurePriceHistory(ac.subject, ac.card_id); ensureDetail(ac.card_id); }
+  if (ac && ac.card_kind !== 'portfolio') { ensureEnhancedChart(ac.subject, ac.card_id); ensureDetail(ac.card_id); }
   else if (ac && ac.card_kind === 'portfolio') { ensurePortfolioSynth(ac); }   // Module 3 auto-run
 }
 
@@ -2414,6 +2473,360 @@ async function ensurePriceHistory(ticker, cardId) {
   _paintChart(cardId, card);
 }
 
+/* ============================================================
+   ENHANCED CHART (SPEC_E) — the chart IS the object; click any
+   element and the AI strip below rewrites with that element's
+   plain-language read. 6 layers from GET /api/chart/{subject}
+   (panel_observations + the card's decision KILL). The price
+   layer falls back to the cached /api/price-history closes (real
+   yfinance data). A layer with no stored history stays OFF with
+   a reason — we never draw a fabricated line (SPEC_E 漂移半图).
+   ============================================================ */
+function _ecPct(v, dp) { return (typeof v === 'number' && isFinite(v)) ? (v * 100).toFixed(dp == null ? 0 : dp) + '%' : '—'; }
+function _ecUsd(v) { return (typeof v === 'number' && isFinite(v)) ? '$' + v.toLocaleString('en-US', { maximumFractionDigits: Math.abs(v) >= 100 ? 0 : 2 }) : '—'; }
+
+async function ensureEnhancedChart(subject, cardId) {
+  const key = String(subject || '').toUpperCase();
+  if (!key) return;
+  const cached = state.ec[key];
+  if (cached && cached !== 'loading') { _ecPaint(cardId, key); return; }
+  if (cached === 'loading') return;
+  state.ec[key] = 'loading';
+  _ecPaint(cardId, key);
+  const out = { layers: null, hist: null, quality: null, empty_layers: [] };
+  try {
+    const r = await fetch('/api/chart/' + encodeURIComponent(key) + '?card_id=' + encodeURIComponent(cardId || '') + '&window=180d');
+    if (r.ok) {
+      const p = await r.json();
+      out.layers = p.layers || null;
+      out.quality = p.quality || null;
+      out.empty_layers = Array.isArray(p.empty_layers) ? p.empty_layers : [];
+    }
+  } catch (e) { /* chart endpoint down → keep nulls, try price fallback */ }
+  // Price fallback runs even in offline mode — the server serves its shipped
+  // demo cache (marked stale) and 503s only when it truly has nothing.
+  const havePrice = out.layers && Array.isArray(out.layers.price) && out.layers.price.length >= 2;
+  if (!havePrice) {
+    try {
+      const r2 = await fetch('/api/price-history/' + encodeURIComponent(key) + '?period=5y');
+      if (r2.ok) {
+        const h = await r2.json();
+        if (h && Array.isArray(h.points) && h.points.length >= 2) { out.hist = h.points; out.histStale = !!h.stale; }
+      }
+    } catch (e) { /* honest empty */ }
+  }
+  state.ec[key] = out;
+  _ecPaint(cardId, key);
+}
+
+// Build the draw-model: one x-spine of dated points + per-layer presence.
+function _ecModel(card, key) {
+  const raw = state.ec[key];
+  const m = { key: key, loading: raw === 'loading', layers: {}, off: {}, spine: [], kill: null, quality: null };
+  const d = (card && card.decode_detail) || {};
+  const disp = (card && card._display) || {};
+  m.anchor = (typeof disp.anchor === 'number') ? disp.anchor : (typeof d.anchor_price === 'number' ? d.anchor_price : null);
+  const pl = (d.primary_lens || {});
+  m.impliedNow = (typeof pl.implied_value === 'number') ? pl.implied_value : null;
+  m.impliedLabel = pl.implied_label || pl.lens || null;
+  m.impliedIsCagr = /cagr|growth|增速/i.test(String(pl.implied_label || '') + String(pl.lens || ''));
+  if (m.impliedNow == null && typeof disp.implied_cagr === 'number') {
+    // v3-era cards carry the solved CAGR in _display instead of primary_lens
+    m.impliedNow = disp.implied_cagr; m.impliedLabel = 'implied CAGR'; m.impliedIsCagr = true;
+  }
+  if (raw === 'loading' || !raw || raw === 'error') return m;
+  m.quality = raw.quality;
+  const L = raw.layers || {};
+  const reasons = {};
+  (raw.empty_layers || []).forEach(e => { if (e && e.layer) reasons[e.layer] = e.reason || 'no data'; });
+
+  // price spine: observations first, else cached yfinance closes (cap the tail for readability)
+  let price = Array.isArray(L.price) && L.price.length >= 2 ? L.price.slice() : null;
+  let priceSrc = 'panel_observations';
+  if (!price && Array.isArray(raw.hist) && raw.hist.length >= 2) {
+    price = raw.hist.map(p => ({ date: p.date, close: Number(p.close) })).filter(p => p.date && isFinite(p.close));
+    priceSrc = 'yfinance · monthly close';
+  }
+  if (price && price.length > 48) price = price.slice(price.length - 48);
+  if (price && price.length >= 2) { m.layers.price = price; m.priceSrc = priceSrc; }
+  else m.off.price = reasons.price || 'no stored price history';
+
+  const grab = (name, minPts) => {
+    const arr = Array.isArray(L[name]) ? L[name].filter(p => p && p.date) : [];
+    if (arr.length >= (minPts || 1)) return arr;
+    m.off[name] = reasons[name] || 'no stored history';
+    return null;
+  };
+  const band = grab('distribution_band', 2); if (band) m.layers.band = band;
+  const imp = grab('implied_growth', 2); if (imp) m.layers.implied = imp;
+  const cons = grab('consensus', 2); if (cons) m.layers.consensus = cons;
+  const evts = Array.isArray(L.events) ? L.events.filter(e => e && e.date) : [];
+  if (evts.length) m.layers.events = evts; else m.off.events = reasons.events || 'no stored event history';
+  const kills = Array.isArray(L.kill_lines) ? L.kill_lines.filter(k => k && typeof k.level === 'number') : [];
+  if (kills.length) m.kill = kills[0]; else m.off.kill = reasons.kill_lines || 'no KILL line yet — generate a Trade Plan';
+
+  // x-spine = price dates if any, else implied dates, else band dates
+  m.spine = (m.layers.price || m.layers.implied || m.layers.band || []).map(p => p.date);
+  m.now = m.layers.price ? m.layers.price[m.layers.price.length - 1].close : m.anchor;
+  return m;
+}
+
+// ---- interpretations: SPEC_E click→plain-language map, filled with REAL numbers ----
+function _ecInterp(m, kind, idx) {
+  const subj = escapeHTML(m.key);
+  const impLast = m.layers.implied ? m.layers.implied[m.layers.implied.length - 1].value : null;
+  const impStr = impLast != null ? _ecPct(impLast) : (m.impliedNow != null && m.impliedIsCagr ? _ecPct(m.impliedNow) : null);
+  const killTxt = m.kill ? ('离认错线 <b>' + _ecUsd(m.kill.level) + '</b> 还剩 <b>' + (m.now ? _ecPct(Math.abs(m.now - m.kill.level) / m.now, 1) : '—') + '</b>') : '还没设认错线';
+  if (kind === 'band' && m.layers.band) {
+    const b = m.layers.band, last = b[b.length - 1], first = b[0];
+    const w0 = first.upper - first.lower, w1 = last.upper - last.lower;
+    const trend = (b.length >= 2 && isFinite(w0) && isFinite(w1) && Math.abs(w1 - w0) / Math.max(w0, 1e-9) > 0.05)
+      ? (w1 < w0 ? '阴影最近<b>收窄了</b>=市场更确定' : '阴影最近<b>变宽了</b>=市场更不确定') : '阴影宽度近期变化不大';
+    let pos = '';
+    if (m.now != null) {
+      const t = (m.now - last.lower) / Math.max(last.upper - last.lower, 1e-9);
+      pos = '现在 ' + _ecUsd(m.now) + ' 在' + (t > 0.66 ? '中上位置——偏乐观' : t < 0.33 ? '中下位置——偏谨慎' : '中间位置') + '。';
+    }
+    return { html: '市场觉得大概率落在 <b>' + _ecUsd(last.lower) + '–' + _ecUsd(last.upper) + '</b>(期权定价反推)。' + pos + trend + '。',
+             src: '点了阴影区 · 分布账', ask: '为什么市场觉得会落在这个区间?' };
+  }
+  if (kind === 'implied' && m.layers.implied) {
+    const s = m.layers.implied; const last = s[s.length - 1];
+    let jump = null, jd = 0;
+    for (let i = 1; i < s.length; i++) { const dl = Math.abs(s[i].value - s[i - 1].value); if (dl > jd) { jd = dl; jump = i; } }
+    const jumpTxt = (jump != null && jd > 0.005)
+      ? ' ' + escapeHTML(s[jump].date) + ' 从 ' + _ecPct(s[jump - 1].value) + ' 跳到 ' + _ecPct(s[jump].value) + '——预期跳变点。' : '';
+    return { html: '这条<b>紫线</b>是市场对 ' + subj + ' 的要求——现在要 <b>每年涨 ' + _ecPct(last.value) + '</b> 才配得上这个价。线往上走=要求变高=更难达标。' + jumpTxt,
+             src: '点了紫线 · 现金流账', ask: '为什么市场的要求变成 ' + _ecPct(last.value) + ' 了?' };
+  }
+  if (kind === 'consensus' && m.layers.consensus) {
+    const s = m.layers.consensus, last = s[s.length - 1];
+    let gap = '';
+    if (m.now != null && typeof last.value === 'number') {
+      const g = (m.now - last.value) / last.value;
+      gap = g >= 0 ? '市场价跑在前面 <b>' + _ecPct(g, 1) + '</b>——市场比分析师更乐观。' : '市场价落后 <b>' + _ecPct(-g, 1) + '</b>——市场比分析师更谨慎。';
+    }
+    return { html: '这条<b>灰虚线</b>是分析师觉得 ' + subj + ' 该值多少——现在 <b>' + _ecUsd(last.value) + '</b>。' + gap,
+             src: '点了灰虚线 · 变化账', ask: '为什么价格和分析师看法不一致?' };
+  }
+  if (kind === 'event' && m.layers.events) {
+    const ev = m.layers.events[idx] || m.layers.events[0];
+    const head = escapeHTML(ev.headline || ev.type || '事件');
+    let impJump = '';
+    if (m.layers.implied) {
+      const s = m.layers.implied;
+      const i = s.findIndex(p => p.date >= ev.date);
+      if (i > 0) impJump = '市场的要求从 ' + _ecPct(s[i - 1].value) + ' 变为 ' + _ecPct(s[i].value) + '。';
+    }
+    return { html: '<b>' + escapeHTML(ev.date) + '</b> · ' + head + '。' + impJump,
+             src: '点了黄线 · 事件锚点', ask: head + ' 具体说了什么?' };
+  }
+  if (kind === 'kill' && m.kill) {
+    const st = m.kill.status === 'triggered' ? '已触发' : m.kill.status === 'approached' ? '已逼近' : '监控中';
+    const dist = (m.now != null) ? '现在离它 <b>' + _ecPct(Math.abs(m.now - m.kill.level) / m.now, 1) + '</b>。' : '';
+    return { html: '这根<b>红线</b>是你的认错线——<b>' + _ecUsd(m.kill.level) + '</b>(' + st + ')。跌破这里说明这笔 bet 的前提破了,该认错。' + dist,
+             src: '点了红线 · 决策层', ask: '如果跌破 ' + _ecUsd(m.kill.level) + ' 我该怎么办?' };
+  }
+  if (kind === 'point' && m.layers.price) {
+    const p = m.layers.price[idx];
+    if (!p) return _ecInterp(m, 'default');
+    const ev = (m.layers.events || []).find(e => e.date === p.date);
+    let impTxt = '';
+    if (m.layers.implied) {
+      const i = m.layers.implied.findIndex(q => q.date >= p.date);
+      if (i >= 0) {
+        const cur = m.layers.implied[i], prev = m.layers.implied[i - 1];
+        impTxt = '市场要的增速对应 <b>' + _ecPct(cur.value) + '</b>' + (prev ? (cur.value > prev.value ? ',比前一段变难' : cur.value < prev.value ? ',比前一段变容易' : ',与前一段持平') : '') + '。';
+      }
+    }
+    return {
+      html: '<b>' + escapeHTML(p.date) + '</b> 收盘 <b>' + _ecUsd(p.close) + '</b>。' + impTxt +
+        (ev ? ' 这天有事件:<b>' + escapeHTML(ev.headline || ev.type) + '</b>——预期跳变点。' : (impTxt ? '' : ' 无特殊事件,正常波动。')),
+      src: '点了价格线 · ' + escapeHTML(p.date), ask: ev ? (escapeHTML(ev.headline || ev.type) + ' 具体说了什么?') : ('这段时间 ' + subj + ' 发生了什么?')
+    };
+  }
+  // default overview
+  const req = impStr ? ('市场现在要 ' + subj + ' <b>每年涨 ' + impStr + '</b> 才配得上这个价' + (m.layers.implied ? '' : '(单时点解码值,历史漂移待回填)') + '。') : (subj + ' 的市场要求暂无可读数据。');
+  return { html: req + killTxt + '。', src: '总览(默认)', ask: '问 PlainSight 任何问题' };
+}
+
+function _ecSetAI(root, it) {
+  const t = root.querySelector('.ec-ai .txt'), s = root.querySelector('.ec-ai .src'), inp = root.querySelector('.ec-ask input');
+  if (t) t.innerHTML = it.html;
+  if (s) s.textContent = '— ' + it.src;
+  if (inp) { inp.placeholder = '问 PlainSight · ' + it.ask.replace(/<[^>]+>/g, ''); inp.dataset.suggest = it.ask.replace(/<[^>]+>/g, ''); }
+}
+
+// ---- painter ----
+function _ecPaint(cardId, key) {
+  const host = document.querySelector('[data-echost="' + (window.CSS && CSS.escape ? CSS.escape(cardId) : cardId) + '"]');
+  if (!host) return;
+  const card = state.cards.find(c => c.card_id === cardId);
+  const m = _ecModel(card, key);
+  if (m.loading) { host.innerHTML = '<div class="ec-wrap"><div class="ec-empty">加载增强图…</div></div>'; return; }
+
+  const legend = [
+    ['price', '价格', 'sw imp', m.layers.price, null],
+    ['band', '市场觉得的范围', 'sw dist', m.layers.band, m.off.distribution_band],
+    ['implied', '市场要的增速', 'sw imp', m.layers.implied, m.off.implied_growth],
+    ['consensus', '分析师觉得', 'sw cons', m.layers.consensus, m.off.consensus],
+    ['event', '事件', 'sw evt', m.layers.events, m.off.events],
+    ['kill', '认错线', 'sw kill', m.kill, m.off.kill],
+  ].map(([k, lab, sw, on]) => '<div class="item' + (on ? '' : ' off') + '"><div class="' + sw + '"></div>' + lab + (on ? '' : ' <span class="why">· 暂无</span>') + '</div>').join('');
+
+  const qual = m.quality && m.quality !== 'ok' ? '<span class="qual degraded">' + escapeHTML(m.quality) + '</span>' : '';
+  let svg = '';
+  if (!m.layers.price && !m.layers.implied && !m.layers.band) {
+    svg = '<div class="ec-empty">暂无该标的的历史图层(观测未回填)。下方 AI 解读仍基于当前解码值。</div>';
+  } else {
+    svg = _ecSvg(m);
+  }
+  const killStrip = m.kill
+    ? '<div class="ec-kill"><span class="dot"></span><span>到 <b>' + _ecUsd(m.kill.level) + '</b> 该认错 · ' +
+      (m.now != null ? '现在离它 <b>' + _ecPct(Math.abs(m.now - m.kill.level) / m.now, 1) + '</b> · ' : '') +
+      escapeHTML(m.kill.status || 'monitoring') + '</span></div>'
+    : '';
+  host.innerHTML = '<div class="ec-wrap">' +
+    '<div class="ec-head"><span class="lbl">Enhanced chart</span><span class="title">' + escapeHTML(m.key) + ' · 点图上任意元素出该元素的解读</span>' + qual + '</div>' +
+    '<div class="ec-legend">' + legend + '</div>' +
+    '<div class="ec-svg-box">' + svg + '</div>' +
+    (svg.indexOf('<svg') === 0 ? '<div class="ec-hint">↑ 点击图上元素(价格线 / 阴影 / 紫线 / 灰线 / 黄线 / 红线)</div>' : '') +
+    '<div class="ec-ai"><div class="ico">AI</div><div class="body"><div class="txt"></div><span class="src"></span></div></div>' +
+    killStrip +
+    '<div class="ec-ask"><div class="ai">AI</div><input type="text"><button class="send" title="问 PlainSight">→</button></div>' +
+  '</div>';
+  _ecSetAI(host, _ecInterp(m, 'default'));
+
+  // click-to-interpret (delegated once per paint)
+  const svgEl = host.querySelector('svg');
+  let lastHit = null;
+  if (svgEl) svgEl.addEventListener('click', (e) => {
+    const el = e.target.closest('.ec-hit');
+    if (!el) return;
+    _ecSetAI(host, _ecInterp(m, el.dataset.k, el.dataset.i != null ? parseInt(el.dataset.i, 10) : undefined));
+    if (lastHit) lastHit.classList.remove('ec-active');
+    el.classList.add('ec-active'); lastHit = el;
+    const hint = host.querySelector('.ec-hint'); if (hint) hint.textContent = '✓ 已更新 · 再点别的元素看看';
+  });
+  const send = host.querySelector('.ec-ask .send'), inp = host.querySelector('.ec-ask input');
+  const fire = () => { const q = (inp.value || '').trim() || inp.dataset.suggest || ''; if (q) { inp.value = ''; askCard(cardId, q); } };
+  if (send) send.addEventListener('click', fire);
+  if (inp) inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') fire(); });
+}
+
+// ---- pure SVG builder (720×360; main 14..232, implied subchart 258..330) ----
+function _ecSvg(m) {
+  const W = 720, H = m.layers.implied ? 360 : 268, X0 = 46, X1 = 690, Y0 = 14, Y1 = 232, S0 = 258, S1 = 330;
+  const spine = m.spine;
+  const N = spine.length;
+  const xi = {}; spine.forEach((d, i) => { xi[d] = i; });
+  const cx = i => X0 + (N <= 1 ? 0 : (i / (N - 1)) * (X1 - X0));
+  // y-domain: price + band + kill
+  let lo = Infinity, hi = -Infinity;
+  const eat = v => { if (typeof v === 'number' && isFinite(v)) { if (v < lo) lo = v; if (v > hi) hi = v; } };
+  (m.layers.price || []).forEach(p => { eat(p.low != null ? p.low : p.close); eat(p.high != null ? p.high : p.close); });
+  (m.layers.band || []).forEach(b => { eat(b.lower); eat(b.upper); });
+  if (m.kill) eat(m.kill.level);
+  if (!isFinite(lo) || !isFinite(hi)) { lo = 0; hi = 1; }
+  const pad = (hi - lo) * 0.06 || 1; lo -= pad; hi += pad;
+  const py = v => Y1 - (v - lo) / (hi - lo) * (Y1 - Y0);
+  let g = '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">';
+
+  // grid + y labels (4 ticks)
+  for (let t = 0; t <= 3; t++) {
+    const v = lo + (hi - lo) * t / 3, y = py(v);
+    g += '<line x1="' + X0 + '" y1="' + y + '" x2="' + X1 + '" y2="' + y + '" stroke="#252C35" stroke-width="0.6" stroke-dasharray="2,3"/>' +
+         '<text x="' + (X1 + 5) + '" y="' + (y + 3) + '" font-size="9" fill="#5B6673" font-family="Inter">' + (hi >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : '$' + v.toFixed(0)) + '</text>';
+  }
+  // x labels: first + last date
+  if (N >= 2) g += '<text x="' + X0 + '" y="' + (Y1 + 14) + '" font-size="9" fill="#5B6673" font-family="Inter">' + escapeHTML(spine[0]) + '</text>' +
+                   '<text x="' + X1 + '" y="' + (Y1 + 14) + '" font-size="9" fill="#5B6673" font-family="Inter" text-anchor="end">' + escapeHTML(spine[N - 1]) + '</text>';
+
+  // distribution band (teal shaded area) — only real observation history
+  if (m.layers.band) {
+    const b = m.layers.band.filter(p => xi[p.date] != null);
+    if (b.length >= 2) {
+      const up = b.map(p => cx(xi[p.date]) + ',' + py(p.upper)).join(' ');
+      const dnArr = b.map(p => cx(xi[p.date]) + ',' + py(p.lower)); dnArr.reverse();
+      g += '<path class="ec-hit" data-k="band" d="M' + up + ' L' + dnArr.join(' ') + ' Z" fill="#5DCAA5" fill-opacity="0.14" stroke="#5DCAA5" stroke-opacity="0.45" stroke-width="1" stroke-dasharray="3,2"/>';
+    }
+  }
+  // consensus (gray dashed)
+  if (m.layers.consensus) {
+    const s = m.layers.consensus.filter(p => xi[p.date] != null && typeof p.value === 'number');
+    if (s.length >= 2) {
+      const pts = s.map(p => cx(xi[p.date]) + ',' + py(p.value)).join(' L ');
+      g += '<path class="ec-hit" data-k="consensus" d="M' + pts + '" fill="none" stroke="transparent" stroke-width="16"/>' +
+           '<path d="M' + pts + '" fill="none" stroke="#8A94A3" stroke-width="1.4" stroke-dasharray="4,3" pointer-events="none"/>';
+    }
+  }
+  // price: candles when OHLC, else close line; per-point hit areas
+  if (m.layers.price) {
+    const P = m.layers.price;
+    const hasOHLC = P.every(p => p.open != null && p.high != null && p.low != null);
+    if (hasOHLC) {
+      P.forEach((p, i) => {
+        const x = cx(i), up = p.close >= p.open, col = up ? '#16C784' : '#F6465D';
+        const top = py(Math.max(p.open, p.close)), hgt = Math.max(2, Math.abs(py(p.open) - py(p.close)));
+        const w = Math.max(3, Math.min(9, (X1 - X0) / N * 0.6));
+        g += '<line x1="' + x + '" y1="' + py(p.high) + '" x2="' + x + '" y2="' + py(p.low) + '" stroke="' + col + '" stroke-width="1" pointer-events="none"/>' +
+             '<rect x="' + (x - w / 2) + '" y="' + top + '" width="' + w + '" height="' + hgt + '" fill="' + col + '" rx="1" pointer-events="none"/>' +
+             '<rect class="ec-hit" data-k="point" data-i="' + i + '" x="' + (x - Math.max(w, 8) / 2) + '" y="' + Y0 + '" width="' + Math.max(w, 8) + '" height="' + (Y1 - Y0) + '" fill="transparent"/>';
+      });
+    } else {
+      const pts = P.map((p, i) => cx(i) + ',' + py(p.close)).join(' L ');
+      g += '<path d="M' + pts + '" fill="none" stroke="#EAECEF" stroke-width="1.8" pointer-events="none"/>';
+      P.forEach((p, i) => {
+        const w = Math.max(6, (X1 - X0) / N);
+        g += '<rect class="ec-hit" data-k="point" data-i="' + i + '" x="' + (cx(i) - w / 2) + '" y="' + Y0 + '" width="' + w + '" height="' + (Y1 - Y0) + '" fill="transparent"/>';
+      });
+    }
+  }
+  // events (amber vertical anchors)
+  if (m.layers.events) {
+    m.layers.events.forEach((ev, i) => {
+      let idx = xi[ev.date];
+      if (idx == null && N) { // snap to nearest spine slot ≥ date
+        idx = spine.findIndex(d => d >= ev.date);
+        if (idx < 0) idx = N - 1;
+      }
+      if (idx == null) return;
+      const x = cx(idx), lab = String(ev.headline || ev.type || 'event').slice(0, 6);
+      g += '<rect class="ec-hit" data-k="event" data-i="' + i + '" x="' + (x - 8) + '" y="' + Y0 + '" width="16" height="' + (Y1 - Y0) + '" fill="transparent"/>' +
+           '<line x1="' + x + '" y1="' + Y0 + '" x2="' + x + '" y2="' + Y1 + '" stroke="#F0B90B" stroke-width="1" stroke-dasharray="2,2" opacity="0.6" pointer-events="none"/>' +
+           '<rect x="' + (x - 18) + '" y="' + (Y0 - 2) + '" width="36" height="13" rx="3" fill="#F0B90B" opacity="0.92" pointer-events="none"/>' +
+           '<text x="' + x + '" y="' + (Y0 + 8) + '" font-size="8" fill="#0B0E11" font-family="Inter" font-weight="700" text-anchor="middle" pointer-events="none">' + escapeHTML(lab) + '</text>';
+    });
+  }
+  // KILL (red dashed horizontal)
+  if (m.kill) {
+    const y = py(m.kill.level);
+    g += '<rect class="ec-hit" data-k="kill" x="' + X0 + '" y="' + (y - 8) + '" width="' + (X1 - X0) + '" height="16" fill="transparent"/>' +
+         '<line x1="' + X0 + '" y1="' + y + '" x2="' + X1 + '" y2="' + y + '" stroke="#F6465D" stroke-width="1.5" stroke-dasharray="6,3" pointer-events="none"/>' +
+         '<text x="' + X0 + '" y="' + (y - 5) + '" font-size="10" font-weight="700" fill="#F6465D" font-family="Inter" pointer-events="none">到这该认错 ' + _ecUsd(m.kill.level) + '</text>';
+  }
+  // implied-growth subchart (purple, own % axis — SPEC: 不与价格轴混)
+  if (m.layers.implied) {
+    const s = m.layers.implied.filter(p => xi[p.date] != null && typeof p.value === 'number');
+    if (s.length >= 2) {
+      let plo = Infinity, phi = -Infinity;
+      s.forEach(p => { if (p.value < plo) plo = p.value; if (p.value > phi) phi = p.value; });
+      const ppad = (phi - plo) * 0.25 || 0.02; plo -= ppad; phi += ppad;
+      const sy = v => S1 - (v - plo) / (phi - plo) * (S1 - S0);
+      g += '<rect x="' + X0 + '" y="' + S0 + '" width="' + (X1 - X0) + '" height="' + (S1 - S0) + '" fill="#0B0E11" opacity="0.5"/>' +
+           '<line x1="' + X0 + '" y1="' + S0 + '" x2="' + X1 + '" y2="' + S0 + '" stroke="#252C35" stroke-width="0.5"/>' +
+           '<text x="' + X0 + '" y="' + (S0 + 11) + '" font-size="8.5" fill="#7B61FF" font-family="Inter" font-weight="600">市场要的增速 %</text>';
+      [plo + (phi - plo) * 0.15, plo + (phi - plo) * 0.85].forEach(v => {
+        g += '<text x="' + (X1 + 5) + '" y="' + (sy(v) + 3) + '" font-size="8" fill="#7B61FF" font-family="Inter">' + _ecPct(v) + '</text>';
+      });
+      const pts = s.map(p => cx(xi[p.date]) + ',' + sy(p.value)).join(' L ');
+      g += '<path class="ec-hit" data-k="implied" d="M' + pts + '" fill="none" stroke="transparent" stroke-width="18"/>' +
+           '<path d="M' + pts + '" fill="none" stroke="#7B61FF" stroke-width="2.2" pointer-events="none"/>';
+    }
+  }
+  return g + '</svg>';
+}
+
 // ---- Multi-level DERIVATION TREE (the page hero) ----
 // Renders _display.derivations: root current price → a branch per lens (or base/premium for
 // anchor) → mechanical chain (Pin to consensus → Baseline DCF → reverse-solve) → implied value (band ruler)
@@ -2825,13 +3238,11 @@ function renderSingleCard(c) {
   // → the reverse-derivation tree → the deep-analysis debate → the support row
   // (decomposition + risks). The per-card conversation is NOT inline — it lives in
   // the sticky right-hand AGENT panel (renderAgentPanel).
+  // SPEC_E enhanced chart replaces the v1 price chart: the chart is the primary
+  // object — click any layer and the AI strip rewrites with that layer's read.
   const priceChart = insuf
-    ? '<div class="price-chart-wrap"><div class="pc-head"><span class="lbl">Price action</span></div><div class="pc-host"><div class="pc-empty">this source / subject has no price series</div></div></div>'
-    : '<div class="price-chart-wrap">' +
-      '<div class="pc-head"><span class="lbl">Price action</span><span class="title">' + escapeHTML(c.subject) + ' · 5-year monthly</span><span class="src">yfinance</span></div>' +
-      '<div class="pc-host" data-pchost="' + escapeHTML(c.card_id) + '"><div class="pc-empty">Load 5-year price history…</div></div>' +
-      '<div class="pc-foot">solid line MKT current price · dashed line DCF baseline · light line historical monthly close</div>' +
-    '</div>';
+    ? '<div class="ec-wrap"><div class="ec-empty">this source / subject has no price series</div></div>'
+    : '<div data-echost="' + escapeHTML(c.card_id) + '"><div class="ec-wrap"><div class="ec-empty">加载增强图…</div></div></div>';
   const hero2 = '<div class="cp-hero2"><div class="cp-hero-l">' + _reasoningTree(c) + '</div>' +
     '<div class="cp-hero-r">' + priceChart + '</div></div>';
 
