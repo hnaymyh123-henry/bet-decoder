@@ -696,6 +696,16 @@
   .card-page .cp-hero2 .cp-bet { margin-bottom: 0; }
   .card-page .cp-hero2 .price-chart-wrap { margin-bottom: 0; }
   @media (max-width: 1024px) { .card-page .cp-hero2 { grid-template-columns: 1fr; gap: 18px; } }
+  /* CHART-AS-HERO (v2): full-width chart on top; heavy analysis folded below it. */
+  .card-page .cp-hero-chart { margin: 2px 0 14px; }
+  .card-page .cp-hero-reasoning, .card-page .cp-analysis { margin: 0 0 16px; border: 1px solid var(--line, #252C35); border-radius: 12px; background: var(--card2, #1C222A); overflow: hidden; }
+  .card-page .cp-hero-reasoning > summary, .card-page .cp-analysis > summary { list-style: none; cursor: pointer; padding: 12px 15px; font-size: 11.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--tx2, #8A94A3); user-select: none; }
+  .card-page .cp-hero-reasoning > summary::-webkit-details-marker, .card-page .cp-analysis > summary::-webkit-details-marker { display: none; }
+  .card-page .cp-hero-reasoning > summary::before, .card-page .cp-analysis > summary::before { content: "\25B8\00a0"; color: var(--tx3, #5B6673); }
+  .card-page .cp-hero-reasoning[open] > summary::before, .card-page .cp-analysis[open] > summary::before { content: "\25BE\00a0"; }
+  .card-page .cp-hero-reasoning[open] > summary, .card-page .cp-analysis[open] > summary { border-bottom: 1px solid var(--line, #252C35); }
+  .card-page .cp-hero-reasoning > .cp-rtree { padding: 12px 14px 14px; }
+  .card-page .cp-analysis > .cp-analysis-body { padding: 10px 14px 12px; }
   /* Tree sits right under the hero row in the single-column dossier. */
   .card-page .cp-tree { margin-bottom: 22px; }
   .card-page .cp-right .price-chart-wrap { margin-bottom: 14px; }
@@ -2687,27 +2697,42 @@ function _ecPaint(cardId, key) {
       escapeHTML(m.kill.status || 'monitoring') + '</span></div>'
     : '';
   host.innerHTML = '<div class="ec-wrap">' +
-    '<div class="ec-head"><span class="lbl">Enhanced chart</span><span class="title">' + escapeHTML(m.key) + ' · 点图上任意元素出该元素的解读</span>' + qual + '</div>' +
+    '<div class="ec-head"><span class="lbl">Enhanced chart</span><span class="title">' + escapeHTML(m.key) + ' · 鼠标扫过图上元素出解读</span>' + qual + '</div>' +
     '<div class="ec-legend">' + legend + '</div>' +
     '<div class="ec-svg-box">' + svg + '</div>' +
-    (svg.indexOf('<svg') === 0 ? '<div class="ec-hint">↑ 点击图上元素(价格线 / 阴影 / 紫线 / 灰线 / 黄线 / 红线)</div>' : '') +
+    (svg.indexOf('<svg') === 0 ? '<div class="ec-hint">↑ 鼠标扫过图上元素(价格线 / 阴影 / 紫线 / 灰线 / 黄线 / 红线)出解读</div>' : '') +
     '<div class="ec-ai"><div class="ico">AI</div><div class="body"><div class="txt"></div><span class="src"></span></div></div>' +
     killStrip +
     '<div class="ec-ask"><div class="ai">AI</div><input type="text"><button class="send" title="问 PlainSight">→</button></div>' +
   '</div>';
   _ecSetAI(host, _ecInterp(m, 'default'));
 
-  // click-to-interpret (delegated once per paint)
+  // hover-to-interpret (delegated once per paint) — 鼠标扫过图上元素即出该处白话；
+  // 移开图恢复总览。click 保留作 touch/钉住 fallback。
   const svgEl = host.querySelector('svg');
   let lastHit = null;
-  if (svgEl) svgEl.addEventListener('click', (e) => {
-    const el = e.target.closest('.ec-hit');
-    if (!el) return;
-    _ecSetAI(host, _ecInterp(m, el.dataset.k, el.dataset.i != null ? parseInt(el.dataset.i, 10) : undefined));
-    if (lastHit) lastHit.classList.remove('ec-active');
-    el.classList.add('ec-active'); lastHit = el;
-    const hint = host.querySelector('.ec-hint'); if (hint) hint.textContent = '✓ 已更新 · 再点别的元素看看';
-  });
+  if (svgEl) {
+    const applyHit = (el) => {
+      if (el === lastHit) return;
+      _ecSetAI(host, _ecInterp(m, el.dataset.k, el.dataset.i != null ? parseInt(el.dataset.i, 10) : undefined));
+      if (lastHit) lastHit.classList.remove('ec-active');
+      el.classList.add('ec-active'); lastHit = el;
+      const hint = host.querySelector('.ec-hint'); if (hint) hint.textContent = '悬停在元素上出解读 · 移开图看总览';
+    };
+    const clearHit = () => {
+      if (lastHit) { lastHit.classList.remove('ec-active'); lastHit = null; }
+      _ecSetAI(host, _ecInterp(m, 'default'));
+      const hint = host.querySelector('.ec-hint'); if (hint) hint.textContent = '↑ 鼠标扫过图上元素(价格线 / 阴影 / 紫线 / 灰线 / 黄线 / 红线)出解读';
+    };
+    svgEl.addEventListener('mousemove', (e) => {
+      const el = e.target.closest('.ec-hit');
+      if (el) applyHit(el);
+    });
+    svgEl.addEventListener('mouseleave', clearHit);
+    svgEl.addEventListener('click', (e) => {
+      const el = e.target.closest('.ec-hit'); if (el) applyHit(el);
+    });
+  }
   const send = host.querySelector('.ec-ask .send'), inp = host.querySelector('.ec-ask input');
   const fire = () => { const q = (inp.value || '').trim() || inp.dataset.suggest || ''; if (q) { inp.value = ''; askCard(cardId, q); } };
   if (send) send.addEventListener('click', fire);
@@ -3243,8 +3268,14 @@ function renderSingleCard(c) {
   const priceChart = insuf
     ? '<div class="ec-wrap"><div class="ec-empty">this source / subject has no price series</div></div>'
     : '<div data-echost="' + escapeHTML(c.card_id) + '"><div class="ec-wrap"><div class="ec-empty">加载增强图…</div></div></div>';
-  const hero2 = '<div class="cp-hero2"><div class="cp-hero-l">' + _reasoningTree(c) + '</div>' +
-    '<div class="cp-hero-r">' + priceChart + '</div></div>';
+  // CHART = the hero: full-width on top so the price chart (+ hover strip) is
+  // unmistakably the primary object, not one column sharing the fold. The
+  // reasoning-chain tree is demoted into a collapsed disclosure below it, so the
+  // top of the page stops being a stack — you see the chart, hover for reads,
+  // and expand the 6-step X-RAY chain only if you want it.
+  const hero2 = '<div class="cp-hero-chart">' + priceChart + '</div>' +
+    '<details class="cp-hero-reasoning"><summary>X-RAY decision chain · 6-step overview</summary>' +
+    _reasoningTree(c) + '</details>';
 
   return '<div class="bet-card card-page" data-card="' + escapeHTML(c.card_id) + '">' +
     '<div class="cp-head">' +
@@ -3262,11 +3293,16 @@ function renderSingleCard(c) {
     hero2 +
     // ONE continuous reading chain (adversarial-experiment-converged):
     // betting on what/how rare/Confidence/Essence → [Why:Real bull-bear debate] → What would falsify it/Risk/reward → Audit fold
+    // De-stacked: the whole X-RAY dossier (reads · bull-bear debate · kill / sizing)
+    // is folded into ONE collapsed disclosure below the chart so the default view
+    // stays chart-centric. Reasoning-tree jumps auto-open it (see [data-rtjump]).
+    '<details class="cp-analysis"><summary>Full X-RAY analysis · rarity / conviction / bull-bear debate / kill line / sizing</summary><div class="cp-analysis-body">' +
     renderXrayTop(c) +
     _flowConn('What’s bet, how crowded, and what it is are all clear —— but the market<b>Why</b>dares to bet this?into the real arena,Hear both sides present their evidence.') +
     renderDeepAnalysis(c) +
     _flowConn('after reviewing the real bull-bear case and evidence disagreement —— this bet’s<b>kill line</b>What?and should<b>how heavily it bets</b>?') +
     renderXrayBottom(c) +
+    '</div></details>' +
     _auditFold(c) +
   '</div>';
 }
@@ -3464,6 +3500,9 @@ function bindCardEvents() {
     el.addEventListener('click', () => {
       const t = document.getElementById(el.getAttribute('data-rtjump'));
       if (!t) { showToast('No data for this section on this card'); return; }
+      // open any collapsed <details> ancestor so the target is visible before scrolling
+      let dd = t.closest('details');
+      while (dd) { dd.open = true; dd = dd.parentElement ? dd.parentElement.closest('details') : null; }
       t.scrollIntoView({ behavior: 'smooth', block: 'center' });
       t.classList.add('rt-flash');
       setTimeout(() => t.classList.remove('rt-flash'), 1300);
