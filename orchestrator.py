@@ -431,6 +431,7 @@ def build_revised_card(parent, revision: dict):
     import copy
 
     import db
+    import decoder
     dd = copy.deepcopy(getattr(parent, "decode_detail", None) or {})
     dd["revision"] = revision
     dd["mode"] = "whatif_" + str(dd.get("mode", "decode"))
@@ -446,4 +447,5 @@ def build_revised_card(parent, revision: dict):
         derived_from=parent.card_id, derivation_kind=revision.get("kind", "whatif"),
         derivation=revision)
     card.decode_detail = dd
+    decoder._attach_v4_detail_contract(card)
     return card

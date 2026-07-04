@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PlainSight · 增强股价图 v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0E11; --card:#161A1F; --card2:#1C222A; --line:#252C35;
+  --tx:#EAECEF; --tx2:#8A94A3; --tx3:#5B6673;
+  --up:#16C784; --down:#F6465D; --amber:#F0B90B; --ai:#7B61FF;
+  --teal:#5DCAA5;
+  --r:20px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:"Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:24px 16px 48px}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.wrap{max-width:520px;margin:0 auto}
+.cap{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);margin:0 0 10px 4px;font-weight:600}
+
+.top{display:flex;align-items:center;gap:12px;padding:14px 16px 6px}
+.top .t{font-size:17px;font-weight:700}
+.top .sub{font-size:12px;color:var(--tx2);margin-top:1px}
+.top .r{margin-left:auto;text-align:right}
+.top .r .p{font-size:17px;font-weight:700}
+.top .r .d{font-size:12px;font-weight:600;margin-top:2px}
+.up-t{color:var(--up)}
+
+.chart{position:relative;margin:8px 16px;background:var(--card);border-radius:var(--r);padding:16px 8px 8px;overflow:visible}
+#chartSvg{width:100%;height:300px;display:block;overflow:visible}
+.chart-hint{font-size:10px;color:var(--tx3);text-align:center;padding:8px 0 4px}
+
+.legend{display:flex;flex-wrap:wrap;gap:8px;padding:6px 16px 0}
+.legend .item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--tx2)}
+.legend .sw{width:14px;height:3px;border-radius:2px}
+.legend .sw.dist{background:var(--teal);opacity:.5;height:8px;border-radius:2px}
+.legend .sw.imp{background:var(--ai)}
+.legend .sw.cons{background:var(--tx2);height:1px;border-top:1px dashed var(--tx2);background:none}
+.legend .sw.evt{background:var(--amber);height:10px;width:2px;border-radius:0}
+.legend .sw.kill{background:var(--down);height:1px;border-top:1px dashed var(--down);background:none}
+
+.ai-strip{margin:8px 16px;background:rgba(123,97,255,.10);border:1px solid rgba(123,97,255,.30);border-radius:14px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px;min-height:80px;transition:border-color .2s}
+.ai-strip .ico{width:28px;height:28px;border-radius:9px;background:var(--ai);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex:none;margin-top:1px}
+.ai-strip .body{flex:1;min-width:0}
+.ai-strip .txt{font-size:13.5px;color:#E0DEF8;line-height:1.55}
+.ai-strip .txt b{color:#fff;font-weight:600}
+.ai-strip .src{font-size:10px;color:var(--ai);margin-top:6px;display:block;font-weight:600}
+
+.kill-info{margin:8px 16px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--tx2);background:rgba(246,70,93,.08);border:1px solid rgba(246,70,93,.2);border-radius:12px;padding:10px 14px}
+.kill-info .dot{width:8px;height:8px;border-radius:50%;background:var(--down);flex:none;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.kill-info b{color:var(--down);font-weight:600}
+
+.ask{margin:10px 16px 0;background:var(--card2);border:1px solid var(--line);border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:10px}
+.ask .ai{width:30px;height:30px;border-radius:10px;background:rgba(123,97,255,.16);color:var(--ai);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800}
+.ask .ph{flex:1;font-size:13px;color:var(--tx3);transition:color .2s}
+.ask .send{width:32px;height:32px;border-radius:10px;background:var(--ai);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700}
+
+.note{margin:20px 16px 0;font-size:11px;color:var(--tx3);line-height:1.7}
+.note b{color:var(--tx2);font-weight:600}
+.note .demo{color:var(--ai);font-weight:600}
+
+.hit-area{cursor:pointer;transition:opacity .15s}
+.hit-area:hover{opacity:.85}
+.active-el{stroke-width:3 !important;filter:brightness(1.3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="cap">PlainSight mockup v3 · 点图出分析</div>
+
+  <div class="top">
+    <div>
+      <div class="t">NVDA</div>
+      <div class="sub">NVIDIA · 31% 仓位</div>
+    </div>
+    <div class="r">
+      <div class="p num">$215.10</div>
+      <div class="d up-t num">+1.2%</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="item"><div class="sw dist"></div>市场觉得的范围</div>
+    <div class="item"><div class="sw imp"></div>市场要的增速</div>
+    <div class="item"><div class="sw cons"></div>分析师觉得</div>
+    <div class="item"><div class="sw evt"></div>事件</div>
+    <div class="item"><div class="sw kill"></div>认错线</div>
+  </div>
+
+  <div class="chart" id="chartBox">
+    <svg id="chartSvg" viewBox="0 0 480 300" preserveAspectRatio="xMidYMid meet">
+      <g id="grid"></g>
+      <g id="distBand"></g>
+      <g id="consensusLine"></g>
+      <g id="candles"></g>
+      <g id="impliedLine"></g>
+      <g id="events"></g>
+      <g id="killLine"></g>
+    </svg>
+  </div>
+  <div class="chart-hint" id="chartHint">↑ 点击图上的任意元素（蜡烛 / 阴影 / 紫线 / 灰线 / 黄线 / 红线）</div>
+
+  <div class="ai-strip" id="aiStrip">
+    <div class="ico">AI</div>
+    <div class="body">
+      <div class="txt" id="aiText">
+        市场现在要 NVDA <b>每年涨 38%</b> 才配得上这个价——历史极少公司做到。离你的认错线还剩 <b>1%</b>。
+      </div>
+      <span class="src" id="aiSrc">— 总览（默认）</span>
+    </div>
+  </div>
+
+  <div class="kill-info">
+    <span class="dot"></span>
+    <span>到 <b>$180</b> 该认错 · 现在离它 <b>1%</b> · 期权市场觉得 12% 概率会碰到</span>
+  </div>
+
+  <div class="ask">
+    <div class="ai">AI</div>
+    <div class="ph" id="askPh">问 PlainSight 任何问题</div>
+    <div class="send">→</div>
+  </div>
+
+  <div class="note">
+    <b>交互说明：</b><br>
+    <span class="demo">点阴影区</span> → AI 告诉你"市场觉得会落在哪"<br>
+    <span class="demo">点紫线</span> → AI 告诉你"市场要它做到多难"<br>
+    <span class="demo">点灰虚线</span> → AI 告诉你"分析师觉得值多少"<br>
+    <span class="demo">点黄线</span> → AI 告诉你"这天发生了什么"<br>
+    <span class="demo">点红线</span> → AI 告诉你"到这该认错"<br>
+    <span class="demo">点蜡烛</span> → AI 告诉你"这天的情况"<br>
+    <b>原则：</b>图是主体，点哪里出哪里的分析。没有按钮，没有层级。
+  </div>
+</div>
+
+<script>
+const candles = [
+  {o:190,c:195,h:198,l:188,up:true},
+  {o:195,c:190,h:197,l:187,up:false},
+  {o:190,c:200,h:202,l:189,up:true},
+  {o:200,c:195,h:203,l:193,up:false},
+  {o:195,c:205,h:208,l:194,up:true},
+  {o:205,c:198,h:207,l:196,up:false},
+  {o:198,c:215,h:218,l:197,up:true,event:"财报"},
+  {o:215,c:210,h:217,l:208,up:false},
+  {o:210,c:220,h:223,l:209,up:true},
+  {o:220,c:216,h:222,l:214,up:false},
+  {o:216,c:225,h:228,l:215,up:true},
+  {o:225,c:222,h:227,l:220,up:false},
+  {o:222,c:218,h:224,l:216,up:false,event:"评级↑"},
+  {o:218,c:215,h:220,l:213,up:false},
+  {o:215,c:212,h:217,l:210,up:false},
+  {o:212,c:215,h:216,l:211,up:true},
+];
+const distU=[205,203,200,198,195,193,248,245,242,240,238,236,235,234,233,232];
+const distL=[175,177,178,180,182,184,185,186,187,188,189,190,190,191,192,193];
+const impliedPct=[34,34,34,34,34,34,41,40,39,38,38,38,38,38,38,38];
+const consensus=[200,199,198,197,196,195,185,175,165,155,145,135,125,120,115,110];
+
+const X0=20,X1=430,Y0=15,Y1=200,PMIN=175,PMAX=250;
+const SUB_Y0=215,SUB_Y1=270,PCT_MIN=25,PCT_MAX=50;
+const N=candles.length;
+function px(p){return Y1-(p-PMIN)/(PMAX-PMIN)*(Y1-Y0)}
+function cx(i){return X0+(i/(N-1))*(X1-X0)}
+
+function drawGrid(){
+  const g=document.getElementById('grid');g.innerHTML='';
+  [180,200,220,240].forEach(p=>{
+    const y=px(p);
+    g.innerHTML+=`<line x1="${X0}" y1="${y}" x2="${X1}" y2="${y}" stroke="#252C35" stroke-width="0.5" stroke-dasharray="2,3"/>`;
+    g.innerHTML+=`<text x="${X1+6}" y="${y+3}" font-size="9" fill="#5B6673" font-family="Inter">$${p}</text>`;
+  });
+  g.innerHTML+=`<text x="${X0-4}" y="${Y1+16}" font-size="9" fill="#5B6673" font-family="Inter">90天前</text>`;
+  g.innerHTML+=`<text x="${X1}" y="${Y1+16}" font-size="9" fill="#5B6673" font-family="Inter" text-anchor="end">今天</text>`;
+}
+
+function drawDistBand(){
+  const g=document.getElementById('distBand');g.innerHTML='';
+  let up='',lo='';
+  for(let i=0;i<N;i++){up+=`${cx(i)},${px(distU[i])} `;lo=`${cx(i)},${px(distL[i])} `+lo}
+  g.innerHTML+=`<path class="hit-area" data-el="dist" d="M${up}L${lo}Z" fill="#5DCAA5" fill-opacity="0.15" stroke="none"/>`;
+  g.innerHTML+=`<path d="M${[...Array(N)].map((_,i)=>`${cx(i)},${px(distU[i])}`).join(' L ')}" fill="none" stroke="#5DCAA5" stroke-width="1" stroke-dasharray="3,2" opacity="0.5" pointer-events="none"/>`;
+  g.innerHTML+=`<path d="M${[...Array(N)].map((_,i)=>`${cx(i)},${px(distL[i])}`).join(' L ')}" fill="none" stroke="#5DCAA5" stroke-width="1" stroke-dasharray="3,2" opacity="0.5" pointer-events="none"/>`;
+}
+
+function drawCandles(){
+  const g=document.getElementById('candles');g.innerHTML='';
+  candles.forEach((c,i)=>{
+    const x=cx(i),yo=px(c.o),yc=px(c.c),yh=px(c.h),yl=px(c.l);
+    const color=c.up?'#16C784':'#F6465D';
+    const top=Math.min(yo,yc),h=Math.max(2.5,Math.abs(yc-yo));
+    g.innerHTML+=`<line x1="${x}" y1="${yh}" x2="${x}" y2="${yl}" stroke="${color}" stroke-width="1" pointer-events="none"/>`;
+    g.innerHTML+=`<rect class="hit-area" data-el="candle" data-idx="${i}" x="${x-5}" y="${top-3}" width="10" height="${h+6}" fill="transparent"/>`;
+    g.innerHTML+=`<rect x="${x-3}" y="${top}" width="6" height="${h}" fill="${color}" rx="1" pointer-events="none"/>`;
+  });
+}
+
+function drawImplied(){
+  const g=document.getElementById('impliedLine');g.innerHTML='';
+  // 子图 Y 轴（百分比）：25%-50% 映射到 SUB_Y1-SUB_Y0
+  const pctY = (p) => SUB_Y1 - (p - PCT_MIN)/(PCT_MAX - PCT_MIN) * (SUB_Y1 - SUB_Y0);
+  const pts=[...Array(N)].map((_,i)=>`${cx(i)},${pctY(impliedPct[i])}`);
+  // 子图背景
+  g.innerHTML+=`<rect x="${X0}" y="${SUB_Y0}" width="${X1-X0}" height="${SUB_Y1-SUB_Y0}" fill="#0B0E11" opacity="0.5"/>`;
+  g.innerHTML+=`<line x1="${X0}" y1="${SUB_Y0}" x2="${X1}" y2="${SUB_Y0}" stroke="#252C35" stroke-width="0.5"/>`;
+  // 子图刻度
+  [30,40,50].forEach(p=>{
+    const y=pctY(p);
+    g.innerHTML+=`<line x1="${X0}" y1="${y}" x2="${X1}" y2="${y}" stroke="#252C35" stroke-width="0.3" stroke-dasharray="1,2"/>`;
+    g.innerHTML+=`<text x="${X1+6}" y="${y+3}" font-size="8" fill="#7B61FF" font-family="Inter">${p}%</text>`;
+  });
+  g.innerHTML+=`<text x="${X0-2}" y="${SUB_Y0+10}" font-size="8" fill="#7B61FF" font-family="Inter" font-weight="600">市场要的增速%</text>`;
+  // 紫线（hit area + 可见线）
+  g.innerHTML+=`<path class="hit-area" data-el="implied" d="M${pts.join(' L ')}" fill="none" stroke="transparent" stroke-width="20" stroke-linecap="round"/>`;
+  g.innerHTML+=`<path d="M${pts.join(' L ')}" fill="none" stroke="#7B61FF" stroke-width="2.5" pointer-events="none"/>`;
+  // 财报跳变标注
+  g.innerHTML+=`<circle cx="${cx(6)}" cy="${pctY(impliedPct[6])}" r="3" fill="#7B61FF" pointer-events="none"/>`;
+  g.innerHTML+=`<text x="${cx(6)+6}" y="${pctY(impliedPct[6])-4}" font-size="8" fill="#7B61FF" font-family="Inter">34%→41%</text>`;
+}
+
+function drawConsensus(){
+  const g=document.getElementById('consensusLine');g.innerHTML='';
+  const pts=[...Array(N)].map((_,i)=>`${cx(i)},${px(consensus[i])}`);
+  g.innerHTML+=`<path class="hit-area" data-el="consensus" d="M${pts.join(' L ')}" fill="none" stroke="transparent" stroke-width="18" stroke-linecap="round"/>`;
+  g.innerHTML+=`<path d="M${pts.join(' L ')}" fill="none" stroke="#8A94A3" stroke-width="1.5" stroke-dasharray="4,3" pointer-events="none"/>`;
+  g.innerHTML+=`<text x="${cx(N-1)+8}" y="${px(consensus[N-1])+3}" font-size="10" fill="#8A94A3" font-family="Inter" pointer-events="none">分析师觉得</text>`;
+}
+
+function drawEvents(){
+  const g=document.getElementById('events');g.innerHTML='';
+  candles.forEach((c,i)=>{
+    if(c.event){
+      const x=cx(i);
+      g.innerHTML+=`<rect class="hit-area" data-el="event" data-idx="${i}" x="${x-8}" y="${Y0}" width="16" height="${Y1-Y0}" fill="transparent"/>`;
+      g.innerHTML+=`<line x1="${x}" y1="${Y0}" x2="${x}" y2="${Y1}" stroke="#F0B90B" stroke-width="1" stroke-dasharray="2,2" opacity="0.6" pointer-events="none"/>`;
+      g.innerHTML+=`<rect x="${x-16}" y="${Y0-2}" width="32" height="14" rx="3" fill="#F0B90B" opacity="0.9" pointer-events="none"/>`;
+      g.innerHTML+=`<text x="${x}" y="${Y0+8}" font-size="8" fill="#0B0E11" font-family="Inter" font-weight="700" text-anchor="middle" pointer-events="none">${c.event}</text>`;
+    }
+  });
+}
+
+function drawKill(){
+  const g=document.getElementById('killLine');g.innerHTML='';
+  const y=px(180);
+  g.innerHTML+=`<rect class="hit-area" data-el="kill" x="${X0}" y="${y-8}" width="${X1-X0}" height="16" fill="transparent"/>`;
+  g.innerHTML+=`<line x1="${X0}" y1="${y}" x2="${X1}" y2="${y}" stroke="#F6465D" stroke-width="1.5" stroke-dasharray="6,3" pointer-events="none"/>`;
+  g.innerHTML+=`<text x="${X0}" y="${y-5}" font-size="10" font-weight="700" fill="#F6465D" font-family="Inter" pointer-events="none">到这该认错 $180</text>`;
+}
+
+const aiText=document.getElementById('aiText');
+const aiSrc=document.getElementById('aiSrc');
+const askPh=document.getElementById('askPh');
+const chartHint=document.getElementById('chartHint');
+
+function setAI(html,src,ask){
+  aiText.innerHTML=html;
+  aiSrc.textContent='— '+src;
+  if(ask) askPh.textContent='问 PlainSight · '+ask;
+}
+
+const interp={
+  dist:{
+    html:'市场觉得 3 个月内大概率落在 <b>$185-248</b>（你点的这个阴影区）。现在 $215 在中间偏上——偏乐观但不算疯狂。阴影最近<b>收窄了</b>，说明市场更确定了。',
+    src:'点了阴影区 · 分布账',
+    ask:'为什么阴影最近收窄了?'
+  },
+  implied:{
+    html:'这条<b>紫线</b>是市场对 NVDA 的要求——现在要 <b>每年涨 38%</b> 才配得上这个价。45 天前财报时从 34% 跳到 41%，后来回落一点。线往上走=市场要求变高=更难达标。',
+    src:'点了紫线 · 现金流账',
+    ask:'为什么 45 天前突然跳高?'
+  },
+  consensus:{
+    html:'这条<b>灰虚线</b>是分析师觉得 NVDA 该值多少。现在分析师觉得 <b>$190</b> 左右，但市场价 $215 跑在前面——价格比分析师乐观 <b>13%</b>。说明市场比分析师更看好。',
+    src:'点了灰虚线 · 变化账',
+    ask:'为什么价格跑在分析师前面?'
+  },
+  kill:{
+    html:'这根<b>红线</b>是你的认错线——<b>$180</b>。跌破这你该认错。现在离它只有 <b>1%</b>，很近了。期权市场觉得 12% 概率会碰到——不算低。',
+    src:'点了红线 · 决策层',
+    ask:'如果跌破 $180 我该怎么办?'
+  },
+  event:{
+    html:'这天发了<b>财报</b>。市场的要求从 34% 跳到 41%——财报太好，市场立刻要求更多。阴影也收窄了=大家更确定。这是预期的<b>跳变点</b>。',
+    src:'点了黄线 · 事件锚点',
+    ask:'财报具体说了什么?'
+  },
+  candleEvent:{
+    html:'这天发了<b>财报</b>，价格从 $198 跳到 $215（+8.6%）。市场的要求从 34% 跳到 41%——财报太好，市场立刻要求更多。阴影也收窄了=更确定。',
+    src:'点了蜡烛 · 财报日',
+    ask:'财报具体说了什么?'
+  },
+  candle:{
+    html:'这天价格 <b>$215</b>。市场要的增速对应 <b>38%</b>，比昨天略变难。没有特殊事件，属于正常波动。',
+    src:'点了蜡烛 · 某一天',
+    ask:'这天有什么特别的?'
+  },
+  default:{
+    html:'市场现在要 NVDA <b>每年涨 38%</b> 才配得上这个价——历史极少公司做到。离你的认错线还剩 <b>1%</b>。',
+    src:'总览（默认）',
+    ask:'问 PlainSight 任何问题'
+  }
+};
+
+let lastActive=null;
+function highlight(el){
+  if(lastActive) lastActive.classList.remove('active-el');
+  if(el){el.classList.add('active-el');lastActive=el}
+}
+
+document.getElementById('chartSvg').addEventListener('click',(e)=>{
+  const el=e.target;
+  if(!el.classList||!el.classList.contains('hit-area'))return;
+  const type=el.dataset.el;
+  let key=type;
+  if(type==='candle'){
+    const c=candles[parseInt(el.dataset.idx)];
+    key=c.event?'candleEvent':'candle';
+  } else if(type==='event'){
+    key='event';
+  }
+  const d=interp[key]||interp.default;
+  setAI(d.html,d.src,d.ask);
+  highlight(el);
+  chartHint.textContent='✓ 已更新 · 再点别的元素看看';
+});
+
+document.getElementById('chartSvg').addEventListener('mouseover',(e)=>{
+  const el=e.target;
+  if(el.classList&&el.classList.contains('hit-area')){
+    chartHint.textContent='点击查看分析 →';
+    el.style.opacity='0.8';
+  }
+});
+document.getElementById('chartSvg').addEventListener('mouseout',(e)=>{
+  const el=e.target;
+  if(el.classList&&el.classList.contains('hit-area')){
+    chartHint.textContent='点击图上的任意元素（蜡烛 / 阴影 / 紫线 / 灰线 / 黄线 / 红线）';
+    el.style.opacity='1';
+  }
+});
+
+drawGrid();drawDistBand();drawConsensus();drawCandles();drawImplied();drawEvents();drawKill();
+</script>
+</body>
+</html>

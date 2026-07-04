@@ -1,13 +1,23 @@
-# PROJECT_CONTEXT · Bet Decoder
+# PROJECT_CONTEXT · PlayInsight
 
-> /dev 工程上下文索引。产品决策见 `PRD.md`(冻结版,权威);术语见 `docs/glossary.md`;愿景见 `BET_DECODER_VISION.md`。
-> 本文件记录**架构决策 + 模块依赖 + 当前状态**,架构变化时立即更新(不等 Phase 5)。
+> /dev 工程上下文索引。PlayInsight 是当前 v2 successor workspace,基于历史 `bet-decoder` 代码库复制演进。
+> v2 产品和工程权威见 `PRD.md` + `docs/SPEC_A_data_structures.md` ... `docs/SPEC_F_api.md`;术语见 `docs/glossary.md`。
+> `Bet Decoder` / `PlainSight` / `PriceLens` 只作为历史 traceability 名称保留; archived docs 不再作为当前 source of truth。
 
 ---
 
 ## 一句话
 
-Bet Decoder = 投资 bet 的 X 光机。输入任意 bet(市场价/分析师目标价/推文/持仓)→ 反向解码隐含假设 → 多卡并列 → AI 跨卡综合。开源 self-hosted,单文件 SQLite,`git clone && uvicorn` 即跑。
+PlayInsight v2 = 多框架 market-expectation decomposition workbench。它继承 Bet Decoder v1 的卡片、血缘、activity、agentic 解码基础,但当前方向由 `PRD.md` 和 `docs/SPEC_A-F` 驱动:用正交框架拆分市场预期 channel、跨框架对账,并把结果呈现为可追问/可修正的 agentic investigation。
+
+## 当前文档权威
+
+| 层级 | 当前权威 | 说明 |
+|---|---|---|
+| Product | `PRD.md` | PlayInsight v2.0 产品规格。 |
+| Engineering specs | `docs/SPEC_A_data_structures.md` ... `docs/SPEC_F_api.md` | v2 实现分解;重代码前优先读。 |
+| Local context | `PROJECT_CONTEXT.md`, `CLAUDE.md`, `docs/feature-log.md` | 工程索引、协作约束、历史状态。 |
+| Archive | `docs/archive/` | 历史 Bet Decoder/PriceLens/PlainSight 决策,只作 traceability。 |
 
 ## 架构决策(Phase 2 检查点,锁定 2026-05-28)
 
@@ -15,7 +25,7 @@ Bet Decoder = 投资 bet 的 X 光机。输入任意 bet(市场价/分析师目�
 |---|---|---|
 | 认证 | **无认证** | self-hosted 单用户开源工具 |
 | 后端 | **FastAPI**(扩展 `api.py`) | 沿用现有 |
-| 前端 | **vanilla JS**,扩展 `app.html`,严守 `pricelens_design_system.md` | 沿用现有,无框架 |
+| 前端 | **vanilla JS**,扩展/重做 `app.html`;v2 UI 以 `PRD.md` + `docs/SPEC_E_presentation.md` + `mockup_v2_young.html` 为准 | 沿用现有,无框架;`pricelens_design_system.md` 已归档为历史参考,不是当前约束 |
 | 存储 | **SQLite + `db.py` DAO**;schema 见 PRD.md 数据模型总览 | 单文件,零配置 |
 | DB 迁移 | **手写幂等 DDL**(`init_db` 内 CREATE TABLE IF NOT EXISTS + 老数据回填脚本),**不上 Alembic** | solo + 单文件 SQLite,重型框架过度 |
 | LLM | **provider 可配**(`client.py`):默认 **MiroMind**(agentic deep-research,自定义 SSE,公开仓默认);测试切 **TokenDance/DeepSeek V4 Pro**(OpenAI 兼容 chat + **function-calling**,无 web 搜索)。chat mode(narration/critic/synth)+ deep research mode(evidence/anchor lens)+ **tool-calling mode**(agentic decode / Q&A) | 单 client 多 provider;`PROTOCOL`/`WEB_SEARCH_CAPABLE`/`PRICING` 按 provider |
@@ -25,7 +35,9 @@ Bet Decoder = 投资 bet 的 X 光机。输入任意 bet(市场价/分析师目�
 
 ## 构建路径决策(2026-05-28)
 
-**直接建真后端** —— 按冻结 PRD 一次性实现 M1→M2→M3→M5→M4,接 reverse_dcf/SQLite/MiroMind API,无 throwaway hardcoded 原型。(vision 文档的 4.5 天 hardcoded 路径已弃用。)
+**v1 历史路径**:直接建真后端 —— 按冻结 PRD 一次性实现 M1→M2→M3→M5→M4,接 reverse_dcf/SQLite/MiroMind API,无 throwaway hardcoded 原型。
+
+**v2 当前路径**:按 `PRD.md` + `docs/SPEC_A-F` 分阶段重构。不要从 archived vision/design-system 文档推导新需求。
 
 ## Agentic 层(2026-06-01,在真后端之上叠加)
 
@@ -53,6 +65,8 @@ Bet Decoder = 投资 bet 的 X 光机。输入任意 bet(市场价/分析师目�
 
 ## 当前状态
 
+- **Active project name**:PlayInsight。当前文件夹是 v2 successor workspace,由 `bet-decoder` 复制而来;旧代码、DB 文件、GitHub URL、模块名里出现 Bet Decoder/PriceLens 属历史来源,改名应随实际重构分批处理,不要做无关大扫除。
+- **v2 authoritative docs**:`PRD.md` + `docs/SPEC_A_data_structures.md` / `SPEC_B_channels.md` / `SPEC_C_reconciliation.md` / `SPEC_D_decision.md` / `SPEC_E_presentation.md` / `SPEC_F_api.md`。
 - **GitHub repo**:https://github.com/hnaymyh123-henry/bet-decoder (private)。✅ **origin 已同步**:2026-06-01 经 PR #9 rebase-merge 到 `f26fc47`;此后 Agentic 层 Phase A-F 已直接推 master(narrative 收尾 + 6 phase commit)。日常用 `git -c credential.helper='!gh auth git-credential' push origin master` 一次性凭证助手推(不改持久 git config)
 - **Phase 1-5 + Phase 4 code review + 市场叙事层全部完成**(latest 2026-06-01):真后端 M1-M5 + 前端 + 发布脚手架(README/LICENSE/Dockerfile) + 市场叙事层(narrative.py)。**12 套件 ~290 断言全绿**(M1-M8 + phase4-W1/W2/W3 + narrative 19)。Phase 4 抓修 5 CRITICAL + ~12 SHOULD-FIX 真实路径 bug。
 - **Agentic 层(2026-06-01)叠加完成**:Phase A-F 全落地,新增 `orchestrator.py`(agentic 解码 + Q&A + 溯源改写)· `agent_tools.py`(工具注册表)· client.py 加 `call_chat_tools`/stub seam · db.py schema v3(decode_detail 持久化 + 卡 lineage)· api.py 加 `/ask` `/revise` + `/decode` agentic PRIMARY · app.html 加每卡讨论块 + WHAT-IF 修正提案 + 衍生卡挂轨。**6 新离线套件 +83 断言全绿**(decode_detail 15 · client_tools 7 · agent_tools 16 · orchestrator 12 · qa_revise 11 · agentic_e2e 22)→ **累计 ~373 断言全绿**。CI `verify_*.py` glob 自动纳入。

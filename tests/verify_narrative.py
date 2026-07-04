@@ -68,7 +68,9 @@ check("AC1 no-url source → D (unverifiable)",
       and narrative.classify_source({}) == "D")
 
 # --- AC2: parse the real first-run output -----------------------------------
-sample = json.load(open("narrative_sample.json", encoding="utf-8"))
+# narrative_sample.json lives at the repo root; this script runs from tests/.
+_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sample = json.load(open(os.path.join(_root, "narrative_sample.json"), encoding="utf-8"))
 content = json.dumps(sample, ensure_ascii=False)
 parsed = narrative.parse_narrative(content)
 check("AC2 parse_narrative round-trips the real model JSON",

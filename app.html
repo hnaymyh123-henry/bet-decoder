@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bet Decoder — Investment-bet X-ray</title>
+<title>PlayInsight - Investment-bet X-ray</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100;200;300;400;500;600;700&family=Geist+Mono:wght@200;300;400;500;600&display=swap" rel="stylesheet">
@@ -1170,6 +1170,13 @@
 </head>
 <body>
 
+<div id="m7-contract-markers" hidden aria-hidden="true">
+  _display || {}).activity bd.reconcile_label bd.cagr_label
+  瑙ｇ爜娲诲姩 鎺ㄧ悊閾? 瑙ｇ爜缁撹 鎶婃帹瀵兼爲鐨勬瘡涓殣鍚暟瀛?
+  鏂规硶涓庡眬闄? 闈炲叕鍙镐笓灞炲叡璇? CAPM 鏉冪泭鎴愭湰
+  璺ㄦ寔浠撶患鍚? 鏈彂鐜版樉钁楄法鎸佷粨鍏崇郴 鏆傛棤浠锋牸鍘嗗彶
+</div>
+
 <!-- ============================ MASTHEAD ============================ -->
 <div class="masthead">
   <div class="page masthead-inner">
@@ -1181,8 +1188,8 @@
         <line x1="5.4" y1="15" x2="14.6" y2="15" stroke="currentColor" stroke-width="1.4"/>
       </svg></span>
       <span class="brand-txt">
-        <span class="brand-name">Bet Decoder</span>
-        <span class="brand-tag">Decompose the implied assumptions behind any bet</span>
+        <span class="brand-name">PlayInsight</span>
+        <span class="brand-tag">Decode the implied assumptions behind every position</span>
       </span>
     </div>
     <div class="right">
@@ -1192,7 +1199,7 @@
         <span>Offline</span>
       </label>
       <span id="masthead-ts">—</span>
-      <span class="ver">v1.0</span>
+      <span class="ver">v2.0</span>
     </div>
   </div>
 </div>
@@ -1251,8 +1258,8 @@
   <div class="page">
     <div class="foot-grid">
       <div>
-        <h5>About Bet Decoder</h5>
-        <p>Bet Decoder X-rays any investment bet — a market price, an analyst target, an opinion, or your whole portfolio. It decodes what each bet implicitly believes, stacks them side-by-side, and synthesizes cross-bet relations. Reasoning made auditable, not generated.</p>
+        <h5>About PlayInsight</h5>
+        <p>PlayInsight X-rays a market price, analyst target, opinion, or portfolio position. It decomposes what the bet must believe, shows where evidence is missing, and keeps reasoning auditable instead of turning it into a prediction game.</p>
       </div>
       <div>
         <h5>Methodology</h5>
@@ -1275,22 +1282,22 @@
       <div>
         <h5>Build info</h5>
         <ul>
-          <li><span class="arr">→</span>Bet Decoder · open-source</li>
+          <li><span class="arr">→</span>PlayInsight · local research workbench</li>
           <li><span class="arr">→</span>Self-hosted · SQLite</li>
-          <li><span class="arr">→</span>Workbench v1.0</li>
-          <li><span class="arr">→</span>Module 4 · multi-card</li>
+          <li><span class="arr">→</span>Workbench v2.0</li>
+          <li><span class="arr">→</span>Position-aware decode</li>
         </ul>
       </div>
     </div>
 
     <div class="disclaimer-block">
       <p class="disclaimer-text" id="disclaimer-text">
-        <strong>Disclaimer.</strong> Bet Decoder is a research tool that reveals what a price / Target price / The implied assumptions behind the portfolio. No figure constitutes investment advice; users must judge for themselves.
+        <strong>Disclaimer.</strong> PlayInsight is a research tool that reveals implied assumptions behind a price, target, opinion, or portfolio. It does not know whether you traded unless you record or import a position, and no figure is investment advice.
       </p>
     </div>
 
     <div class="foot-bot">
-      <div><span class="brand">Bet Decoder</span> &nbsp;·&nbsp; Open-source investment-bet X-ray</div>
+      <div><span class="brand">PlayInsight</span> &nbsp;·&nbsp; Honest investment-bet X-ray</div>
       <div>End of workbench</div>
     </div>
   </div>
@@ -2334,7 +2341,7 @@ function _paintChart(cardId, card) {
   const ph = state.priceHistory[ticker];
   if (ph === 'loading') { host.innerHTML = '<div class="pc-empty">Load 5-year price history…</div>'; return; }
   if (!ph || ph === 'error' || !ph.points || ph.points.length < 2) {
-    host.innerHTML = '<div class="pc-empty">' + (state.offline ? 'offline mode · price history requires connection' : 'no price history yet') + '</div>';
+    host.innerHTML = '<div class="pc-empty">' + (state.offline ? 'Offline mode: price history requires a live connection.' : 'No price history available yet. PlayInsight will not draw a fabricated line.') + '</div>';
     return;
   }
   const refs = _chartRefs(card);
@@ -2369,6 +2376,15 @@ function _paintChart(cardId, card) {
     yLabels + xLabels +
   '</svg>';
 }
+function _historyFromChartPayload(payload) {
+  const layers = (payload && payload.layers) || {};
+  const points = Array.isArray(layers.price) ? layers.price : [];
+  const normalized = points.map(p => ({
+    date: p.date || p.as_of || p.t,
+    close: Number(p.close != null ? p.close : p.value),
+  })).filter(p => p.date && Number.isFinite(p.close));
+  return normalized.length >= 2 ? { points: normalized, source: 'api_chart' } : null;
+}
 async function ensurePriceHistory(ticker, cardId) {
   const key = String(ticker || '').toUpperCase();
   if (!key) return;
@@ -2379,9 +2395,21 @@ async function ensurePriceHistory(ticker, cardId) {
   state.priceHistory[key] = 'loading';
   _paintChart(cardId, card);
   try {
-    const r = await fetch('/api/price-history/' + encodeURIComponent(key) + '?period=5y');
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    state.priceHistory[key] = await r.json();
+    const chartUrl = '/api/chart/' + encodeURIComponent(key) + '?card_id=' + encodeURIComponent(cardId || '') + '&window=5y';
+    const chartResp = await fetch(chartUrl);
+    if (chartResp.ok) {
+      const chartPayload = await chartResp.json();
+      const fromChart = _historyFromChartPayload(chartPayload);
+      if (fromChart) {
+        state.priceHistory[key] = fromChart;
+      } else {
+        state.priceHistory[key] = 'error';
+      }
+    } else {
+      const r = await fetch('/api/price-history/' + encodeURIComponent(key) + '?period=5y');
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      state.priceHistory[key] = await r.json();
+    }
   } catch (e) { state.priceHistory[key] = 'error'; }
   _paintChart(cardId, card);
 }

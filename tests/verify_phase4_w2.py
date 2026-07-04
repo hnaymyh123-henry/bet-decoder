@@ -106,7 +106,7 @@ def _keygen_in_subprocess(hashseed: str) -> str:
     env["MIROMIND_API_KEY"] = ""           # never touch the network on import
     out = subprocess.check_output(
         [sys.executable, "-c", _KEYGEN_SNIPPET],
-        env=env, cwd=os.path.dirname(os.path.abspath(__file__)),
+        env=env, cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),  # repo root (script lives in tests/)
         stderr=subprocess.STDOUT,
     )
     return out.decode("utf-8", "replace").strip().splitlines()[-1]

@@ -1,6 +1,6 @@
-# Feature Log · Bet Decoder
+# Feature Log · PlayInsight
 
-> 已交付功能 + 技术债登记。按迭代追加。权威规格见 `PRD.md`;架构见 `PROJECT_CONTEXT.md`。
+> 已交付功能 + 技术债登记。PlayInsight 是当前 v2 successor workspace;历史 Bet Decoder/PlainSight/PriceLens 名称只作 traceability。权威 v2 规格见 `PRD.md` + `docs/SPEC_A-F`;架构见 `PROJECT_CONTEXT.md`。
 
 ---
 
@@ -46,7 +46,32 @@
 | ~~TD1~~ | ✅ **已解(根因)**:Agentic Phase A 让 `get_card` 重建 `decode_detail`(蒙特卡洛 band 随卡落库 → 回读卡现在拿得到 band),`verify_decode_detail_persistence` 证无损往返。**剩余**:`synthesizer` 仍走相对差距 fallback,需改读持久化 `decode_detail` 里的 band 才能用上"band 当尺"——降级为 TD1' 小跟进(精度优化,非阻断) | Phase 4 review → Agentic Phase A 修 | 低(回读卡已可被追问/改写;综合精度可再提) | 下一轮:`synthesizer` 从 reloaded `decode_detail` 读 band 替代相对差距 fallback |
 | TD2 | **`sse.py` 旧 mock SSE 端点**(`stream_evidence_mock`)疑似被 M5 `activity.py` 真 SSE 取代,api.py 仍 import | Phase 5 清查 | 低 | 下一轮:确认 M4 不再用 mock 流后 git rm |
 | TD3 | **Windows gbk 控制台编码**:`verify_*.py` / `prerun_demo.py` 打印中文/emoji 在 gbk 控制台崩(需 `PYTHONIOENCODING=utf-8`);prerun_demo 已内置 stdout reconfigure,verify 脚本未 | Phase 4/5 | 低(加环境变量即绕过) | 下一轮:给 verify 脚本统一加 stdout reconfigure,或 README 注明 |
-| TD4 | **旧 W1 测试脚本** `test_a_evidence.py` / `test_b_chat.py`:pivot 前 W1 验证脚本,无 import,已被 verify_m* 取代 | Phase 5 清查 | 低 | 下一轮:确认无用后删 |
-| TD5 | **`pricelens_prd.md`** 被 `PRD.md` 取代,仅存 pivot 前历史细节 | Phase 5 清查 | 低(历史归档) | 待定:保留作历史,或归入 docs/archive/ |
+| ~~TD4~~ | ✅ **已解**:旧 W1 测试脚本 `test_a_evidence.py` / `test_b_chat.py` 已不在仓库 | Phase 5 清查 | 低 | ✅ 已删除 |
+| ~~TD5~~ | ✅ **已删**:`pricelens_prd.md`(改名前旧 PRD,已被 `PRD.md` 取代)在仓库清理时移除 | Phase 5 清查 | 低(历史归档) | ✅ 已删除 |
 | TD6 | **AI 真实输出质量未验证**:Phase 4 验的是代码路径正确性,真实 LLM 解码/证据/综合的产出质量从未跑过;`prerun_demo.py --execute` 是首次真实 smoke | Phase 4 | 中(demo 前必验) | demo 前:用户跑 --execute(2026-06-01 成本重算并压回预算内 ~$38.61,组合逐股证据已砍 → decoder 对持仓腿传 `_SKIP_EVIDENCE`)兼作真实 smoke |
 | TD7 | **OPS:项目 `.env` 含真 MIROMIND_API_KEY** → 任何走默认 hunter 的 decode 打真实 API;脚本须 `MIROMIND_API_KEY=""` 或靠 stub | Phase 4 | 中(成本/挂起风险) | 持续:运行脚本注意屏蔽 key;verify_m8 已自我屏蔽 |
+
+---
+
+### 迭代 2026-07-04 — 方向升级 v2.0 · 多框架预期分解引擎 + agentic 呈现（PRD 收口，代码未动）
+
+> 起因:v1.0 是单框架(反向 DCF)纯诊断链 + 固定模板卡 → 一个框架只照亮一条 channel + 研报感结构根因。本次把核心升级为"用一栈正交框架把市场预期分解成多条 channel、跨框架对账、agent 驱动可操纵的调查",决策纪律层挂其上。
+
+| 项 | 交付 | 状态 |
+|---|---|---|
+| **PRD v2.0 定稿** | `PRD.md` 覆盖升级(12 章骨架):§0 定位 · §1 原语(Decode/调查 + series/lineage 双轴)· §2 预期分解栈(5 channel + 高度栈 + 四原则)· §3 期权分布完整规格 · §4 决策层 Trade Plan + 可插拔执行 · §5 年轻化呈现 · §6 主动监控 · §7 模型分配 · §8 数据模型(panel_observations 新表 + decode_detail v3→v4)· §9 落地节奏 · §10 诚实边界 · §11 codebase 存活映射 · §12 开放项 | ✅ 大框架 LOCKED / 细节 OPEN |
+| **文档收口** | 4 份旧文档归档 `docs/archive/`(DIRECTION v0.3 / TRADING_AGENT_PRD v0.1 / BET_DECODER_VISION v0.7 / pricelens_design_system DEPRECATED)+ 原位置留 stub 指向 PRD v2.0;README Documentation 段同步更新 | ✅ |
+| **新视觉稿** | `mockup_v2_young.html`(年轻化交易 App vibe,深色/卡片流/一屏一焦点) | ✅ vibe 确认 |
+
+**大框架 LOCKED 的开放项(§12)**:O6 qveris 数据 API 形态(待探·地基)/ O7 成本模型 / O9 命名定位 / O10 合规边界 / O11 监控细节 / 决策层参数定值 / 一期是否含候选 ticker 解码。
+
+**落地节奏(§9 LOCKED)**:⓪ 漂移脊椎 → ① 期权隐含分布(keystone)→ ② consensus 修正 → ③ 轻量高度归因。技术地基 = O6。
+
+**代码状态**:所有 `.py` 停在 2026-06-05(Agentic 层),v2.0 代码重构尚未开始。`reverse_dcf`/`narrative`/`intelligence`/血缘/activity/`agent_tools`/`orchestrator`/`decoder` 全部存活升级(见 §11 映射),主要重做 `app.html`。
+
+**新增技术债**:
+
+| # | 项 | 影响 | 目标 |
+|---|---|---|---|
+| ~~TD8~~ | ✅ **已解**:PROJECT_CONTEXT.md / CLAUDE.md / README.md 已改为 PlayInsight v2 successor context,并指向 `PRD.md` + `docs/SPEC_A-F` 为当前权威;旧 Bet Decoder/PriceLens/PlainSight 文档仅作 traceability | 低 | ✅ 已更新 |
+| TD9 | **README.md 主体描述仍为 v1.0**(单框架/X光机/严守 design_system) | 低(文档列表已修,主体待代码落地后重写) | S3 前端落地后重写 README |

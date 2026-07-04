@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Any, Callable, Optional
 
 import db
@@ -1729,6 +1730,408 @@ def _fund_snapshot(f: Fundamentals) -> dict:
     }
 
 
+def _as_of_date(card: db.BetCard, detail: dict) -> str:
+    raw = getattr(card, "trade_date", None) or getattr(card, "created_at", None)
+    if isinstance(raw, str) and raw:
+        return raw[:10]
+    raw_anchor = detail.get("as_of") or detail.get("created_at")
+    if isinstance(raw_anchor, str) and raw_anchor:
+        return raw_anchor[:10]
+    return datetime.now(timezone.utc).date().isoformat()
+
+
+def _first_dcf_view(detail: dict) -> dict | None:
+    views = []
+    if isinstance(detail.get("primary_lens"), dict):
+        views.append(detail["primary_lens"])
+    views.extend([v for v in (detail.get("cross_lenses") or []) if isinstance(v, dict)])
+    for view in views:
+        if view.get("lens") == "dcf":
+            return view
+    return None
+
+
+def _cashflow_signal(detail: dict, metrics: dict) -> str:
+    if detail.get("status") == "insufficient":
+        return "unknown"
+    anchor_mode = detail.get("anchor_mode") or {}
+    if anchor_mode.get("undervalued") is True:
+        return "undervalued"
+    premium = detail.get("narrative_premium")
+    if isinstance(premium, (int, float)) and premium >= _NARRATIVE_PREMIUM_GATE:
+        return "overvalued"
+    anchor = metrics.get("anchor_price")
+    baseline = metrics.get("baseline")
+    high = metrics.get("baseline_high")
+    if isinstance(anchor, (int, float)) and isinstance(high, (int, float)) and anchor > high:
+        return "overvalued"
+    if isinstance(anchor, (int, float)) and isinstance(baseline, (int, float)) and baseline > anchor:
+        return "undervalued"
+    if detail.get("primary_lens") or detail.get("anchor_mode"):
+        return "fair" if baseline is not None else "unknown"
+    return "unknown"
+
+
+def _project_detail_to_cashflow_panel(card: db.BetCard, detail: dict) -> dict:
+    dcf = _first_dcf_view(detail) or {}
+    anchor_mode = detail.get("anchor_mode") or {}
+    primary = detail.get("primary_lens") if isinstance(detail.get("primary_lens"), dict) else {}
+    band = dcf.get("band") or detail.get("r2_band")
+    baseline = (
+        anchor_mode.get("raw_base_business_value")
+        or anchor_mode.get("base_business_value")
+        or dcf.get("baseline_dcf_price")
+    )
+    metrics = {
+        "anchor_price": detail.get("anchor_price"),
+        "current_price": detail.get("anchor_price"),
+        "baseline": baseline,
+        "baseline_low": dcf.get("baseline_dcf_low"),
+        "baseline_high": dcf.get("baseline_dcf_high"),
+        "band": band,
+        "point_solved": detail.get("status") != "insufficient",
+        "primary": {
+            "lens": primary.get("lens"),
+            "lens_label": primary.get("lens_label"),
+            "metric": primary.get("metric"),
+            "implied_label": primary.get("implied_label"),
+            "implied_value": primary.get("implied_value"),
+            "unit": primary.get("unit"),
+            "xray": primary.get("xray"),
+        },
+        "primary_lens": primary.get("lens"),
+        "cross_lenses": [
+            v.get("lens") for v in (detail.get("cross_lenses") or []) if isinstance(v, dict)
+        ],
+        "narrative_premium": detail.get("narrative_premium"),
+        "anchor_mode": bool(detail.get("anchor_mode")),
+    }
+    if primary.get("xray"):
+        metrics["xray"] = primary.get("xray")
+    signal = _cashflow_signal(detail, metrics)
+    return {
+        "channel": "cashflow",
+        "as_of": _as_of_date(card, detail),
+        "horizon": "5y",
+        "status": "honest_empty" if detail.get("status") == "insufficient" else "ok",
+        "quality": "empty" if detail.get("status") == "insufficient" else "medium",
+        "metrics": metrics,
+        "signal": signal,
+        "evidence_refs": [],
+        "cost_credits": 0,
+    }
+
+
+def _degraded_decision(reason: str, has_position: bool = False) -> dict:
+    return {
+        "stance": "trim" if has_position else "avoid",
+        "strategy_archetype": "wait",
+        "conviction": "low",
+        "edge": {
+            "edge_prob": None,
+            "status": reason,
+        },
+        "entry": {
+            "price": None,
+            "condition": "do_not_enter_without_distribution_and_position_context",
+            "stages": None,
+        },
+        "size": {
+            "raw_kelly": 0.0,
+            "kelly_fraction": 0.25,
+            "fractional_kelly": 0.0,
+            "conviction_multiplier": 0.3,
+            "target_weight": 0.0,
+            "status": reason,
+        },
+        "stop": None,
+        "kill": {
+            "line": "No executable plan until options distribution and position context are available.",
+            "triggers": [],
+        },
+        "exit": "wait_for_complete_panel",
+        "rationale": f"degraded: {reason}",
+        "self_falsification": "Complete the v4 panel before treating this as tradable.",
+        "degraded": True,
+    }
+
+
+def _fetch_option_chain_rows(ticker: str) -> tuple[list[dict], float | None]:
+    """Best-effort option chain fetch via yfinance. Returns (rows, spot_price).
+
+    Rows are normalized dicts with keys: strike, expiry, type, bid, ask, mid,
+    volume, open_interest, implied_vol. Returns ([], None) on any failure
+    (offline, no options, rate limit) — caller degrades honestly.
+    """
+    try:
+        import yfinance as yf
+    except Exception:
+        return [], None
+    try:
+        stock = yf.Ticker(ticker)
+        spot = None
+        try:
+            info = stock.fast_info
+            spot = float(getattr(info, "last_price", None) or info.get("last_price") or 0) or None
+        except Exception:
+            pass
+        if spot is None:
+            hist = stock.history(period="1d")
+            if hist is not None and len(hist) > 0:
+                spot = float(hist["Close"].iloc[-1])
+        if spot is None or spot <= 0:
+            return [], None
+
+        all_dates = []
+        try:
+            all_dates = stock.options
+        except Exception:
+            pass
+        if not all_dates:
+            return [], spot
+
+        rows: list[dict] = []
+        for exp in all_dates[:4]:  # nearest 4 expiries max
+            try:
+                chain = stock.option_chain(exp)
+            except Exception:
+                continue
+            for opt_type, df in (("call", chain.calls), ("put", chain.puts)):
+                if df is None or len(df) == 0:
+                    continue
+                for _, r in df.iterrows():
+                    bid = r.get("bid")
+                    ask = r.get("ask")
+                    mid = r.get("lastPrice")
+                    if mid is None or (isinstance(mid, float) and mid <= 0):
+                        if bid and ask and bid > 0 and ask > 0:
+                            mid = (bid + ask) / 2.0
+                        else:
+                            continue
+                    if bid is None or bid <= 0 or ask is None or ask <= 0:
+                        continue
+                    rows.append({
+                        "strike": float(r["strike"]),
+                        "expiry": exp,
+                        "type": opt_type,
+                        "bid": float(bid),
+                        "ask": float(ask),
+                        "mid": float(mid),
+                        "volume": float(r.get("volume", 0) or 0),
+                        "open_interest": float(r.get("openInterest", 0) or 0),
+                        "implied_vol": float(r.get("impliedVolatility", 0) or 0) or None,
+                    })
+        return rows, spot
+    except Exception:
+        return [], None
+
+
+def _build_distribution_panel(ticker: str, anchor_price: float | None) -> dict | None:
+    """Build a distribution channel panel entry by calling distribution.py kernel.
+
+    Returns None (→ honest_empty stub) if option chain unavailable.
+    """
+    import distribution as dist
+
+    rows, spot = _fetch_option_chain_rows(ticker)
+    use_spot = spot or anchor_price
+    if not rows or not use_spot or use_spot <= 0:
+        return _empty_distribution_panel(ticker, "missing_option_chain_or_spot")
+
+    try:
+        payload = dist.analyze_options_distribution(
+            rows,
+            spot=use_spot,
+            symbol=ticker,
+            instrument_type="stock",
+            role="company",
+        )
+    except Exception:
+        return _empty_distribution_panel(ticker, "distribution_kernel_error")
+
+    status = payload.get("status", "honest_empty")
+    return {
+        "channel": "distribution",
+        "horizon": "1-3m",
+        "headline": _distribution_headline(payload),
+        "quality": "high" if status == "ok" else "low" if status == "honest_empty" else "medium",
+        "status": status,
+        "metrics": {
+            "instruments": payload.get("instruments", []),
+            "implied_range": payload.get("implied_range"),
+            "rnd": payload.get("rnd"),
+            "prob_of_target": payload.get("prob_of_target"),
+            "skew": payload.get("skew"),
+            "term_structure": payload.get("term_structure"),
+        },
+        "signal": payload.get("signal", "unknown"),
+        "cost_credits": 0,
+    }
+
+
+def _empty_distribution_panel(ticker: str, reason: str) -> dict:
+    return {
+        "channel": "distribution",
+        "horizon": "1-3m",
+        "headline": "期权数据不可得——跳过分布账",
+        "quality": "empty",
+        "status": "honest_empty",
+        "metrics": {
+            "instruments": [{"type": "stock", "symbol": ticker, "role": "company"}],
+            "implied_range": None,
+            "rnd": None,
+            "prob_of_target": None,
+            "skew": None,
+            "term_structure": None,
+            "reason": reason,
+        },
+        "signal": "unknown",
+        "cost_credits": 0,
+    }
+
+
+def _distribution_headline(payload: dict) -> str:
+    rng = payload.get("implied_range") or {}
+    lower = rng.get("lower")
+    upper = rng.get("upper")
+    skew = payload.get("skew") or {}
+    skew_pct = skew.get("percentile_1y")
+    if lower and upper:
+        base = f"3 个月 68% 落在 ${lower:.0f}-{upper:.0f}"
+        if skew_pct is not None and skew_pct > 0.8:
+            return f"{base}；下行保险比近一年更贵"
+        return base
+    return "期权分布已计算"
+
+
+def _empty_revision_panel(ticker: str) -> dict:
+    return {
+        "channel": "revision",
+        "horizon": "quarterly",
+        "headline": "consensus 数据冷启动——跳过变化账",
+        "quality": "empty",
+        "status": "honest_empty",
+        "metrics": {
+            "est_rev_90d": None,
+            "price_rev_90d": None,
+            "divergence": None,
+            "reaction_function": None,
+            "data_source": {"provider": None, "field": None, "point_in_time": False},
+            "reason": "consensus_point_in_time_cold_start",
+        },
+        "signal": "unknown",
+        "cost_credits": 0,
+    }
+
+
+def _empty_altitude_panel(ticker: str) -> dict:
+    return {
+        "channel": "altitude",
+        "horizon": "mixed",
+        "headline": "高度归因未配置——跳过高度栈",
+        "quality": "empty",
+        "status": "honest_empty",
+        "metrics": {
+            "macro": {"beta": None, "narrative": None, "dr_gated": False},
+            "industry": {"theme_etf": None, "beta": None, "narrative": None, "dr_gated": False},
+            "company": {"residual": None, "narrative": None, "dr_gated": False},
+            "decomposition": None,
+            "reason": "altitude_regression_not_implemented",
+        },
+        "signals": {"macro": "neutral", "industry": "neutral", "company": "neutral"},
+        "signal": "neutral",
+        "cost_credits": 0,
+    }
+
+
+def _attach_v4_detail_contract(card: db.BetCard) -> db.BetCard:
+    detail = getattr(card, "decode_detail", None)
+    if not isinstance(detail, dict):
+        return card
+
+    # Build panel[]: cashflow (from v3 projection) + distribution (from yfinance)
+    # + revision (honest-empty stub) + altitude (honest-empty stub)
+    panel = detail.get("panel")
+    if not isinstance(panel, list):
+        panel = [_project_detail_to_cashflow_panel(card, detail)]
+        detail["panel"] = panel
+
+    # Ensure all 4 channels are present; fill missing ones
+    channels_present = {p.get("channel") for p in panel if isinstance(p, dict)}
+    ticker = getattr(card, "subject", "") or ""
+    anchor = detail.get("anchor_price")
+
+    if "distribution" not in channels_present:
+        dist_panel = _build_distribution_panel(ticker, anchor)
+        panel.append(dist_panel or _empty_distribution_panel(ticker, "build_returned_none"))
+    if "revision" not in channels_present:
+        panel.append(_empty_revision_panel(ticker))
+    if "altitude" not in channels_present:
+        panel.append(_empty_altitude_panel(ticker))
+
+    detail["panel"] = panel
+
+    try:
+        import trade_plan
+        reconciliation = trade_plan.build_reconciliation(panel)
+        decision = trade_plan.build_trade_plan(
+            panel,
+            position_context={
+                "has_position": False,
+                "source": "decode_without_position_ledger",
+            },
+            reconciliation=reconciliation,
+        )
+    except Exception as exc:
+        reconciliation = {
+            "checks": [],
+            "term_structure": {
+                "shape": "unknown",
+                "note": "trade-plan reconciliation unavailable during decode",
+                "is_contradiction": False,
+            },
+            "conviction_input": {
+                "aligned_count": 0,
+                "divergent_count": 0,
+                "contradiction_count": 0,
+                "skipped_count": 0,
+                "total_checks": 0,
+                "net_verdict": "unknown",
+            },
+            "signals": {"cashflow": "unknown", "distribution": "unknown", "revision": "unknown", "altitude": "unknown"},
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+        decision = None
+
+    detail["reconciliation"] = reconciliation
+    if not decision:
+        reason = "degraded_no_distribution_or_position_context"
+        if detail.get("status") == "insufficient":
+            reason = "degraded_insufficient_decode_data"
+        detail["decision"] = _degraded_decision(reason)
+    else:
+        decision.setdefault("degraded", True)
+        detail["decision"] = decision
+    detail.setdefault("investigation", {
+        "trace": [],
+        "card_order": [],
+        "total_cost_credits": sum((p.get("cost_credits") or 0) for p in panel if isinstance(p, dict)),
+    })
+    detail["series_link"] = {
+        "series_key": getattr(card, "series_key", None),
+        "prev_card_id": None,
+        "prev_trade_date": None,
+        "drift_since_prev": None,
+    }
+    detail["lineage"] = {
+        "derived_from": getattr(card, "derived_from", None),
+        "derivation_kind": getattr(card, "derivation_kind", None),
+        "derivation": getattr(card, "derivation", None),
+    }
+    detail.pop("buckets", None)
+    return card
+
+
 def _assemble_traditional_card(ticker, src_ref, anchor, f, primary_result,
                                cross_results, narrative_premium, lens_plan,
                                emit, lang, *, conn=None, hunter=None,
@@ -1767,6 +2170,7 @@ def _assemble_traditional_card(ticker, src_ref, anchor, f, primary_result,
     # Step 3 — evidence (non-skippable, Issue #4). Hunts every implied
     # assumption (primary + cross lenses); honest-empty if none found.
     _attach_evidence(card, f, anchor, emit, lang, conn, hunter)
+    _attach_v4_detail_contract(card)
     return card
 
 
@@ -1882,6 +2286,7 @@ def _assemble_anchor_card(ticker, src_ref, anchor, f, emit, lang,
     # Step 3 — evidence (non-skippable, Issue #4). Each priced narrative/option
     # component is an implied assumption to research; honest-empty if none found.
     _attach_evidence(card, f, anchor, emit, lang, conn, hunter)
+    _attach_v4_detail_contract(card)
     return card
 
 
@@ -2122,6 +2527,7 @@ def _insufficient_card(*, subject: str, source_type: str,
         # source missing → 留空, not error / not skipped).
         "evidence": _empty_evidence_section(),
     }
+    _attach_v4_detail_contract(card)
     return card
 
 

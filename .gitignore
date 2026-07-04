@@ -43,3 +43,7 @@ outputs/
 Thumbs.db
 .vscode/
 .idea/
+
+# WorkBuddy workspace data (local only)
+.workbuddy/
+.claude/

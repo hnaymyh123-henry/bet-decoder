@@ -9,6 +9,7 @@ import json
 import os
 import re
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import Body, FastAPI, HTTPException, Request
@@ -38,6 +39,140 @@ def _require_dict(body) -> dict | None:
 
 def _valid_ticker(ticker: str) -> bool:
     return bool(TICKER_RE.match(ticker or ""))
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _subject_key(subject: str) -> str:
+    return str(subject or "").strip().upper()
+
+
+def _latest_position_context(conn, subject: str) -> dict:
+    latest = db.get_latest_position_ledger_event(conn, _subject_key(subject))
+    if not latest:
+        return {
+            "has_position": False,
+            "position_source": "none",
+            "position_freshness": "unknown",
+            "latest_event": None,
+        }
+    has_position = latest.get("status") == "open" and latest.get("side") != "flat"
+    # SPEC F2: freshness = fresh (position_ledger 有确认记录) | stale_snapshot
+    # (无 ledger，只有 decode 时的 snapshot) | unknown (无任何记录)
+    freshness = "fresh" if latest.get("source") in ("plan_confirmed", "close_confirmed", "manual_adjust") else "stale_snapshot"
+    return {
+        "has_position": bool(has_position),
+        "position_source": "position_ledger",
+        "position_freshness": freshness,
+        "latest_event": latest,
+    }
+
+
+def _panel_from_card(card) -> list[dict]:
+    detail = getattr(card, "decode_detail", None) or {}
+    panel = detail.get("panel")
+    return panel if isinstance(panel, list) else []
+
+
+def _extract_card_decision(card, position_context: dict | None = None) -> dict | None:
+    detail = getattr(card, "decode_detail", None) or {}
+    decision = detail.get("decision")
+    if isinstance(decision, dict):
+        return decision
+    panel = _panel_from_card(card)
+    if not panel:
+        return None
+    import trade_plan
+
+    return trade_plan.build_trade_plan(
+        panel,
+        position_context or {},
+        detail.get("reconciliation") if isinstance(detail.get("reconciliation"), dict) else None,
+    )
+
+
+def _empty_chart_layers() -> dict:
+    return {
+        "price": [],
+        "distribution_band": [],
+        "implied_growth": [],
+        "consensus": [],
+        "events": [],
+        "kill_lines": [],
+    }
+
+
+def _chart_empty_layers(layers: dict) -> list[dict]:
+    reasons = {
+        "price": "no stored price history",
+        "distribution_band": "no stored distribution history",
+        "implied_growth": "no stored implied-growth history",
+        "consensus": "point-in-time consensus cold start",
+        "events": "no stored event history",
+        "kill_lines": "no decision or KILL line for this chart",
+    }
+    return [
+        {"layer": name, "reason": reasons.get(name, "no stored data")}
+        for name, points in layers.items()
+        if not points
+    ]
+
+
+def _append_chart_point(layers: dict, observation: dict) -> None:
+    date = observation.get("as_of_date")
+    channel = observation.get("channel")
+    metrics = observation.get("metrics") or {}
+
+    price = metrics.get("price") or metrics.get("ohlc") or metrics.get("price_ohlc")
+    if isinstance(price, dict):
+        point = {"date": date, "source": "panel_observations"}
+        for key in ("open", "high", "low", "close", "volume"):
+            if key in price:
+                point[key] = price[key]
+        if "close" in point:
+            layers["price"].append(point)
+
+    band = metrics.get("distribution_band") or metrics.get("band")
+    if channel == "distribution" and isinstance(band, dict):
+        point = {"date": date, "source": "panel_observations"}
+        for key in ("lower", "upper", "confidence"):
+            if key in band:
+                point[key] = band[key]
+        if "lower" in point and "upper" in point:
+            layers["distribution_band"].append(point)
+
+    growth = metrics.get("implied_growth", metrics.get("implied_cagr"))
+    if channel == "cashflow" and isinstance(growth, (int, float)):
+        layers["implied_growth"].append({
+            "date": date,
+            "value": float(growth),
+            "source": "panel_observations",
+        })
+
+    consensus = metrics.get("consensus")
+    if channel == "revision" and isinstance(consensus, dict):
+        point = {"date": date, "source": "panel_observations"}
+        for key in ("value", "point_in_time", "status"):
+            if key in consensus:
+                point[key] = consensus[key]
+        layers["consensus"].append(point)
+
+    events = metrics.get("events")
+    if isinstance(events, list):
+        for event in events:
+            if isinstance(event, dict):
+                layers["events"].append({"date": event.get("date", date), **event})
+
+
+def _position_event_response(event_id: int, subject: str, status: str) -> dict:
+    return {
+        "position_event_id": event_id,
+        "subject": _subject_key(subject),
+        "status": status,
+        "position_source": "position_ledger",
+    }
 
 # Common SSE response headers. X-Accel-Buffering:no defeats nginx proxy
 # buffering; Cache-Control:no-cache + Connection:keep-alive keep the stream
@@ -352,6 +487,59 @@ def get_card(card_id: str):
         return JSONResponse(content=db.card_to_json_full(card))
 
 
+@app.get("/api/cards/{card_id}/plan")
+def get_card_plan(card_id: str):
+    """Build a local Trade Plan for a stored card from its decode_detail.panel.
+
+    This endpoint does not fetch missing data. If the card has no v2 panel, it
+    returns an explicit degraded response rather than inventing a plan.
+    """
+    with db.connection(DB_PATH) as conn:
+        card = db.get_card(conn, card_id)
+        if card is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error_code": "card_not_found", "message": f"No card for id {card_id}."},
+            )
+
+        detail = getattr(card, "decode_detail", None) or {}
+        panel = _panel_from_card(card)
+        position_context = _latest_position_context(conn, card.subject)
+        if not panel:
+            return {
+                "card_id": card_id,
+                "subject": card.subject,
+                "status": "degraded",
+                "reason": "decode_detail.panel is missing or empty",
+                "position_context": position_context,
+                "plan": None,
+            }
+
+        import trade_plan
+
+        plan = trade_plan.build_trade_plan(
+            panel,
+            position_context,
+            detail.get("reconciliation") if isinstance(detail.get("reconciliation"), dict) else None,
+        )
+        if plan is None:
+            return {
+                "card_id": card_id,
+                "subject": card.subject,
+                "status": "degraded",
+                "reason": "trade plan could not be built from available panel data",
+                "position_context": position_context,
+                "plan": None,
+            }
+        return {
+            "card_id": card_id,
+            "subject": card.subject,
+            "status": "ok",
+            "position_context": position_context,
+            "plan": plan,
+        }
+
+
 @app.post("/api/decode")
 def decode_card(body=Body(default=None)):
     """Decode a bet into a BetCard and persist it.
@@ -424,13 +612,14 @@ def decode_card(body=Body(default=None)):
         try:
             stored_id = db.save_card(conn, card)
             card.card_id = stored_id
+            stored = db.get_card(conn, stored_id) or card
         except Exception as exc:
             return JSONResponse(
                 status_code=502,
                 content={"error_code": "upstream_error", "message": f"save_card failed: {exc}"},
             )
 
-        return {"job_id": job_id, "card": db.card_to_json_full(card)}
+        return {"job_id": job_id, "card": db.card_to_json_full(stored)}
 
 
 @app.post("/api/cards/{card_id}/ask")
@@ -507,12 +696,13 @@ def revise_card(card_id: str, body=Body(default=None)):
             derived = orchestrator.build_revised_card(parent, revision)
             stored_id = db.save_card(conn, derived)
             derived.card_id = stored_id
+            stored = db.get_card(conn, stored_id) or derived
         except Exception as exc:
             return JSONResponse(
                 status_code=502,
                 content={"error_code": "upstream_error", "message": f"revise failed: {exc}"},
             )
-        return {"card": db.card_to_json_full(derived)}
+        return {"card": db.card_to_json_full(stored)}
 
 
 @app.delete("/api/cards/{card_id}")
@@ -555,6 +745,174 @@ def synthesize(body=Body(default=None)):
                 content={"error_code": "upstream_error", "message": f"synthesis failed: {exc}"},
             )
     return JSONResponse(content=result)
+
+
+@app.get("/api/chart/{subject}")
+def get_chart(subject: str, as_of: str = None, window: str = "180d", card_id: str = None):
+    """Return the v2 chart contract from stored observations only.
+
+    Missing historical layers are honest-empty; this endpoint never fabricates a
+    price series or point-in-time consensus history.
+    """
+    subject_norm = _subject_key(subject)
+    if not subject_norm:
+        return _bad_request("subject is required.")
+
+    with db.connection(DB_PATH) as conn:
+        layers = _empty_chart_layers()
+        observations = db.list_panel_observations(conn, subject=subject_norm, limit=500)
+        for obs in reversed(observations):
+            _append_chart_point(layers, obs)
+
+        if card_id:
+            card = db.get_card(conn, card_id)
+            if card is None:
+                return JSONResponse(
+                    status_code=404,
+                    content={"error_code": "card_not_found", "message": f"No card for id {card_id}."},
+                )
+            if _subject_key(card.subject) != subject_norm:
+                return _bad_request("card_id subject does not match chart subject.")
+            decision = _extract_card_decision(card, _latest_position_context(conn, card.subject))
+            kill = (decision or {}).get("kill") if isinstance(decision, dict) else None
+            if isinstance(kill, dict):
+                stop = (decision or {}).get("stop") or {}
+                point = {
+                    "type": kill.get("type") or "decision",
+                    "line": kill.get("line"),
+                    "status": kill.get("status") or "monitoring",
+                    "source": "decision",
+                }
+                if isinstance(stop, dict) and stop.get("price") is not None:
+                    point["level"] = stop.get("price")
+                layers["kill_lines"].append(point)
+
+    empty_layers = _chart_empty_layers(layers)
+    quality = "honest_empty" if len(empty_layers) == len(layers) else ("degraded" if empty_layers else "ok")
+    return {
+        "subject": subject_norm,
+        "as_of": as_of,
+        "window": window,
+        "status": "honest_empty" if quality == "honest_empty" else "ok",
+        "quality": quality,
+        "layers": layers,
+        "empty_layers": empty_layers,
+    }
+
+
+@app.post("/api/positions/events")
+def post_position_event(body=Body(default=None)):
+    body = _require_dict(body)
+    if body is None:
+        return _bad_request("request body must be a JSON object.")
+    subject = _subject_key(body.get("subject"))
+    source = body.get("source")
+    side = body.get("side")
+    if not subject or not source or not side:
+        return _bad_request("subject, source, and side are required.")
+    status = body.get("status") or ("closed" if side == "flat" else "open")
+    if status not in {"open", "closed"}:
+        return _bad_request("status must be 'open' or 'closed'.")
+    executed_at = body.get("executed_at") or _utc_now_iso()
+    with db.connection(DB_PATH) as conn:
+        event_id = db.record_position_ledger_event(
+            conn,
+            subject=subject,
+            source=str(source),
+            plan_card_id=body.get("plan_card_id"),
+            side=str(side),
+            quantity=body.get("quantity"),
+            weight_pct=body.get("weight_pct"),
+            avg_price=body.get("avg_price"),
+            executed_at=str(executed_at),
+            status=status,
+            note=body.get("note"),
+        )
+    return _position_event_response(event_id, subject, status)
+
+
+@app.get("/api/positions")
+def get_positions(status: str = None, subject: str = None, limit: int = 500):
+    if status is not None and status not in {"open", "closed"}:
+        return _bad_request("status must be 'open' or 'closed'.")
+    subject_norm = _subject_key(subject) if subject else None
+    with db.connection(DB_PATH) as conn:
+        events = db.list_position_ledger_events(conn, subject=subject_norm, limit=limit)
+
+    latest_by_subject = {}
+    for event in events:
+        key = event.get("subject")
+        if key and key not in latest_by_subject:
+            latest_by_subject[key] = event
+    positions = list(latest_by_subject.values())
+    if status is not None:
+        positions = [p for p in positions if p.get("status") == status]
+    return {
+        "positions": positions,
+        "count": len(positions),
+        "position_source": "position_ledger",
+    }
+
+
+@app.post("/api/panel/backfill")
+def post_panel_backfill(body=Body(default=None)):
+    body = _require_dict(body)
+    if body is None:
+        return _bad_request("request body must be a JSON object.")
+    subjects = body.get("subjects")
+    channels = body.get("channels")
+    start_date = body.get("start_date")
+    end_date = body.get("end_date")
+    if not isinstance(subjects, list) or not subjects or not all(isinstance(s, str) and s.strip() for s in subjects):
+        return _bad_request("subjects must be a non-empty list of strings.")
+    if not isinstance(channels, list) or not channels or not all(isinstance(c, str) and c.strip() for c in channels):
+        return _bad_request("channels must be a non-empty list of strings.")
+    if not start_date or not end_date:
+        return _bad_request("start_date and end_date are required.")
+
+    status = body.get("status") or "queued"
+    if status not in {"queued", "running", "completed", "failed", "partial", "planned"}:
+        return _bad_request("status must be queued, running, completed, failed, partial, or planned.")
+    run_id = body.get("run_id") or f"bf_{_new_job_id()}"
+    credit_budget = int(body.get("credit_budget", 80))
+    completed_at = _utc_now_iso() if status in {"completed", "failed"} else body.get("completed_at")
+
+    with db.connection(DB_PATH) as conn:
+        try:
+            rid = db.record_panel_backfill_run(
+                conn,
+                run_id=str(run_id),
+                subjects=[_subject_key(s) for s in subjects],
+                channels=[str(c).strip() for c in channels],
+                start_date=str(start_date),
+                end_date=str(end_date),
+                status=status,
+                credit_budget=credit_budget,
+                credits_spent=int(body.get("credits_spent", 0)),
+                observations_written=int(body.get("observations_written", 0)),
+                skipped=body.get("skipped"),
+                error=body.get("error"),
+                completed_at=completed_at,
+            )
+            run = db.get_panel_backfill_run(conn, rid)
+        except Exception as exc:
+            return JSONResponse(
+                status_code=409,
+                content={"error_code": "conflict", "message": f"could not create backfill run: {exc}"},
+            )
+    return {"run": run}
+
+
+@app.get("/api/panel/backfill/{run_id}")
+def get_panel_backfill(run_id: str):
+    with db.connection(DB_PATH) as conn:
+        run = db.get_panel_backfill_run(conn, run_id)
+    if run is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error_code": "backfill_not_found", "message": f"No panel backfill run for id {run_id}."},
+        )
+    return {"run": run}
 
 
 @app.get("/api/price-history/{ticker}")
@@ -647,6 +1005,194 @@ def get_price_history(ticker: str, period: str = "5y"):
     except OSError:
         pass  # serving the data matters more than cache write
     return JSONResponse(content=payload)
+
+
+# ---------------------------------------------------------------------------
+# Monitor API (SPEC F3): scan / feed / stream / kill-status
+# ---------------------------------------------------------------------------
+
+import uuid as _uuid
+
+
+def _monitor_subjects(conn) -> list[str]:
+    """Default scan scope: open positions from position_ledger."""
+    rows = db.list_position_ledger_events(conn, status="open")
+    return [r["subject"] for r in rows if r.get("subject")]
+
+
+def _build_feed_item(subject: str, trigger: str, severity: str, headline: str,
+                     changes: list | None = None, kill_status: dict | None = None,
+                     card_id: str | None = None) -> dict:
+    return {
+        "item_id": _uuid.uuid4().hex,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "subject": subject,
+        "trigger": trigger,
+        "severity": severity,
+        "headline": headline,
+        "changes": changes or [],
+        "kill_status": kill_status,
+        "action_hint": "查看增强股价图",
+        "card_id": card_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.post("/api/monitor/scan")
+def monitor_scan(body=Body(default=None)):
+    """Trigger a monitoring scan (SPEC F3). MVP: price/event heartbeat only.
+
+    Scans open positions + optional explicit subjects. Generates feed items
+    for material changes. Budget-gated per SPEC F3 credits gate.
+    """
+    body = _require_dict(body)
+    if body is None:
+        return _bad_request("Request body must be a JSON object.")
+
+    trigger = body.get("trigger", "manual")
+    as_of = body.get("as_of_date") or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    explicit_subjects = body.get("subjects") or []
+
+    with db.connection(DB_PATH) as conn:
+        # Default scope: open positions + explicit subjects
+        subjects = list(set((_monitor_subjects(conn) + explicit_subjects)))
+        if not subjects:
+            return {
+                "job_id": None,
+                "status": "noop",
+                "subjects_scanning": 0,
+                "message": "No open positions or subjects to scan.",
+            }
+
+        job_id = f"mon_{_uuid.uuid4().hex[:12]}"
+        budget = int(body.get("credit_budget", 80))
+
+        db.insert_monitor_scan(conn, {
+            "job_id": job_id,
+            "trigger": trigger,
+            "subjects": subjects,
+            "as_of_date": as_of,
+            "status": "running",
+            "credits_budget": budget,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+
+        # MVP scan: heartbeat only (price/event, 0 credits)
+        feed_items = []
+        for subj in subjects:
+            # Check latest card for this subject
+            cards = db.list_cards(conn, subject=subj)
+            if not cards:
+                continue
+            card = cards[0]
+            dd = getattr(card, "decode_detail", None) or {}
+            decision = dd.get("decision") or {}
+            kill = decision.get("kill") if isinstance(decision, dict) else None
+
+            # Generate feed item only if KILL status is approached/triggered
+            if kill and isinstance(kill, dict):
+                kill_status = kill.get("status", "monitoring")
+                if kill_status in ("approached", "triggered"):
+                    severity = "high" if kill_status == "triggered" else "medium"
+                    feed_item = _build_feed_item(
+                        subject=subj,
+                        trigger=trigger,
+                        severity=severity,
+                        headline=f"{subj} KILL 状态: {kill_status} — {kill.get('line', '')}",
+                        kill_status={
+                            "approached": kill_status == "approached",
+                            "kill_line": kill.get("line"),
+                            "status": kill_status,
+                        },
+                        card_id=getattr(card, "card_id", None),
+                    )
+                    db.insert_monitor_feed_item(conn, feed_item)
+                    feed_items.append(feed_item)
+
+        db.update_monitor_scan(conn, job_id,
+            status="completed",
+            subjects_scanned=len(subjects),
+            credits_spent=0,
+            feed_items_generated=len(feed_items),
+            completed_at=datetime.now(timezone.utc).isoformat(),
+        )
+
+    return {
+        "job_id": job_id,
+        "status": "completed",
+        "subjects_scanning": len(subjects),
+        "feed_items": len(feed_items),
+    }
+
+
+@app.get("/api/monitor/feed")
+def monitor_feed(subject: str = None, severity: str = None, limit: int = 50):
+    """Get monitor feed items (SPEC F3). Newest first."""
+    if limit > 200:
+        limit = 200
+    with db.connection(DB_PATH) as conn:
+        items = db.list_monitor_feed(conn, subject=subject, severity=severity, limit=limit)
+    return {
+        "items": items,
+        "has_more": len(items) == limit,
+        "oldest_timestamp": items[-1]["timestamp"] if items else None,
+    }
+
+
+@app.get("/api/monitor/kill-status")
+def monitor_kill_status(subject: str = None):
+    """Query KILL line status for subjects (SPEC F3)."""
+    with db.connection(DB_PATH) as conn:
+        subjects_to_check = [subject] if subject else _monitor_subjects(conn)
+        results = []
+        for subj in subjects_to_check:
+            cards = db.list_cards(conn, subject=subj)
+            if not cards:
+                continue
+            card = cards[0]
+            dd = getattr(card, "decode_detail", None) or {}
+            decision = dd.get("decision") or {}
+            kill = decision.get("kill") if isinstance(decision, dict) else None
+            if kill and isinstance(kill, dict):
+                results.append({
+                    "subject": subj,
+                    "type": kill.get("type"),
+                    "line": kill.get("line"),
+                    "status": kill.get("status", "monitoring"),
+                    "implied_prob": kill.get("implied_prob"),
+                    "last_checked": dd.get("anchor_price") and datetime.now(timezone.utc).isoformat(),
+                })
+    return {"subjects": results}
+
+
+@app.get("/api/monitor/stream")
+async def monitor_stream():
+    """SSE stream for high-severity feed items + heartbeat (SPEC F3)."""
+    import asyncio
+
+    async def event_generator():
+        last_check = datetime.now(timezone.utc)
+        while True:
+            now = datetime.now(timezone.utc)
+            # Check for new high-severity feed items every 5 seconds
+            if (now - last_check).total_seconds() >= 5:
+                last_check = now
+                try:
+                    with db.connection(DB_PATH) as conn:
+                        items = db.list_monitor_feed(conn, severity="high", limit=5)
+                    for item in items:
+                        yield f"event: feed_item\ndata: {json.dumps(item, default=str)}\n\n"
+                except Exception:
+                    pass
+            # Heartbeat every 60s
+            yield f"event: heartbeat\ndata: {json.dumps({'timestamp': now.isoformat()})}\n\n"
+            await asyncio.sleep(60)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.get("/")

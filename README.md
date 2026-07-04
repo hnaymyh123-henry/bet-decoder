@@ -1,4 +1,6 @@
-# Bet Decoder
+# PlayInsight
+
+> PlayInsight is the active v2 successor workspace, copied from the historical `bet-decoder` codebase. Older names in this repository (`Bet Decoder`, `PlainSight`, `PriceLens`) are retained only where they explain lineage or archived decisions.
 
 **An X-ray for investment bets.** Paste a bet — a stock's market price, or your whole portfolio — and Bet Decoder reverse-decodes *what that bet implicitly believes*, lets you stack multiple bets side by side, and has an AI synthesize the cross-bet insights (e.g. "your portfolio rides the same assumption across every holding"). *(Decoding analyst price targets and free-text opinions is on the roadmap.)*
 
@@ -57,12 +59,14 @@ Two orthogonal primitives: a **Bet Card** answers *what* a bet believes; an **Ac
 
 ## Documentation
 
-- [`PRD.md`](PRD.md) — frozen product spec (5 modules, data model, public interfaces)
-- [`BET_DECODER_VISION.md`](BET_DECODER_VISION.md) — product vision + the 5-act demo
+- [`PRD.md`](PRD.md) — authoritative product spec for PlayInsight v2.0
+- [`docs/SPEC_A_data_structures.md`](docs/SPEC_A_data_structures.md) through [`docs/SPEC_F_api.md`](docs/SPEC_F_api.md) — authoritative v2 engineering specs
 - [`API_CONTRACT.md`](API_CONTRACT.md) — REST + SSE endpoints
-- [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) — architecture decisions
-- [`pricelens_design_system.md`](pricelens_design_system.md) — the visual contract
+- [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) — local engineering context and lineage notes
+- [`mockup_v2_young.html`](mockup_v2_young.html) — young trading-app visual reference (v2.0)
 - [`docs/glossary.md`](docs/glossary.md) — terminology
+- [`docs/feature-log.md`](docs/feature-log.md) — delivered features + tech debt
+- [`docs/archive/`](docs/archive/) — superseded docs (DIRECTION / TRADING_AGENT_PRD / VISION / design_system), kept for traceability
 
 ## Run with Docker
 
@@ -75,7 +79,7 @@ docker run -p 8000:8000 --env-file .env bet-decoder   # open http://127.0.0.1:80
 
 Issues and PRs welcome — the project is designed for contribution. Different markets need different data sources (US/yfinance today; CN/Wind, EU/Refinitiv could follow), and the prompts + schemas (evidence brief, decoder voice, synthesis rules) are meant to iterate against community feedback.
 
-Each module ships a deterministic, zero-API verification script (`verify_m1.py` … `verify_m8_integration.py`); run them after changes. CI (`.github/workflows/verify.yml`) runs every suite offline on each push and PR, so a change that breaks one is caught automatically.
+Each module ships a deterministic, zero-API verification script under `tests/` (`tests/verify_m1.py` … `tests/verify_m8_integration.py`); run them from the repo root after changes (e.g. `PYTHONPATH=. python tests/verify_m1.py`). CI (`.github/workflows/verify.yml`) runs every suite offline on each push and PR, so a change that breaks one is caught automatically.
 
 ## License
 

@@ -1,6 +1,6 @@
 name: verify
 
-# Runs every deterministic verify_*.py suite on push + PR. All suites are
+# Runs every deterministic tests/verify_*.py suite on push + PR. All suites are
 # offline by construction (stub LLM, no network): we hard-blank the API key and
 # force OFFLINE_MODE so a stray real call can't happen and can't cost money.
 # This is the contributor gate — a PR that breaks any suite fails here.
@@ -20,6 +20,9 @@ jobs:
       MIROMIND_API_KEY: ""
       OFFLINE_MODE: "1"
       PYTHONIOENCODING: "utf-8"
+      # Suites live in tests/ but import root modules (db, decoder, …) and read
+      # root fixtures; put the repo root on PYTHONPATH so imports resolve.
+      PYTHONPATH: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
 
@@ -37,7 +40,7 @@ jobs:
       - name: Run all verify suites (offline, zero API cost)
         run: |
           fail=0
-          for f in verify_*.py; do
+          for f in tests/verify_*.py; do
             echo "::group::$f"
             if python "$f"; then
               echo "$f OK"

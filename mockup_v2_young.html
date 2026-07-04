@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bet Decoder · 年轻化重设计 v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0E11; --card:#161A1F; --card2:#1C222A; --line:#252C35;
+  --tx:#EAECEF; --tx2:#8A94A3; --tx3:#5B6673;
+  --up:#16C784; --down:#F6465D; --amber:#F0B90B; --ai:#7B61FF;
+  --r:20px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:"Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:32px 20px 60px}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.stage{display:flex;gap:40px;justify-content:center;flex-wrap:wrap;align-items:flex-start}
+.cap{font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--tx3);margin:0 0 12px 6px;font-weight:600}
+
+/* phone frame */
+.phone{width:390px;background:var(--bg);border:1px solid var(--line);border-radius:38px;padding:14px 12px 0;box-shadow:0 30px 80px rgba(0,0,0,.55)}
+.screen{background:var(--bg);border-radius:28px;overflow:hidden}
+.pad{padding:0 16px}
+
+/* top bar */
+.top{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 8px}
+.top .hi{font-size:15px;font-weight:600}
+.top .hi span{color:var(--tx2);font-weight:400;font-size:13px}
+.bell{position:relative;width:34px;height:34px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--tx2)}
+.bell b{position:absolute;top:-2px;right:-2px;background:var(--down);color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px}
+
+/* portfolio hero */
+.folio{padding:10px 18px 4px}
+.folio .lbl{font-size:12px;color:var(--tx2);font-weight:500}
+.folio .big{font-size:38px;font-weight:800;letter-spacing:-1.2px;margin:6px 0 8px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;padding:5px 10px;border-radius:999px}
+.pill.up{color:var(--up);background:rgba(22,199,132,.12)}
+.pill.down{color:var(--down);background:rgba(246,70,85,.12)}
+.pill.amber{color:var(--amber);background:rgba(240,185,11,.13)}
+.pill.sm{font-size:11px;padding:3px 8px}
+.foliochart{margin:6px 0 2px}
+
+/* segmented */
+.seg{display:flex;gap:6px;padding:12px 18px 4px}
+.seg .s{font-size:13px;font-weight:600;color:var(--tx3);padding:7px 14px;border-radius:999px}
+.seg .s.on{color:var(--tx);background:var(--card)}
+
+/* holding card */
+.hcard{background:var(--card);border-radius:var(--r);padding:14px 15px;margin:10px 16px}
+.hrow1{display:flex;align-items:center;gap:11px}
+.logo{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#0B0E11}
+.nm{flex:1;min-width:0}
+.nm .t{font-size:15px;font-weight:700}
+.nm .c{font-size:11.5px;color:var(--tx2);margin-top:1px}
+.px{text-align:right}
+.px .p{font-size:15px;font-weight:700}
+.px .d{font-size:12px;font-weight:600;margin-top:2px}
+.up-t{color:var(--up)} .down-t{color:var(--down)} .amber-t{color:var(--amber)}
+.hrow2{display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:11px;border-top:1px solid var(--line)}
+.hrow2 .decode{flex:1;font-size:12.5px;color:var(--tx);font-weight:500;line-height:1.35}
+.hrow2 .decode em{color:var(--tx2);font-weight:400;font-style:normal}
+.statusdot{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--tx2);white-space:nowrap}
+.statusdot i{width:7px;height:7px;border-radius:50%}
+
+/* bottom nav */
+.nav{display:flex;justify-content:space-around;padding:12px 8px 16px;border-top:1px solid var(--line);margin-top:12px}
+.nav .n{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;color:var(--tx3);font-weight:600}
+.nav .n.on{color:var(--tx)}
+.nav .ic{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.nav .plus{width:40px;height:40px;border-radius:14px;background:var(--up);color:#062;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#04120b;margin-top:-6px}
+
+/* detail screen */
+.dhead{display:flex;align-items:center;gap:12px;padding:14px 18px 6px}
+.back{width:32px;height:32px;border-radius:10px;background:var(--card);display:flex;align-items:center;justify-content:center;color:var(--tx2);font-size:16px}
+.dhead .t{font-size:16px;font-weight:700}
+.dhead .sub{font-size:12px;color:var(--tx2)}
+.dhead .r{margin-left:auto;text-align:right}
+.dhead .r .p{font-size:16px;font-weight:700}
+
+.block{background:var(--card);border-radius:var(--r);margin:12px 16px;padding:16px}
+.block .kicker{font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--tx3);font-weight:700;margin-bottom:8px}
+.block .head{font-size:17px;font-weight:700;line-height:1.3;margin-bottom:4px}
+.block .say{font-size:13px;color:var(--tx2);line-height:1.5}
+
+.odds{display:flex;align-items:center;gap:16px}
+.odds .big{font-size:34px;font-weight:800;letter-spacing:-1px}
+.odds .r{flex:1}
+.odds .rg{font-size:13px;color:var(--tx);font-weight:600}
+.odds .tl{font-size:12px;color:var(--tx2);margin-top:3px}
+
+/* altitude bar */
+.alt{display:flex;height:16px;border-radius:8px;overflow:hidden;margin:12px 0 12px}
+.alt span{display:block;height:100%}
+.altleg{display:flex;flex-wrap:wrap;gap:14px}
+.altleg .l{font-size:12px;color:var(--tx2);font-weight:500}
+.altleg .l i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;vertical-align:0}
+
+/* kill card */
+.kill{display:flex;align-items:center;gap:12px}
+.kill .ring{width:44px;height:44px;border-radius:50%;border:3px solid var(--amber);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--amber)}
+.kill .tx .a{font-size:13.5px;font-weight:600}
+.kill .tx .b{font-size:12px;color:var(--tx2);margin-top:2px}
+
+/* ask bar */
+.ask{margin:14px 16px 18px;background:var(--card2);border:1px solid var(--line);border-radius:16px;padding:11px 12px;display:flex;align-items:center;gap:10px}
+.ask .ai{width:28px;height:28px;border-radius:9px;background:rgba(123,97,255,.16);color:var(--ai);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800}
+.ask .ph{flex:1;font-size:13px;color:var(--tx3)}
+.ask .send{width:30px;height:30px;border-radius:9px;background:var(--up);color:#04120b;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700}
+
+/* alerts (变化) inline banner on home */
+.alertbar{margin:2px 16px 0;background:linear-gradient(90deg,rgba(240,185,11,.14),rgba(240,185,11,.04));border:1px solid rgba(240,185,11,.25);border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:10px}
+.alertbar .dot{width:8px;height:8px;border-radius:50%;background:var(--amber);flex:none}
+.alertbar .m{font-size:12px;color:var(--tx);flex:1;line-height:1.35}
+.alertbar .m b{font-weight:700}
+.alertbar .go{color:var(--tx3);font-size:15px}
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- ================= SCREEN 1 · HOME ================= -->
+  <div>
+    <div class="cap">Home · 持仓</div>
+    <div class="phone"><div class="screen">
+
+      <div class="top">
+        <div class="hi">下午好<span> · Henry</span></div>
+        <div class="bell">🔔<b>3</b></div>
+      </div>
+
+      <div class="folio">
+        <div class="lbl">总资产 · Paper</div>
+        <div class="big num">$104,820</div>
+        <span class="pill up">▲ $820 · +0.82% 今日</span>
+        <div class="foliochart">
+          <svg viewBox="0 0 350 70" style="width:100%;height:70px">
+            <defs><linearGradient id="gA" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stop-color="#16C784" stop-opacity="0.28"/>
+              <stop offset="1" stop-color="#16C784" stop-opacity="0"/>
+            </linearGradient></defs>
+            <path d="M0,55 C40,52 70,42 110,44 C150,46 180,30 220,30 C260,30 300,18 350,12 L350,70 L0,70 Z" fill="url(#gA)"/>
+            <path d="M0,55 C40,52 70,42 110,44 C150,46 180,30 220,30 C260,30 300,18 350,12" fill="none" stroke="#16C784" stroke-width="2"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="alertbar">
+        <span class="dot"></span>
+        <div class="m"><b>NVDA</b> 财报后隐含增速 34%→41%，逼近你的认错线</div>
+        <span class="go">›</span>
+      </div>
+
+      <div class="seg">
+        <div class="s on">持仓</div>
+        <div class="s">关注</div>
+        <div class="s">变化</div>
+      </div>
+
+      <!-- NVDA -->
+      <div class="hcard">
+        <div class="hrow1">
+          <div class="logo" style="background:#76B900">N</div>
+          <div class="nm"><div class="t">NVDA</div><div class="c">NVIDIA · 31% 仓位</div></div>
+          <div class="px"><div class="p num">$215.10</div><div class="d up-t num">+1.2%</div></div>
+        </div>
+        <div class="hrow2">
+          <svg viewBox="0 0 60 26" style="width:56px;height:24px"><path d="M2,20 L14,17 L26,18 L38,10 L50,8 L58,5" fill="none" stroke="#16C784" stroke-width="1.6"/></svg>
+          <div class="decode">市场要它做到 <b>41%</b> 增速 <em>· 三个月里变难了 ↑</em></div>
+          <div class="statusdot amber-t"><i style="background:var(--amber)"></i>近 KILL</div>
+        </div>
+      </div>
+
+      <!-- COST -->
+      <div class="hcard">
+        <div class="hrow1">
+          <div class="logo" style="background:#E32029">C</div>
+          <div class="nm"><div class="t">COST</div><div class="c">Costco · 14% 仓位</div></div>
+          <div class="px"><div class="p num">$942.30</div><div class="d up-t num">+0.4%</div></div>
+        </div>
+        <div class="hrow2">
+          <svg viewBox="0 0 60 26" style="width:56px;height:24px"><path d="M2,14 L14,15 L26,13 L38,14 L50,13 L58,13" fill="none" stroke="#8A94A3" stroke-width="1.6"/></svg>
+          <div class="decode">要 <b>11%</b> 增速 <em>· 温和、可辩护</em></div>
+          <div class="statusdot up-t"><i style="background:var(--up)"></i>KILL 未触</div>
+        </div>
+      </div>
+
+      <!-- TSLA -->
+      <div class="hcard">
+        <div class="hrow1">
+          <div class="logo" style="background:#E82127">T</div>
+          <div class="nm"><div class="t">TSLA</div><div class="c">Tesla · 9% 仓位</div></div>
+          <div class="px"><div class="p num">$351.80</div><div class="d down-t num">−2.1%</div></div>
+        </div>
+        <div class="hrow2">
+          <svg viewBox="0 0 60 26" style="width:56px;height:24px"><path d="M2,10 L14,13 L26,9 L38,15 L50,12 L58,18" fill="none" stroke="#F6465D" stroke-width="1.6"/></svg>
+          <div class="decode">DCF <b>无解</b> <em>· 88% 靠叙事撑</em></div>
+          <div class="statusdot"><i style="background:var(--tx3)"></i>无 DCF 锚</div>
+        </div>
+      </div>
+
+      <div class="nav">
+        <div class="n on"><div class="ic">▣</div>持仓</div>
+        <div class="n"><div class="ic">◇</div>变化</div>
+        <div class="n"><div class="plus">+</div></div>
+        <div class="n"><div class="ic">◎</div>市场</div>
+        <div class="n"><div class="ic">☰</div>我的</div>
+      </div>
+
+    </div></div>
+  </div>
+
+  <!-- ================= SCREEN 2 · DETAIL ================= -->
+  <div>
+    <div class="cap">Detail · NVDA 解码</div>
+    <div class="phone"><div class="screen">
+
+      <div class="dhead">
+        <div class="back">‹</div>
+        <div><div class="t">NVDA</div><div class="sub">NVIDIA · Market bet</div></div>
+        <div class="r"><div class="p num">$215.10</div><div class="d up-t num" style="font-size:12px;font-weight:600">+1.2%</div></div>
+      </div>
+
+      <!-- hero: drift -->
+      <div class="block">
+        <div class="kicker">隐含赌注 · 90 天漂移</div>
+        <div class="head">这笔押注，三个月里变难了</div>
+        <div class="say">价格几乎没动，可市场要它做到的增速从 34% 抬到了 41%。</div>
+        <svg viewBox="0 0 340 120" style="width:100%;height:120px;margin-top:10px">
+          <defs><linearGradient id="gD" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stop-color="#F0B90B" stop-opacity="0.22"/>
+            <stop offset="1" stop-color="#F0B90B" stop-opacity="0"/>
+          </linearGradient></defs>
+          <!-- price faint flat -->
+          <path d="M8,70 L74,72 L140,66 L206,68 L272,64 L332,64" fill="none" stroke="#5B6673" stroke-width="1.4" stroke-dasharray="3 3"/>
+          <!-- implied rising -->
+          <path d="M8,92 C60,88 90,78 140,72 C190,66 230,52 272,44 C300,38 320,32 332,30 L332,110 L8,110 Z" fill="url(#gD)"/>
+          <path d="M8,92 C60,88 90,78 140,72 C190,66 230,52 272,44 C300,38 320,32 332,30" fill="none" stroke="#F0B90B" stroke-width="2"/>
+          <circle cx="332" cy="30" r="4" fill="#F0B90B"/>
+          <text x="286" y="24" fill="#F0B90B" font-size="12" font-weight="700" font-family="Inter">41%</text>
+          <text x="8" y="106" fill="#5B6673" font-size="10" font-family="Inter">3 月前 34%</text>
+          <text x="252" y="106" fill="#5B6673" font-size="10" font-family="Inter">价格 ~flat</text>
+        </svg>
+      </div>
+
+      <!-- odds -->
+      <div class="block">
+        <div class="kicker">市场开的赔率 · 期权隐含</div>
+        <div class="odds">
+          <div>
+            <div class="big num">68%</div>
+          </div>
+          <div class="r">
+            <div class="rg num">$185 – $248</div>
+            <div class="tl">3 个月内落点区间</div>
+          </div>
+          <svg viewBox="0 0 110 56" style="width:110px;height:56px">
+            <rect x="34" y="6" width="42" height="44" rx="4" fill="rgba(138,148,163,.12)"/>
+            <path d="M4,50 C30,50 40,14 55,10 C70,14 80,40 106,50" fill="none" stroke="#EAECEF" stroke-width="1.6"/>
+            <line x1="55" y1="6" x2="55" y2="50" stroke="#8A94A3" stroke-width="1"/>
+            <line x1="90" y1="30" x2="90" y2="50" stroke="#F6465D" stroke-width="1.4"/>
+            <circle cx="90" cy="30" r="2.6" fill="#F6465D"/>
+          </svg>
+        </div>
+        <div class="say" style="margin-top:10px">你（和分析师）的 <b style="color:var(--tx)">$300 目标</b>，落在市场只给 ~8% 概率的尾巴上。</div>
+      </div>
+
+      <!-- altitude -->
+      <div class="block">
+        <div class="kicker">你到底在赌什么</div>
+        <div class="head" style="font-size:15px">其实只有 15% 是 NVDA 自己</div>
+        <div class="alt">
+          <span style="width:15%;background:#16C784"></span>
+          <span style="width:62%;background:#7B61FF"></span>
+          <span style="width:23%;background:#4A5563"></span>
+        </div>
+        <div class="altleg">
+          <div class="l"><i style="background:#16C784"></i>公司自身 15%</div>
+          <div class="l"><i style="background:#7B61FF"></i>AI 主题 62%</div>
+          <div class="l"><i style="background:#4A5563"></i>宏观利率 23%</div>
+        </div>
+      </div>
+
+      <!-- kill -->
+      <div class="block">
+        <div class="kicker">认错线 · KILL</div>
+        <div class="kill">
+          <div class="ring">近</div>
+          <div class="tx">
+            <div class="a">增速连续 2 季跌破 11%</div>
+            <div class="b">已破 1 季 · 再破 1 季 → 论点判负，告警平仓建议</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ask agent -->
+      <div class="ask">
+        <div class="ai">✦</div>
+        <div class="ph">问 agent：如果增速只有 25% 呢？</div>
+        <div class="send">↑</div>
+      </div>
+
+    </div></div>
+  </div>
+
+</div>
+</body>
+</html>

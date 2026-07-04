@@ -1,4 +1,4 @@
-# CLAUDE.md · PriceLens Project
+# CLAUDE.md · PlayInsight Project
 
 > Project-specific instructions for any Claude session working inside this folder.
 > The user's global workspace CLAUDE.md lives at `C:\Users\Henry Ma\CLAUDE.md` and still applies — this file adds project-specific context on top.
@@ -7,15 +7,16 @@
 
 ## Project at a glance
 
-**Project name:** Bet Decoder (formerly: PriceLens) — Investment-bet X-ray, open-source
-**Positioning:** Self-hosted, single-file-SQLite open-source tool. Anyone can `git clone && uvicorn api:app` and run their own instance. Pivoted 2026-05-28 from "single-stock reverse DCF report" to "universal investment-bet decoder".
+**Project name:** PlayInsight — v2 successor workspace based on the historical `bet-decoder` codebase.
+**Positioning:** Multi-framework market-expectation decomposition workbench. Current v2 direction is governed by `PRD.md` and `docs/SPEC_A-F`, not by archived Bet Decoder/PriceLens design docs.
+**Lineage:** Historical names in this repo include Bet Decoder, PlainSight, and PriceLens. Treat them as traceability markers unless the current v2 docs explicitly reuse them.
 **Origin (historical):** Started as an entry to UCWS Singapore Hackathon 2026 (Agent track, MiroMind partnership). 2026-05-27: re-framed as open-source product. 2026-05-28: pivoted to Bet Decoder concept after 6 rounds of UI iteration (demo_b → demo_g) revealed the "single stock report" form was inherently report-like rather than app-like.
 **One-line pitch:** Paste any investment bet (current price / analyst target / tweet / your portfolio) → Bet Decoder X-rays what that bet implicitly believes, lets you stack multiple bets side-by-side, and has AI synthesize cross-bet insights.
 **Roadmap:** 2026-06-13 v1.0 public release · post-release driven by GitHub Issues; LICENSE / README / Dockerfile not yet in (queued).
 **Maintainership:** Single maintainer at v1.0; designed for contributions.
 **Status:** **Phase 1→5 + Phase 4 code-review + market-narrative layer DONE (latest 2026-06-01).** Real backend M1-M5 + frontend + release scaffolding (README/LICENSE/Dockerfile) + market-narrative layer on `master` (`f26fc47`); **origin SYNCED via PR #9 (2026-06-01)** — origin/master == local master, no longer stale. **12 verify suites all green (~290 assertions)** (M1 ALL · M2 31 · M3 21 · M4 15 · M5 40 · M6 39 · M7 14 · M8 35 · phase4-W1 31 · phase4-W2 25 · phase4-W3 20 · narrative 19). **Market-narrative layer (2026-06-01):** `narrative.py` deep-researches the live bull/bear debate behind the implied numbers (formula = question generator); source-tier classifier A/B/C/D by host (code-enforced honesty, social/crypto can't be a claim's sole backer); valuation-tension gate → anchor mode via `narrative_premium ≥ 50%` (decoupled from theme keywords); cross-check pairs narrative lean vs independent evidence verdict per number + flags divergences (decision B); portfolio parent→constituents view + weight bar; de-clutter (accent rationed to design-system §2.2, 58→19 hits). **Phase 4 caught + fixed 5 CRITICAL + ~12 SHOULD-FIX real-path bugs that stub tests missed** (via 3 independent adversarial review agents): evidence cache key salted-hash→sha1 (cross-process), DCF baseline discarded→decoupled (undervalued no longer 100%-narrative), cross-thread sqlite→activity_logs now persists, live SSE→JobQueue serialized, synth theme-align O(K²T²)→capped+memoized, non-DCF strength mean=0/negative, dedup IntegrityError→optimistic-insert, ai-gate over-match, cost 3x understated, +more. **⚠ OPS:** project `.env` has a real MIROMIND_API_KEY → any decode via default hunter hits live API; run verify scripts/scripts with `MIROMIND_API_KEY=""` or rely on stubs (verify_m8 now self-protects). On Windows gbk console add `PYTHONIOENCODING=utf-8` to run verify_*/prerun without UnicodeEncodeError. **Known limitation (deferred):** band-ruler (蒙特卡洛 band 当强度尺) is dead in the real get_card path (decode_detail not persisted + traditional cards lack run_id) → synthesis uses relative-gap fallback; wiring driver-view persistence is a follow-up. **Next (needs USER):** before demo `python prerun_demo.py --execute` to populate caches. **Cost reconciled + brought under budget (2026-06-01):** prerun is now **~$26.47** (evidence $19.26 = NVDA+TSLA singles × 3 briefs · flagship market-narrative $4.00 = 2 singles · synth $3.21), **✅ within the $100 budget** (dry-run exits 0). **Cost calibrated against the live MiroMind console (2026-06-01 call logs):** real flagship Deep Research bills **$0.80–$1.60/call** — the derived $8.07 was a token-footprint back-fit, ~5-7x too high — so `COST_PER_EVIDENCE_FLAGSHIP` is pinned to $2.00; mini's $3.21 confirmed a safe conservative (actual $0.32–$5.93, avg ~$2.1). (MiroMind bills via a prepaid 资源包 → those calls show $0.00, plus a USD 余额.) The lever chosen: **portfolio legs no longer evidence-hunted** — the decoder passes a `_SKIP_EVIDENCE` sentinel for holdings (a portfolio's signal is composition + cross-card synthesis, not a Deep-Research hunt × every holding; decode a holding as a single card to get its evidence). Single cards keep Step 3 non-skippable. The interim "~$106" (honest-but-over) and old "~$32" (stale) figures are superseded. (origin sync DONE via PR #9 2026-06-01.) **🔥 AGENTIC LAYER (2026-06-01, on top of the real backend):** product was judged "still a fixed webpage, not agentic" (root cause: decode = deterministic decision tree, LLM only a subroutine, the "activity stream" = that tree narrating itself = theater). Added a genuine agentic layer (user chose via AskUserQuestion: conversational revisable cards + agent-driven decode as PRIMARY, both together). **Phase A-F all landed:** A persist `decode_detail` (schema **v3** idempotent migration + card lineage `derived_from`/`derivation_*` cols + daily-dedup index repredicated to exclude derived cards — **fixes TD1's root cause**: reloaded cards rebuild decode_detail so the Monte-Carlo band survives reload) · B tool-calling `client.call_chat_tools` (OpenAI tools envelope + `_CHAT_TOOLS_IMPL` stub seam + `ToolCallingUnsupported`) + `agent_tools.py` registry (8 tools **wrap existing fns, no reimpl**; `dispatch` web-gates honest-empty + emits ActivityEvent + never raises) · C `orchestrator.decode_bet_agentic` (LLM tool-loop → `submit_decode_plan` → `decoder.decode_bet(_plan_override=)` **reuses the SAME assemblers = parity by construction**; airtight try/except fallback to deterministic) · D `answer_followup` Q&A (why/what-if/compare/bear-case) + `propose_revision` (before→after diff, NOT persisted) + `build_revised_card` (NEW derived card, **parent immutable**) + `POST /api/cards/{id}/ask` `/revise` (decode endpoint now agentic PRIMARY) · E `app.html` per-card 讨论/DISCUSS thread (weight-contrast not bubbles + ▾tool-call disclosure) + WHAT-IF before→after exhibit + derived-card rail under parent · F `verify_agentic_e2e.py` TestClient e2e. **6 new offline suites +83 assertions all green** (decode_detail 15 · client_tools 7 · agent_tools 16 · orchestrator 12 · qa_revise 11 · agentic_e2e 22) → **~373 assertions total green**; CI `verify_*.py` glob auto-includes them. **provider-configurable** `client.py`: default **miromind** (public repo) / **TokenDance DeepSeek-V4-Pro** for testing (OpenAI tool-calling, no web search → web tools honest-empty). **origin: Agentic A-F pushed to master** (beyond `f26fc47`). **Next (needs USER):** `smoke_agentic.py` real DeepSeek smoke (TokenDance key in `.env` + small spend; MUST exercise parallel tool_call → matching `role:tool` results — DeepSeek 400s otherwise).
 
-**⚠ ALWAYS READ BET_DECODER_VISION.md before doing product/UI work** — it has the current product form, Bet Card primitive spec, 5-act demo narrative, Aha matrix, P1-P5 implementation phases, and the codebase interface map.
+**⚠ For v2 work, read `PRD.md` and `docs/SPEC_A-F` first.** `BET_DECODER_VISION.md` and `pricelens_design_system.md` are historical/archive material only; use them for lineage, not as current source of truth.
 
 ---
 
@@ -38,8 +39,10 @@
 | File | Purpose |
 |---|---|
 | `CLAUDE.md` | This file — project context for Claude sessions |
-| **`BET_DECODER_VISION.md`** | **🔥 2026-05-28 pivot** — Bet Decoder product vision, Bet Card primitive, 5-act demo, P1-P5 implementation. READ THIS FIRST for any product/UI work. |
-| `pricelens_prd.md` | Product requirements doc v0.7 — head section is pivot announcement, body §1-§15 is pre-pivot v0.6 content (LLM arch / DCF algo / SQLite / risks still valid; demo script & feature list superseded). |
+| **`PRD.md`** | **Current PlayInsight v2 product authority** — multi-framework expectation decomposition engine. |
+| **`docs/SPEC_A_data_structures.md` ... `docs/SPEC_F_api.md`** | **Current PlayInsight v2 engineering authority** — data structures, channels, reconciliation, decision, presentation, API. |
+| `docs/archive/` | Historical Bet Decoder / PriceLens / PlainSight materials kept for traceability only. |
+| `BET_DECODER_VISION.md` | Historical stub or archive pointer; not current source of truth. |
 | `reverse_dcf.py` | Reverse DCF prototype with Monte Carlo interval estimation (G2). Run: `python reverse_dcf.py NVDA` |
 | `requirements.txt` | Python deps: yfinance, numpy, scipy |
 | `prompts/evidence_hunter.md` | Evidence Hunter prompt template (deepresearch mode; supports standard + boundary modes per B4) |
@@ -52,23 +55,22 @@
 | `critic.py` | Python mechanical validation of evidence briefs per PRD §15 Appendix A.4. No LLM. Returns `{issues, verdict, counts}`. |
 | `short_term.py` | 5d short-term attribution (W3). Decomposes price move into fundamental / flow / unexplained factors. yfinance only, no LLM. |
 | `.claude/launch.json` | Preview server config. `preview_start pricelens-api` launches uvicorn on port 8765. |
-| `pricelens_design_system.md` | Frontend design philosophy + visual language (THE source of truth for any UI work) |
+| `pricelens_design_system.md` | Deprecated historical design-system stub/archive pointer; not current source of truth. |
 | `app.html` | The Bet Decoder workbench (3-zone SPA), served at `/` by `api.py`. Implements the full design system. (Renamed from `pricelens_mockup.html` 2026-06-01 — it's the app, not a mockup.) |
-| `hackathon_track.png` | Original MiroMind track brief image — sets the "推理透明" theme |
 
-**Read order for a fresh Claude session:** start with this file → PRD → design system → open the HTML mockup in browser to see what's been built.
+**Read order for a fresh Claude session:** start with this file → `PRD.md` → `docs/SPEC_A-F` → `PROJECT_CONTEXT.md` → inspect current code.
 
 ---
 
-## Key product decisions (locked, do not re-litigate)
+## Historical v1 product decisions
 
-These were settled after extensive back-and-forth. Don't re-open these unless the user explicitly asks:
+These explain Bet Decoder / PriceLens lineage. Do not treat them as current PlayInsight v2 requirements when they conflict with `PRD.md` or `docs/SPEC_A-F`.
 
 1. **Reverse-DCF as core mechanic** — not "AI generates research report." Inputs are 4Q trailing actuals, output is implied assumptions, solved one variable at a time with Brent's method while holding others at consensus.
 2. **Investment research as the domain** — not medical, legal, or policy. Chosen because data is public, math is well-defined, and demo audience is at Singapore (finance-adjacent).
 3. **Multi-timeframe attribution (1d/5d/30d/1y)** — long-term decoding is the hero feature; short-term attribution is the secondary feature on TSLA.
 4. **Solo project** — scope must fit one person × 24 days.
-5. **Frontend follows research-report aesthetic** — paper-on-paper, oxblood accent, Geist fonts. No SaaS / AI-product visual cliches. See `pricelens_design_system.md` for the full visual contract.
+5. **v1 frontend followed a research-report aesthetic** — paper-on-paper, oxblood accent, Geist fonts. This is historical; v2 presentation follows `docs/SPEC_E_presentation.md` and `mockup_v2_young.html`.
 
 ---
 
@@ -105,14 +107,9 @@ Data Tools:
 - No premature abstraction — solo project, 24 days, optimize for delivery not architecture purity
 
 ### Frontend
-- **Strictly follow `pricelens_design_system.md`** — any deviation needs the user's explicit OK
-- Hard rules from the design system:
-  - No blue, purple, or gradients
-  - No italic — use weight contrast
-  - Only Geist + Geist Mono fonts
-  - Tables > grid cards for any >3-row data
-  - All numbers right-aligned, mono, `tnum` enabled
-- The `app.html` file is the canonical reference implementation. New components should be consistent with it.
+- For v2 UI, use `PRD.md`, `docs/SPEC_E_presentation.md`, and `mockup_v2_young.html` as the current direction.
+- `pricelens_design_system.md` is deprecated historical context, not a binding visual contract.
+- The existing `app.html` is legacy implementation context. Reuse useful behavior, but do not treat its v1 visual system as authoritative for v2.
 
 ### Writing (PRD, docs, etc.)
 - The user prefers concise, structured docs over prose
