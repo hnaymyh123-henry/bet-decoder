@@ -115,16 +115,17 @@ check("SMOKE GET /api/health 200 + {status:ok}",
       f"{r_health.status_code}")
 r_root = client.get("/")
 root_html = r_root.text
-workbench_markers = [
-    'class="workbench"', 'id="wb-canvas"', 'id="wb-feed"',
-    'id="card-grid"', 'id="tab-bar"',
+# v2 rewrite: single-column position-terminal + chart-as-subject app, not the
+# old multi-tab workbench canvas. Check the NEW app's real structural markers.
+app_markers = [
+    'id="view"', 'id="fab-decode"', 'id="decode-sheet"', 'id="changes-panel"',
 ]
-present = [m for m in workbench_markers if m in root_html]
+present = [m for m in app_markers if m in root_html]
 check("SMOKE GET / 200 + content-type HTML",
       r_root.status_code == 200 and "text/html" in r_root.headers.get("content-type", ""),
       f"{r_root.status_code} {r_root.headers.get('content-type')}")
-check("SMOKE GET / body carries workbench DOM markers (canvas + feed + tabs)",
-      len(present) >= 5, f"{len(present)}/{len(workbench_markers)} markers: {present}")
+check("SMOKE GET / body carries app DOM markers (view + decode sheet + changes drawer)",
+      len(present) == len(app_markers), f"{len(present)}/{len(app_markers)} markers: {present}")
 
 
 # ==========================================================================

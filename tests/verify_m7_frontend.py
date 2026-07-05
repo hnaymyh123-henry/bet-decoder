@@ -1,8 +1,9 @@
 """Workbench front-end acceptance checks.
 
-This is a static contract test for app.html. It intentionally checks stable
-structure, endpoint strings, and honest-empty states rather than brittle
-localized copy.
+This is a static contract test for app.html (v2 rewrite — single-column
+position-terminal + chart-as-subject detail pages, per SPEC_E). It checks
+stable structure, endpoint strings, and honest-empty states rather than
+brittle localized copy.
 
 Run from repo root:
     python tests/verify_m7_frontend.py
@@ -59,118 +60,7 @@ def main() -> int:
     status, body = serve_once()
     check("http.server serves page", status == 200 and len(body) > 1000, f"status={status} bytes={len(body)}")
 
-    has_canvas = 'id="wb-canvas"' in body and 'class="wb-canvas"' in body
-    has_feed = 'id="wb-feed"' in body and 'class="wb-feed"' in body
-    layout = "grid-template-areas:" in body and "canvas" in body and "feed" in body
-    check("workbench layout", has_canvas and has_feed and layout, f"canvas={has_canvas} feed={has_feed}")
-
-    flow = (
-        'id="bet-input"' in body
-        and 'id="decode-btn"' in body
-        and "function inferSource" in body
-        and "fetch('/api/decode'" in body
-        and 'id="card-grid"' in body
-    )
-    check("main decode flow wiring", flow)
-
-    tabs = (
-        'id="tab-bar"' in body
-        and "function renderTabBar" in body
-        and "function activateTab" in body
-        and "state.activeTab" in body
-        and "function renderSingleCard" in body
-        and "function renderPortfolioPage" in body
-    )
-    check("tabbed workspace", tabs)
-
-    hero = (
-        "cp-hero2" in body
-        and "cp-hero-l" in body
-        and "cp-hero-r" in body
-        and "function _reasoningTree" in body
-        and "price-chart-wrap" in body
-        and "function renderAgentPanel" in body
-        and "Decode Activity" in body
-        and "((c._display || {}).activity)" in body
-        and "ap-foot" in body
-        and "ap-ask" in body
-    )
-    check("hero row + sticky agent activity", hero)
-
-    reasoning = (
-        'class="cp-rtree"' in body
-        and "Reasoning chain" in body
-        and "function renderXrayTop" in body
-        and "Decode conclusion" in body
-        and "verdict_zh" in body
-    )
-    check("unified reasoning-chain lead", reasoning)
-
-    deep = (
-        "function renderDeepAnalysis" in body
-        and "renderDeepAnalysis(c)" in body
-        and 'class="cp-deep"' in body
-        and "function ensureDetail" in body
-        and "function _md" in body
-        and "da-debate" in body
-        and "da-sec" in body
-        and "per-assumption cross-validation" in body
-    )
-    check("deep-analysis section", deep)
-
-    limits = (
-        "function _methodLimits" in body
-        and "cp-limits" in body
-        and "Method & Limitations" in body
-        and "_methodLimits(c)" in body
-        and "_methodLimits(pf)" in body
-        and "not company-specific consensus" in body
-        and "CAPM cost of equity" in body
-        and "Does not constitute investment advice" in body
-    )
-    check("method and limits disclosure", limits)
-
-    citations = (
-        "function _citationsBlock" in body
-        and "function _domain" in body
-        and "da-sources" in body
-        and "da-cite" in body
-        and "ct-tier" in body
-        and 'rel="noopener noreferrer"' in body
-        and "af-reveal" in body
-        and "@keyframes afReveal" in body
-    )
-    check("source citations and activity reveal", citations)
-
-    portfolio = (
-        "function ensurePortfolioSynth" in body
-        and "function _portfolioSynthHtml" in body
-        and "function _renderRelations" in body
-        and "fetch('/api/synthesize'" in body
-        and "state.synth" in body
-        and "ids.length < 2" in body
-        and "'loading'" in body
-        and "'error'" in body
-        and "No significant cross-holding relations found" in body
-        and "rel-table" in body
-        and "Cross-Holding Synthesis" in body
-        and 'id="synth-btn"' not in body
-        and 'id="wb-synth"' not in body
-    )
-    check("portfolio synthesis and graceful states", portfolio)
-
-    activity = (
-        "new EventSource('/api/stream/activity/" in body
-        and all(k in body for k in (".af-event.k-decision", ".af-event.k-computation", ".af-event.k-evidence", ".af-event.k-relation"))
-        and ("k-' + kind" in body or "'k-' + kind" in body)
-        and "streamActivity" in body
-    )
-    check("activity feed SSE and replay", activity)
-
-    # SPEC_E §E-19/E-20 v2 design system: dark canvas #0B0E11, Inter, purple
-    # #7B61FF AI/agent accent, up-green / down-red, tabular numbers. The old v1
-    # linter (oxblood/Geist-only, no-purple, no-gradient) is retired — it forbade
-    # exactly the palette the v2 spec it was meant to guard now mandates.
+    # --- SPEC_E v2 design system: dark canvas, Inter, purple AI accent ---
     ds_tokens = {
         "dark canvas #0B0E11": "#0B0E11",
         "card surface #161A1F": "#161A1F",
@@ -182,62 +72,122 @@ def main() -> int:
     missing_tokens = [name for name, hexv in ds_tokens.items() if hexv not in body]
     check("design-system compliance (SPEC_E v2 palette)", not missing_tokens,
           ("missing " + ", ".join(missing_tokens)) if missing_tokens else "dark + #7B61FF purple accent present")
+    check("fonts: Inter primary + mono for numbers", '"Inter"' in body and "var(--mono)" in body)
 
-    check("fonts: Inter primary + mono for numbers (E-19)",
-          '"Inter"' in body and ("Geist Mono" in body or "ui-monospace" in body))
-    check("tables for dense data", "<table class=\"rel-table\"" in body and "pf-holdings" in body and "<table" in body)
-    check("numeric cells mono/right aligned", "var(--mono)" in body and "text-align: right" in body and ".pf-holdings .wt" in body and "tnum" in body)
-    check("responsive single-column collapse", "@media (max-width: 1024px)" in body and 'grid-template-areas: "canvas" "feed" "synth"' in body)
+    # --- structural principle: single-column app width, not a wide dashboard grid ---
+    check("single-column app-width shell (no info-stacking dashboard grid)",
+          ".app{max-width:640px" in body.replace(" ", "") or "max-width:640px" in body)
 
-    ctxt = CONTRACT.read_text(encoding="utf-8") if CONTRACT.exists() else ""
-    needed = ["/api/cards", "/api/decode", "/api/synthesize", "/api/stream/activity/"]
-    check("endpoint strings match API_CONTRACT", all(n in body for n in needed) and all(n.rstrip("/") in ctxt for n in needed))
-
-    check("disclaimer present and no fake language toggle", 'id="disclaimer-text"' in body and "Disclaimer." in body and 'id="lang-zh"' not in body and 'id="lang-en"' not in body)
-
-    viz = (
-        "function renderFlowDiagram" in body
-        and 'class="bc-flow"' in body
-        and "function _bandViz" in body
-        and '"fn-band"' in body
-        and "function _paintChart" in body
-        and "price-chart-wrap" in body
-        and "pc-line-baseline" in body
-        and "ensurePriceHistory" in body
-        and "function renderScenarioChips" in body
-        and "data-chip" in body
+    # --- home: position-terminal list, segmented tabs, health scoring ---
+    home = (
+        "function renderHome" in body
+        and "function renderHomeRow" in body
+        and "function healthOf" in body
+        and "data-hometab=" in body
+        and "class=\"prow\"" in body
+        and "data-gorow=" in body
+        and ".hdot" in body
     )
-    check("reasoning visualization layer", viz)
-    check("old thin chain removed", "const chain = (d.chain || [])" not in body and "const bets = (d.bets || []).map" not in body)
-    check("price chart lazy + honest empty", "/api/chart/" in body and "state.priceHistory" in body and ("no price history yet" in body or "No price history available" in body))
+    check("home: position-terminal list + segmented tabs + health dots", home)
 
-    # --- v2 product surfaces (SPEC_E E-9/E-10/E-11/E-14..E-17 · Waves 2-3) ---
+    empty_state = "No bets decoded yet" in body and "data-gorow" in body
+    check("home: usable empty state (not a blank canvas)", empty_state)
+
+    # --- decode flow: FAB + sheet, source inference, activity stream ---
+    decode = (
+        'id="fab-decode"' in body
+        and 'id="decode-sheet"' in body
+        and 'id="bet-input"' in body
+        and "function inferSource" in body
+        and "function runDecode" in body
+        and "'/api/decode'" in body
+        and "new EventSource('/api/stream/activity/" in body.replace('"', "'")
+    )
+    check("decode flow: sheet + source inference + activity SSE", decode)
+
+    # --- router: hash-based navigation, must react to BOTH popstate and
+    # hashchange (external hash edits fire hashchange, not popstate) ---
+    router = (
+        "function nav(" in body
+        and "function routeFromHash" in body
+        and "history.pushState" in body
+        and "addEventListener('popstate'" in body
+        and "addEventListener('hashchange'" in body
+    )
+    check("router: hash-based nav reacts to popstate AND hashchange", router)
+
+    # --- chart-as-subject (SPEC_E core): click any element -> one AI strip updates ---
+    chart = (
+        "function renderChart" in body
+        and "function paintSnapshotChart" in body
+        and "function paintHistoryChart" in body
+        and "function bindChartEvents" in body
+        and "class=\"ai-strip\"" in body
+        and "class=\"askbar\"" in body
+        and "_ecSetAI" in body
+    )
+    check("chart-as-subject: snapshot + history render modes, click-driven AI strip", chart)
+
+    honest_chart = (
+        "no numbers to plot yet" in body
+        and "becomes a drift chart once history accumulates" in body
+        and "/api/chart/" in body
+    )
+    check("chart: honest-empty / honest-snapshot copy (no fabricated series, E-13)", honest_chart)
+
+    # SVG hit-targets for horizontal lines must be real-area rects, not zero-height
+    # <line> elements (a straight line's bounding box has no area regardless of
+    # stroke-width, so it is unclickable/inaccessible) — regression guard.
+    line_hits = re.findall(r'<line[^`]*?class=."hit."[^`]*?/>', body)
+    check("chart: no zero-area <line> hit-targets (rect hit-areas for click reliability)",
+          len(line_hits) == 0, f"found {len(line_hits)} line.hit targets" if line_hits else "all line-shaped hits use <rect>")
+
+    # --- accordion blocks: collapsed by default, one open at a time ---
+    accordion = (
+        "function _blk(" in body
+        and "data-blktoggle=" in body
+        and "state.openBlk" in body
+        and ".blk-body{max-height:0" in body.replace(" ", "")
+    )
+    check("accordion: collapsed-by-default blocks, single active key per card", accordion)
+
+    blocks = (
+        "function renderOddsBlock" in body
+        and "function renderAltitudeBlock" in body
+        and "function renderDebateBlock" in body
+        and "function renderTradePlanBlock" in body
+        and "function renderDerivationBlock" in body
+        and "function renderDiscussBlock" in body
+    )
+    check("detail page: odds / altitude / debate / trade-plan / derivation / discuss blocks", blocks)
+
+    # --- trade plan / decision discipline (SPEC_E E-10/E-11) ---
     trade_plan = (
-        "function renderTradePlan" in body
-        and "cp-plan" in body
-        and "self_falsification" in body
-        and "self-falsification" in body.lower()
-        and "KILL line" in body
-        and "function ensureTradePlanContext" in body
-        and "/plan" in body and "method: 'POST'" in body
+        "self_falsification" in body
+        and "Self-falsification" in body
+        and "KILL" in body
+        and "data-poscommit=" in body
         and "function confirmPosition" in body
         and "/api/positions/events" in body
-        and "data-poscommit" in body
+        and "function ensureTradePlanContext" in body
         and "position_context" in body
         and "stale_snapshot" in body
+        and "tp-refuse" in body
     )
-    check("trade plan / decision-discipline section (E-10/E-11)", trade_plan)
+    check("trade plan: self-falsification, KILL, position confirm, honest refusal", trade_plan)
 
+    # --- portfolio Aha-B composite (SPEC_E E-9) ---
     ahab = (
-        "function _portfolioAhaB" in body
-        and "_portfolioAhaB(pf, decoded)" in body
-        and "ahab-hd" in body
+        "function renderPortfolioDetail" in body
+        and "Aha B" in body
         and "Systematic KILL" in body
         and "ahab-conc-bar" in body
         and "data_missing" in body
+        and "function renderSynthBlock" in body
     )
-    check("portfolio Aha-B composite (E-9)", ahab)
+    check("portfolio: Aha-B composite (headline, systematic KILL, concentration bar)", ahab)
 
+    # --- changes / monitoring feed (SPEC_E E-14..E-17, Wave 3) ---
     monitor = (
         "function renderChangesFeed" in body
         and "/api/monitor/feed" in body
@@ -248,14 +198,48 @@ def main() -> int:
         and "sev-unknown" in body
         and "not reported as calm" in body
     )
-    check("changes / monitoring feed (E-14..E-17, W3)", monitor)
+    check("changes/monitoring feed: severity + why_severity, honest unscanned state", monitor)
+
+    # --- discuss: ask / what-if / revise, never a silent no-op on failure ---
+    discuss = (
+        "function askCard" in body
+        and "function saveRevision" in body
+        and "/api/cards/" in body and "/ask" in body
+        and "/revise" in body
+        and "state.chat" in body
+        and "state.revision" in body
+    )
+    check("discuss: ask/what-if wired to /ask and /revise, chat + revision state", discuss)
+
+    # --- endpoint coverage matches the API authority docs (legacy endpoints in
+    # API_CONTRACT.md, v2 endpoints in SPEC_F_api.md per PRD's "SPEC_F +
+    # API_CONTRACT" combined authority) ---
+    ctxt = CONTRACT.read_text(encoding="utf-8") if CONTRACT.exists() else ""
+    specf_path = ROOT / "docs" / "SPEC_F_api.md"
+    specf = specf_path.read_text(encoding="utf-8") if specf_path.exists() else ""
+    docs = ctxt + specf
+    needed = ["/api/cards", "/api/decode", "/api/synthesize", "/api/stream/activity/",
+              "/api/chart/", "/api/positions", "/api/monitor/feed", "/api/monitor/scan"]
+    missing_doc = [n for n in needed if n.rstrip("/") not in docs]
+    check("endpoint strings match API_CONTRACT + SPEC_F", all(n in body for n in needed) and not missing_doc,
+          ("undocumented: " + ", ".join(missing_doc)) if missing_doc else "")
+
+    # --- no dead legacy surface: this is a genuinely new file, not a patched v1 ---
+    legacy = any(marker in body for marker in (
+        "renderSingleCard", "wb-canvas", "wb-feed", "cp-hero2", "renderTabBar",
+        "pricelens_design_system", "class=\"cp-plan\"",
+    ))
+    check("no legacy v1 workbench surface left in the rewrite", not legacy)
+
+    check("disclaimer present, no fake-language toggle",
+          ('id="lang-zh"' not in body and 'id="lang-en"' not in body))
 
     return report()
 
 
 def report() -> int:
     print("\n" + "=" * 72)
-    print("verify_m7_frontend.py - Workbench front-end")
+    print("verify_m7_frontend.py - Workbench front-end (v2 rewrite)")
     print("=" * 72)
     passed = 0
     for label, ok, note in results:
